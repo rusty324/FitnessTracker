@@ -1,7 +1,9 @@
 import { TABS, DEFAULT_TAB, APP_REPO, SYNC_WORKFLOW_FILE } from './config.js';
 import { getUnits, setUnits } from './units.js';
 import * as store from './storage/store.js';
-import { syncSections, setupRows, checkRow, syncBlocker, badgeState } from '../ghsync/settings-ui.js';
+import {
+  syncSections, setupRows, checkRow, syncBlocker, badgeState, errorPanel,
+} from '../ghsync/settings-ui.js';
 import { initTabbar } from './ui/tabbar.js';
 import { el, openModal, toast, downloadJson } from './ui/components.js';
 import { loadPreset } from './presets.js';
@@ -9,15 +11,48 @@ import { loadPreset } from './presets.js';
 const badge = document.getElementById('sync-badge');
 
 function renderBadge() {
-  const { text, cls } = badgeState(store);
+  const { text, cls, title, actionable } = badgeState(store);
   badge.hidden = false;
   badge.className = 'sync-badge';
   badge.textContent = text;
-  // The underlying error as a tooltip: "sync error" / "pending sync" alone
-  // can't be diagnosed.
-  badge.title = store.syncStatus().error?.message ?? '';
   if (cls) badge.classList.add(cls);
+  // With an error behind it, the badge opens the details: a tooltip alone
+  // can't be copied, and phones don't show tooltips at all.
+  badge.title = actionable ? `${title} — tap for details` : title;
+  if (actionable) {
+    badge.setAttribute('role', 'button');
+    badge.setAttribute('tabindex', '0');
+    badge.setAttribute('aria-label', `${text}: show details`);
+  } else {
+    badge.removeAttribute('role');
+    badge.removeAttribute('tabindex');
+    badge.removeAttribute('aria-label');
+  }
 }
+
+// The copyable error report, from the badge.
+function openSyncDetails() {
+  if (!badgeState(store).actionable) return;
+  const { status } = store.syncStatus();
+  let modal;
+  modal = openModal(status === 'error' ? 'Sync error' : 'Sync details', errorPanel(store, {
+    toast,
+    onRetry: (st) => {
+      renderBadge();
+      if (st.status === 'ok') {
+        modal.close();
+        tabbar.refresh();
+      }
+    },
+  }), [{ label: 'Close', class: 'btn secondary', onClick: () => {} }]);
+}
+badge.addEventListener('click', openSyncDetails);
+badge.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' || e.key === ' ') {
+    e.preventDefault();
+    openSyncDetails();
+  }
+});
 
 // ---------- Settings ----------
 // Sections are native <details> so the modal fits one screen; each summary

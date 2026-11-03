@@ -253,11 +253,13 @@ just one consumer: `js/storage/store.js` is the app-specific layer on top.
 Give each app its own `appId`; apps can share one private data repo as long as
 each uses its own **Folder in the repo**.
 
-**Where ghsync comes from.** The package is maintained in
-[rusty324/homeInventory](https://github.com/rusty324/homeInventory/tree/main/ghsync)
-(its `CHANGELOG.md` says which version this is). Don't edit `ghsync/` here:
-update it by replacing the whole folder with that repo's `ghsync/` — or the zip
-its `tools/pack-ghsync.mjs` builds — then run `node tests/run.mjs`. If
+**Where ghsync comes from.** The package is shared with
+[rusty324/homeInventory](https://github.com/rusty324/homeInventory/tree/main/ghsync),
+and each copy's `CHANGELOG.md` says which version it is. Whichever repo has
+the newer version is current: copy its whole `ghsync/` folder over the other
+one (homeInventory's `tools/pack-ghsync.mjs` zips it), never individual files,
+then run `node tests/run.mjs`. Version 1.2 was made here, so homeInventory is
+behind until it's copied across. If
 `ghsync/crypto.js` changed, copy it to `datarepo-template/scripts/crypto.js`
 too (and into your data repo's `scripts/`); `tests/crypto-drift.mjs` fails
 until you do.
