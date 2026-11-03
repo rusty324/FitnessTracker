@@ -15,6 +15,10 @@ permissions:
 jobs:
   sync:
     runs-on: ubuntu-latest
+    env:
+      # Must match "Folder in the repo" in the app's Settings. Unset = data,
+      # "/" = repo root. Set it as a repo variable, not a secret.
+      DATA_DIR: ${{ vars.DATA_DIR }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -42,7 +46,8 @@ jobs:
         run: |
           git config user.name "polar-sync[bot]"
           git config user.email "polar-sync@users.noreply.github.com"
-          git add data/activities
+          DIR="${DATA_DIR:-data}"; DIR="${DIR#/}"; DIR="${DIR%/}"
+          git add "${DIR:+$DIR/}activities"
           if git diff --cached --quiet; then
             echo "No new activities"
             exit 0

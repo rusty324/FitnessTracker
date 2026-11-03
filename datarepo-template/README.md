@@ -104,6 +104,7 @@ Optional repo **variables** (Settings → Secrets and variables → Actions →
 |---|---|---|
 | `SYNC_TYPES` | unset = all sports | Comma-separated Polar sport allowlist, e.g. `RUNNING,CYCLING`. |
 | `SYNC_MAX_ACTIVITIES` | `200` | Per-run cap. A warning is logged if there were more, so nothing is silently dropped. |
+| `DATA_DIR` | `data` | Folder holding the app's data. Must match **Folder in the repo** in the app's Settings; `/` means the repo root. Only change it if you changed that setting. |
 
 ### A note on Polar's transaction model
 

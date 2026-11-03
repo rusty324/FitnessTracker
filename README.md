@@ -213,10 +213,12 @@ node tests/run.mjs              # everything
 node tests/run.mjs app-settings # one suite
 ```
 
-The runner starts its own static server and drives the real pages in Chromium
-(Playwright, local or global install). `tests/ghsync-package.mjs` exercises the
-storage package on its own through `ghsync/example/`, so a regression there is
-caught independently of this app.
+The runner starts its own static server and drives the real pages in Chromium.
+It also runs ghsync's own suites from `ghsync/tests/`, which import
+`playwright` directly — so install it locally (`npm i -D playwright`; it is
+gitignored) or symlink a global install into `node_modules/`.
+`ghsync/tests/http-cache.test.mjs` needs `openssl` and port 443, and reports
+itself skipped where it can't bind that.
 
 ### Layout
 
@@ -247,8 +249,18 @@ const store = createStore({ appId: 'notes', files: { notes: 'data/notes.json' } 
 ```
 
 `ghsync/example/` is a complete working app built that way. This tracker is
-just its largest consumer: `js/storage/store.js` is the app-specific layer on
-top. Give each app its own `appId` and its own private data repo.
+just one consumer: `js/storage/store.js` is the app-specific layer on top.
+Give each app its own `appId`; apps can share one private data repo as long as
+each uses its own **Folder in the repo**.
+
+**Where ghsync comes from.** The package is maintained in
+[rusty324/homeInventory](https://github.com/rusty324/homeInventory/tree/main/ghsync)
+(its `CHANGELOG.md` says which version this is). Don't edit `ghsync/` here:
+update it by replacing the whole folder with that repo's `ghsync/` — or the zip
+its `tools/pack-ghsync.mjs` builds — then run `node tests/run.mjs`. If
+`ghsync/crypto.js` changed, copy it to `datarepo-template/scripts/crypto.js`
+too (and into your data repo's `scripts/`); `tests/crypto-drift.mjs` fails
+until you do.
 
 **This repo contains no personal data and no `data/` folder** — `/data/` is
 gitignored so a local experiment can't add one. Everything personal lives in

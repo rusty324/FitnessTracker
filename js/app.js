@@ -9,11 +9,13 @@ import { loadPreset } from './presets.js';
 const badge = document.getElementById('sync-badge');
 
 function renderBadge() {
-  const { text, cls, title } = badgeState(store);
+  const { text, cls } = badgeState(store);
   badge.hidden = false;
   badge.className = 'sync-badge';
   badge.textContent = text;
-  badge.title = title;
+  // The underlying error as a tooltip: "sync error" / "pending sync" alone
+  // can't be diagnosed.
+  badge.title = store.syncStatus().error?.message ?? '';
   if (cls) badge.classList.add(cls);
 }
 
@@ -56,6 +58,7 @@ function activitySyncSection() {
       el('p', { class: 'muted' },
         'Polar activities sync on a schedule from a workflow in your data repo — this button just runs ',
         'it now. It needs the Polar credentials set up there first; see datarepo-template/README.md. ',
+        'If you changed “Folder in the repo” above, set the same folder as the DATA_DIR variable there. ',
         'You can also import GPX/TCX files directly from Logs → History, with no API at all.'),
       syncBtn,
       blocker ? el('p', { class: 'muted', style: 'margin:6px 0 0' }, blocker) : null,
@@ -117,6 +120,7 @@ function templatesSection() {
 const SYNC_TEXT = {
   defaultOwner: APP_REPO.owner,
   repoPlaceholder: 'fitness-data',
+  previewFile: 'logs.json',
   appRepoNote: `The app itself is served from the public ${APP_REPO.owner}/${APP_REPO.repo}, `
     + 'which holds no personal data.',
   tokenScopeNote: 'A fine-grained personal access token scoped to only your private data repo, with '

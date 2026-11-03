@@ -13,6 +13,7 @@
 //
 // Writes: data/activities/activities-YYYY-MM.json (one shard per month, keyed
 //         by the activity's LOCAL date) and data/activities/sync-state.json.
+//         `data` is the DATA_DIR repo variable when one is set.
 // The browser never writes these files, so there is exactly one writer.
 // (File imports from the app go to data/imported/ instead.)
 //
@@ -29,7 +30,14 @@ import { join } from 'node:path';
 import { encryptJson, decryptJson, isEnvelope, DecryptError } from './crypto.js';
 
 const API = 'https://www.polaraccesslink.com';
-const ACTIVITY_DIR = join(process.cwd(), 'data', 'activities');
+// Must match "Folder in the repo" in the app's Settings, set here as the repo
+// variable DATA_DIR: unset means `data`, `/` means the repo root.
+const DATA_DIR = String(process.env.DATA_DIR || 'data').trim().replace(/^\/+|\/+$/g, '');
+if (DATA_DIR.split('/').some((s) => s === '..' || s === '.')) {
+  console.error(`Invalid DATA_DIR: ${process.env.DATA_DIR}`);
+  process.exit(1);
+}
+const ACTIVITY_DIR = join(process.cwd(), DATA_DIR, 'activities');
 const STATE_PATH = join(ACTIVITY_DIR, 'sync-state.json');
 
 const {
