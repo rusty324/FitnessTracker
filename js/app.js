@@ -163,9 +163,9 @@ const SYNC_TEXT = {
     + 'It needs no access to the public repo that serves this app.',
   privacyLocked: 'Some synced files are encrypted and the password is missing or wrong — '
     + 'enter it below to unlock.',
-  privacyOn: 'Logs, body metrics, goals, and GPS data are encrypted in the repo. '
+  privacyOn: 'Logs, body metrics, goals, gear, and GPS data are encrypted in the repo. '
     + 'Set the same password as the ENCRYPTION_PASSWORD secret in your data repo so the sync can read it.',
-  privacyOff: 'Optional second layer: encrypt logs, body metrics, goals, and GPS data before they are '
+  privacyOff: 'Optional second layer: encrypt logs, body metrics, goals, gear, and GPS data before they are '
     + 'committed. Plans and the exercise library stay readable.',
 };
 

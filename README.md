@@ -34,6 +34,22 @@ whichever branch is selected in the repo's Pages settings.)*
   (weight, body fat %, resting HR, waist — extensible via `BODY_METRICS` in
   `js/config.js`), per-metric trend charts plus pace/distance charts, and a
   plan-adherence percentage.
+- **Cardio logging** — every cardio entry (runs, walks, run/walk intervals,
+  rides, rows…) records duration as h:mm:ss, distance in mi or km, average
+  and max heart rate, calories, elevation gain (ft or m, following your
+  distance unit), treadmill/indoor vs. outside, and the gear used. Manual
+  logs and synced/imported activities share the same fields; Polar and
+  GPX/TCX imports fill in what they carry (max HR, calories, elevation,
+  treadmill).
+- **Gear** (Fitness Library → Gear) — shoes, bikes and anything else whose
+  distance you want to track, with a starting mileage, an optional
+  replace-at distance (shoes default to 400 mi / 650 km) and a warning as it
+  gets close. Each item can be the default for some sports from an "in use
+  since" date: synced runs count toward your default shoes without being
+  edited, any single activity can name different gear or "No gear", and the
+  most recently added default takes over — so adding a new pair doesn't
+  re-attribute runs already logged in the old one. Retired gear keeps its
+  mileage and history.
 - **Activity sync** — a scheduled workflow pulls new Polar activities into
   `data/activities/`, and **Logs → History → Import GPX/TCX** brings in files
   from any device. A fuzzy matcher suggests links between synced activities and
@@ -124,7 +140,7 @@ in Files, tap Uncompress, then pick the `.gpx` or `.tcx` inside.
 
 Now that data lives in a private repo this is defense-in-depth rather than
 load-bearing, but it's still worth enabling. Set a password in ⚙ Settings →
-Privacy and **logs, body metrics, goals, and all activity shards** are committed
+Privacy and **logs, body metrics, goals, gear, and all activity shards** are committed
 as AES-256-GCM envelopes (key derived from your password with PBKDF2, 310k
 iterations) instead of readable JSON. Plans, the exercise library, and match
 links stay plaintext. It protects you if the repo is ever made public by
@@ -272,6 +288,7 @@ the private data repo, laid out as:
 data/plans.json  data/exercises.json  data/logs.json
 data/metrics.json  data/goals.json  data/matches.json
 data/activity-edits.json   # your corrections to synced activities
+data/gear.json      # shoes, bikes… (mileage is computed, not stored)
 data/activities/…   # Polar sync workflow writes these
 data/imported/…     # the app's GPX/TCX import writes these
 ```

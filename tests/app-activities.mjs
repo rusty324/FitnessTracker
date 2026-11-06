@@ -75,17 +75,17 @@ step('and is capped at two lines', layout.lines <= 2 && layout.clipped, `${layou
 // ---- editing a workflow-owned activity ----
 await page.click(`.list-row:has-text("${LONG}") .row-main`);
 await page.waitForSelector('.modal-title:has-text("Edit activity")');
-step('editor prefills the duration as h:mm:ss', (await page.inputValue('.modal input[placeholder="0:45:00"]')) === '50:00');
-await page.fill('.modal input[placeholder="0:45:00"]', 'about an hour');
+step('editor prefills the duration as h:mm:ss', (await page.inputValue('.modal input[data-name="duration"]')) === '50:00');
+await page.fill('.modal input[data-name="duration"]', 'about an hour');
 await page.click('.modal-actions button:has-text("Save")');
 await page.waitForSelector('.toast.error');
 step('an unparseable duration is refused, nothing written',
   (await page.locator('.modal-title:has-text("Edit activity")').count()) === 1 && (await overlay()).length === 0);
 
 await page.fill('.modal input[type="text"] >> nth=0', 'Sunday long run');
-await page.selectOption('.modal select', 'trail_running');
-await page.fill('.modal input[placeholder="km"], .modal input[placeholder="mi"]', '12');
-await page.fill('.modal input[placeholder="0:45:00"]', '1:05:30');
+await page.selectOption('.modal select >> nth=0', 'trail_running');
+await page.fill('.modal input[data-name="distance"]', '12');
+await page.fill('.modal input[data-name="duration"]', '1:05:30');
 await page.fill('.modal textarea', 'Hot, eased off the last 2k');
 await page.click('.modal-actions button:has-text("Save")');
 await page.waitForSelector('.toast:has-text("Activity updated")');

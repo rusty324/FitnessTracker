@@ -101,11 +101,27 @@ function trackDistance(points) {
   return Math.round(total);
 }
 
-// -> { points, times, hrs, name, sportHint, statedDistanceM, statedSec }
+// Elevation gain with a 3 m dead band: raw GPS altitude jitters by a few
+// meters, and summing every wiggle would report a flat loop as a hill.
+// A climb only counts once it clears the band; a drop of the same size
+// resets the reference.
+function elevationGain(eles) {
+  let gain = 0;
+  let ref = null;
+  for (const e of eles) {
+    if (!Number.isFinite(e)) continue;
+    if (ref == null) { ref = e; continue; }
+    if (e - ref >= 3) { gain += e - ref; ref = e; } else if (ref - e >= 3) ref = e;
+  }
+  return Math.round(gain);
+}
+
+// -> { points, times, hrs, eles, name, sportHint, statedDistanceM, statedSec, statedCalories, statedMaxHr }
 function readGpx(doc) {
   const points = [];
   const times = [];
   const hrs = [];
+  const eles = [];
   for (const pt of tags(doc, 'trkpt')) {
     const lat = num(pt.getAttribute('lat'));
     const lon = num(pt.getAttribute('lon'));
@@ -115,16 +131,21 @@ function readGpx(doc) {
     if (t) times.push(Date.parse(t));
     const hr = firstText(pt, 'hr');
     if (hr != null) hrs.push(num(hr));
+    const ele = num(firstText(pt, 'ele'));
+    if (ele != null) eles.push(ele);
   }
   const trk = tags(doc, 'trk')[0];
   return {
     points,
     times,
     hrs,
+    eles,
     name: (trk && firstText(trk, 'name')) || firstText(doc, 'name'),
     sportHint: (trk && firstText(trk, 'type')) || null,
     statedDistanceM: null,
     statedSec: null,
+    statedCalories: null,
+    statedMaxHr: null,
   };
 }
 
@@ -132,6 +153,7 @@ function readTcx(doc) {
   const points = [];
   const times = [];
   const hrs = [];
+  const eles = [];
   for (const tp of tags(doc, 'Trackpoint')) {
     const lat = num(firstText(tp, 'LatitudeDegrees'));
     const lon = num(firstText(tp, 'LongitudeDegrees'));
@@ -141,23 +163,37 @@ function readTcx(doc) {
     const hrNode = tags(tp, 'HeartRateBpm')[0];
     const hr = hrNode ? num(firstText(hrNode, 'Value')) : null;
     if (hr != null) hrs.push(hr);
+    const ele = num(firstText(tp, 'AltitudeMeters'));
+    if (ele != null) eles.push(ele);
   }
   const activity = tags(doc, 'Activity')[0];
-  // TCX states distance and time per lap; sum them when present.
+  // TCX states distance, time and calories per lap; sum them when present,
+  // and take the highest lap maximum heart rate.
   let statedDistanceM = 0;
   let statedSec = 0;
+  let statedCalories = 0;
+  let statedMaxHr = null;
   for (const lap of tags(doc, 'Lap')) {
     statedDistanceM += num(firstText(lap, 'DistanceMeters')) ?? 0;
     statedSec += num(firstText(lap, 'TotalTimeSeconds')) ?? 0;
+    // Direct children only: Trackpoints nest deeper and carry no Calories.
+    const cal = [...lap.children].find((c) => c.localName === 'Calories');
+    statedCalories += num(cal?.textContent) ?? 0;
+    const maxNode = [...lap.children].find((c) => c.localName === 'MaximumHeartRateBpm');
+    const lapMax = maxNode ? num(firstText(maxNode, 'Value')) : null;
+    if (lapMax != null) statedMaxHr = Math.max(statedMaxHr ?? 0, lapMax);
   }
   return {
     points,
     times,
     hrs,
+    eles,
     name: firstText(doc, 'Notes'),
     sportHint: activity?.getAttribute('Sport') ?? null,
     statedDistanceM: statedDistanceM > 0 ? Math.round(statedDistanceM) : null,
     statedSec: statedSec > 0 ? Math.round(statedSec) : null,
+    statedCalories: statedCalories > 0 ? Math.round(statedCalories) : null,
+    statedMaxHr,
   };
 }
 
@@ -205,6 +241,12 @@ export async function parseActivityFile(filename, text) {
   const movingSec = r.statedSec ?? (Math.round((stamps[stamps.length - 1] - stamps[0]) / 1000) || null);
   const distanceM = r.statedDistanceM ?? (r.points.length > 1 ? trackDistance(r.points) : null);
   const avgHr = r.hrs.length ? Math.round(r.hrs.reduce((a, b) => a + b, 0) / r.hrs.length) : null;
+  const maxHr = r.statedMaxHr ?? (r.hrs.length ? Math.round(Math.max(...r.hrs)) : null);
+  const gain = r.eles.length > 1 ? elevationGain(r.eles) : null;
+  // Treadmill/indoor from the sport name when the exporter says so; a GPS
+  // track means it happened outside; otherwise leave it for the user.
+  const environment = /treadmill|indoor|virtual|trainer/i.test(r.sportHint ?? '') ? 'indoor'
+    : r.points.length > 1 ? 'outdoor' : null;
 
   const entry = {
     id: await fileId(text),
@@ -216,7 +258,10 @@ export async function parseActivityFile(filename, text) {
     movingSec,
     elapsedSec: movingSec,
     avgHr,
-    elevationM: null,
+    maxHr,
+    calories: r.statedCalories,
+    elevationM: gain,
+    environment,
     source: 'import',
   };
   if (r.points.length > 1) entry.gpsPolyline = encodePolyline(downsample(r.points));

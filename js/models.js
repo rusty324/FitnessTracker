@@ -86,6 +86,24 @@ export function makeLogEntry({
   return { id: uid(), date, planId, plannedExerciseId, exerciseId, actual, notes, rpe, source };
 }
 
+// A shoe, bike or other item whose distance is tracked. Its mileage is never
+// stored: it's computed from the activities that used it (js/cardio.js),
+// plus startDistanceM for what it had before it was added here.
+export function makeGear({ name = '', kind = 'shoes', sports = [], alertDistanceM = null } = {}) {
+  return {
+    id: uid(),
+    name,
+    kind, // 'shoes' | 'bike' | 'other'
+    sports, // cardio sport ids (CARDIO_SPORTS) it is the default for
+    isDefault: sports.length > 0,
+    startDistanceM: 0,
+    alertDistanceM, // "time to replace" threshold, or null
+    addedOn: todayStr(), // default gear only applies from this date…
+    retiredOn: null, // …up to this one
+    notes: '',
+  };
+}
+
 export function makeBodyMetric({
   date = todayStr(),
   weight = null, // kg

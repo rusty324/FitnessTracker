@@ -12,10 +12,12 @@ import {
 import {
   formatWeight, formatDistance, formatPace, paceChartValue, paceUnit,
   weightUnit, weightToInput, weightFromInput,
-  distanceUnit, distanceToInput, distanceFromInput, resolveMetric,
+  distanceUnit, distanceToInput, resolveMetric,
 } from '../units.js';
 import { lineChart, datePoints } from '../charts.js';
+import { isCardioExercise, hasCardioData, sportOf, defaultGear } from '../cardio.js';
 import { el, openModal, confirmDialog, toast, emptyState, filePicker } from './components.js';
+import { cardioFields, cardioExtras } from './cardio-form.js';
 import { pickExercise, targetSummary } from './plans-tab.js';
 
 let root = null;
@@ -334,16 +336,20 @@ function logEntryModal({ existing = null, plan = null, session = null, pe = null
   // What the entry already holds wins: the form must be able to represent
   // existing data even when the exercise it referenced has been deleted,
   // because Save rebuilds `actual` from whichever fields are shown.
-  // Intervals are logged as a completed duration (total time), which keeps
-  // the entry comparable with duration work.
-  let kind = (existing ? inferKind(existing.actual) : null)
-    ?? pe?.target?.kind
-    ?? (['distance', 'duration'].includes(ex?.measurementType) ? ex.measurementType : 'reps');
-  if (kind === 'intervals') kind = 'duration';
+  // Cardio (by exercise category/modality, a distance target, or cardio data
+  // already in the entry) gets the full cardio form. Non-cardio intervals are
+  // logged as a completed duration, comparable with other timed work.
   const a = entry.actual ?? {};
   const t = pe?.target ?? {};
+  const inferred = existing ? inferKind(existing.actual) : null;
+  const cardio = hasCardioData(a)
+    || (inferred !== 'reps' && (isCardioExercise(ex) || t.kind === 'distance' || ex?.measurementType === 'distance'));
+  let kind = cardio ? 'cardio'
+    : inferred ?? t.kind ?? (ex?.measurementType === 'duration' ? 'duration' : 'reps');
+  if (kind === 'intervals') kind = 'duration';
   const dateInput = el('input', { type: 'date', value: entry.date });
   const fields = el('div', { class: 'field-row' });
+  let cardioForm = null;
   const num = (name, value, step = 1) =>
     el('input', { type: 'number', inputmode: 'decimal', step, value: value ?? '', dataset: { name } });
   const field = (label, input) => el('div', { class: 'field' }, el('label', {}, label), input);
@@ -354,11 +360,14 @@ function logEntryModal({ existing = null, plan = null, session = null, pe = null
       field('Reps', num('reps', a.reps ?? t.reps)),
       field(`Weight (${weightUnit()})`, num('weight', weightToInput(a.weight ?? t.weight) ?? '', 0.5)),
     );
-  } else if (kind === 'distance') {
-    fields.append(
-      field(`Distance (${distanceUnit()})`, num('km', distanceToInput(a.distanceM ?? t.distanceM) ?? '', 0.01)),
-      field('Time (min)', num('min', a.movingSec ? +(a.movingSec / 60).toFixed(1) : '', 0.5)),
-    );
+  } else if (kind === 'cardio') {
+    // Older cardio logs held minutes only (durationSec); show that as the
+    // duration so re-saving keeps it. A new entry starts from the plan target.
+    cardioForm = cardioFields({
+      ...a,
+      movingSec: a.movingSec ?? a.durationSec ?? (existing ? null : t.durationSec ?? t.totalSec ?? null),
+      distanceM: a.distanceM ?? (existing ? null : t.distanceM ?? null),
+    }, { gear: store.get('gear'), sport: sportOf(entry, ex), date: entry.date });
   } else {
     const prefillSec = a.durationSec ?? t.durationSec ?? t.totalSec;
     fields.append(field('Duration (min)', num('min', prefillSec ? +(prefillSec / 60).toFixed(1) : '', 1)));
@@ -371,7 +380,7 @@ function logEntryModal({ existing = null, plan = null, session = null, pe = null
 
   const body = el('div', {},
     el('div', { class: 'field' }, el('label', {}, 'Date'), dateInput),
-    fields,
+    cardioForm ? cardioForm.el : fields,
     el('div', { class: 'field' }, el('label', {}, 'RPE (1–10, optional)'), rpeInput),
     el('div', { class: 'field' }, el('label', {}, 'Notes'), notesInput),
   );
@@ -391,9 +400,18 @@ function logEntryModal({ existing = null, plan = null, session = null, pe = null
           actual.sets = val('sets');
           actual.reps = val('reps');
           if (val('weight') != null) actual.weight = weightFromInput(val('weight'));
-        } else if (kind === 'distance') {
-          if (val('km') != null) actual.distanceM = distanceFromInput(val('km'));
-          if (val('min') != null) actual.movingSec = Math.round(val('min') * 60);
+        } else if (kind === 'cardio') {
+          const r = cardioForm.read();
+          if (r.error) { toast(r.error, 'error'); return false; }
+          for (const [k, v] of Object.entries(r.values)) if (v != null) actual[k] = v;
+          // "Default" is pinned to the gear that's the default right now, so
+          // adding new shoes later doesn't move runs already logged in the old
+          // ones. With no default set it stays open, and gear added later
+          // with an earlier "in use since" date picks it up.
+          if (actual.gearId == null) {
+            const d = defaultGear(store.get('gear'), sportOf(entry, ex), dateInput.value || todayStr());
+            if (d) actual.gearId = d.id;
+          }
         } else if (val('min') != null) {
           actual.durationSec = Math.round(val('min') * 60);
         }
@@ -480,27 +498,33 @@ function renderHistory() {
     return;
   }
   const card = el('div', { class: 'card' });
+  const gear = store.get('gear');
   for (const item of items) {
-    card.appendChild(item.kind === 'log' ? logRow(item.log, lib, planById) : activityRow(item.entry, lib, planById));
+    card.appendChild(item.kind === 'log' ? logRow(item.log, lib, planById, gear) : activityRow(item.entry, lib, planById, gear));
   }
   root.appendChild(card);
 }
 
-function logRow(log, lib, planById) {
+function logRow(log, lib, planById, gear = []) {
   const ex = lib.get(log.exerciseId);
   const plan = planById.get(log.planId);
+  const extras = isCardioExercise(ex) || hasCardioData(log.actual)
+    ? cardioExtras({ ...log.actual, date: log.date, sport: sportOf(log, ex) }, gear)
+    : '';
   return el('div', { class: 'list-row' },
     el('div', { class: 'row-main tappable', onclick: () => logEntryModal({ existing: log, ex }) },
       el('div', { class: 'row-title' }, ex?.name ?? 'Activity'),
       el('div', { class: 'row-sub' },
         `${formatDate(log.date)} · ${actualSummary(log.actual)}${log.rpe ? ` · RPE ${log.rpe}` : ''}`),
+      extras && el('div', { class: 'row-sub' }, extras),
       log.notes && el('div', { class: 'row-sub' }, log.notes),
     ),
     el('span', { class: `pill ${plan ? 'accent' : ''}` }, plan ? plan.name : 'ad-hoc'),
   );
 }
 
-function activityRow(entry, lib, planById) {
+function activityRow(entry, lib, planById, gear = []) {
+  const extras = cardioExtras({ ...entry, sport: sportOf(entry, null) }, gear);
   const statusPill = {
     unmatched: ['pill', 'unlinked'],
     suggested: ['pill warn', 'suggested'],
@@ -514,6 +538,7 @@ function activityRow(entry, lib, planById) {
         el('span', { class: 'pill' }, entry.source ?? 'synced'),
         entry.edited ? el('span', { class: 'pill', style: 'margin-left:4px' }, 'edited') : ''),
       el('div', { class: 'row-sub' }, `${formatDate(entry.date)} · ${actualSummary(entry)}`),
+      extras && el('div', { class: 'row-sub' }, extras),
       entry.notes && el('div', { class: 'row-sub' }, entry.notes),
     ),
     el('span', { class: statusPill[0] }, statusPill[1]),
@@ -561,24 +586,6 @@ const SPORT_OPTIONS = [
   ['other_indoor', 'Other (indoor)'],
 ];
 
-// h:mm:ss / mm:ss / ss -> seconds. NaN signals "typed something unusable",
-// which the caller reports rather than silently storing a wrong duration.
-function parseHms(v) {
-  const t = String(v ?? '').trim();
-  if (!t) return null;
-  const parts = t.split(':');
-  if (parts.length > 3 || parts.some((p) => p === '' || !Number.isFinite(+p))) return NaN;
-  return Math.round(parts.reduce((acc, p) => acc * 60 + +p, 0));
-}
-function formatHms(sec) {
-  if (sec == null) return '';
-  const h = Math.floor(sec / 3600);
-  const m = Math.floor((sec % 3600) / 60);
-  const s = Math.round(sec % 60);
-  const pad = (n) => String(n).padStart(2, '0');
-  return h ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`;
-}
-
 // Correct a synced or imported activity. Edits are kept in a browser-owned
 // overlay (store.editActivity), so nothing here writes the sync workflow's
 // files and a later re-sync can't undo the correction.
@@ -590,27 +597,21 @@ function activityEditModal(entry) {
   const type = el('select', {}, options.map(([v, label]) =>
     el('option', { value: v, selected: v === entry.type }, label)));
   const date = el('input', { type: 'date', value: entry.date });
-  const distance = el('input', {
-    type: 'number', step: '0.01', min: '0',
-    value: distanceToInput(entry.distanceM) ?? '', placeholder: distanceUnit(),
-  });
-  const duration = el('input', { type: 'text', value: formatHms(entry.movingSec), placeholder: '0:45:00' });
-  const hr = el('input', { type: 'number', step: '1', min: '0', value: entry.avgHr ?? '' });
+  const cardio = cardioFields(entry, { gear: store.get('gear'), sport: sportOf(entry, null), date: entry.date });
   const notes = el('textarea', { placeholder: 'How it felt, conditions, anything worth keeping' }, entry.notes ?? '');
-  const numOrNull = (input) => (input.value === '' ? null : parseFloat(input.value));
   let modal;
 
   const save = async () => {
-    const sec = parseHms(duration.value);
-    if (Number.isNaN(sec)) { toast('Duration should look like 45:00 or 1:05:30', 'error'); return false; }
+    const r = cardio.read();
+    if (r.error) { toast(r.error, 'error'); return false; }
     if (!date.value) { toast('Pick a date', 'error'); return false; }
+    // editActivity stores only what differs from the synced record, so a
+    // field left as it came (gear left on "Default" included) isn't an edit.
     await store.editActivity(entry.id, {
       name: name.value.trim() || null,
       type: type.value || null,
       date: date.value,
-      distanceM: distanceFromInput(numOrNull(distance)),
-      movingSec: sec,
-      avgHr: numOrNull(hr),
+      ...r.values,
       notes: notes.value.trim() || null,
     });
     modal.close();
@@ -646,11 +647,7 @@ function activityEditModal(entry) {
     el('div', { class: 'field' }, el('label', {}, 'Name'), name),
     el('div', { class: 'field' }, el('label', {}, 'Sport'), type),
     el('div', { class: 'field' }, el('label', {}, 'Date'), date),
-    el('div', { class: 'field-row' },
-      el('div', { class: 'field' }, el('label', {}, `Distance (${distanceUnit()})`), distance),
-      el('div', { class: 'field' }, el('label', {}, 'Duration (h:mm:ss)'), duration),
-      el('div', { class: 'field' }, el('label', {}, 'Avg HR'), hr),
-    ),
+    cardio.el,
     el('div', { class: 'field' }, el('label', {}, 'Notes'), notes),
     el('p', { class: 'muted' }, entry.gpsPolyline
       ? 'The GPS route is kept as recorded. Edits are stored separately from the synced file, so re-syncing won’t undo them.'

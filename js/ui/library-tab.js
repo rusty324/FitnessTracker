@@ -1,6 +1,6 @@
 // Fitness Library tab: the exercise library (with full v2 detail — cues,
-// safety notes, variants — and per-set RWI history) plus training Goals
-// (bodyweight, run times, exercise targets).
+// safety notes, variants — and per-set RWI history), training Goals
+// (bodyweight, run times, exercise targets), and Gear (js/ui/gear-view.js).
 //
 // RWI (Relative Work Index) normalizes bodyweight work against your goal
 // weight: RWI = (reps, or duration in seconds) × (goal weight / body weight
@@ -17,10 +17,11 @@ import {
 import { el, openModal, confirmDialog, toast, emptyState, downloadJson, filePicker } from './components.js';
 import { loadManifest, loadPreset } from '../presets.js';
 import { editExercise, pickExercise, targetSummary, libraryUpserter, exerciseDef, slug } from './plans-tab.js';
+import { renderGear } from './gear-view.js';
 
 let root = null;
 let unsub = null;
-let view = { name: 'exercises' }; // {name:'exercises'} | {name:'exercise', id} | {name:'goals'}
+let view = { name: 'exercises' }; // {name:'exercises'} | {name:'exercise', id} | {name:'goals'} | {name:'gear'}
 
 export function mount(elRoot) {
   root = elRoot;
@@ -40,15 +41,20 @@ function render() {
   root.innerHTML = '';
   root.appendChild(el('div', { class: 'segmented' },
     el('button', {
-      class: view.name !== 'goals' ? 'active' : '',
+      class: view.name === 'exercises' || view.name === 'exercise' ? 'active' : '',
       onclick: () => { view = { name: 'exercises' }; render(); },
     }, 'Exercises'),
     el('button', {
       class: view.name === 'goals' ? 'active' : '',
       onclick: () => { view = { name: 'goals' }; render(); },
     }, 'Goals'),
+    el('button', {
+      class: view.name === 'gear' ? 'active' : '',
+      onclick: () => { view = { name: 'gear' }; render(); },
+    }, 'Gear'),
   ));
   if (view.name === 'goals') renderGoals();
+  else if (view.name === 'gear') renderGear(root);
   else if (view.name === 'exercise') renderExerciseDetail(view.id);
   else renderExerciseList();
 }

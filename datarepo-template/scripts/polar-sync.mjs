@@ -174,6 +174,8 @@ function downsample(points, max = 500) {
 // is already local, matching how shards are keyed by local month.
 export function mapExercise(ex) {
   const distance = Number(ex.distance);
+  const whole = (v) => (v != null && Number.isFinite(Number(v)) ? Math.round(Number(v)) : null);
+  const sport = `${ex.sport ?? ''} ${ex['detailed-sport-info'] ?? ''}`;
   return {
     id: `polar-${ex.id}`,
     sourceId: String(ex.id),
@@ -184,7 +186,12 @@ export function mapExercise(ex) {
     movingSec: parseIsoDuration(ex.duration),
     elapsedSec: parseIsoDuration(ex.duration),
     avgHr: ex['heart-rate']?.average ?? null,
-    elevationM: Number.isFinite(Number(ex['ascent'])) ? Math.round(Number(ex.ascent)) : null,
+    maxHr: ex['heart-rate']?.maximum ?? null,
+    calories: whole(ex.calories),
+    elevationM: whole(ex.ascent),
+    // Treadmill/indoor when the sport says so; a recorded route means outside;
+    // otherwise unknown, and the app lets you set it.
+    environment: /TREADMILL|INDOOR/i.test(sport) ? 'indoor' : ex['has-route'] ? 'outdoor' : null,
     source: 'polar',
   };
 }

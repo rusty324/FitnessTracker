@@ -37,6 +37,8 @@ export const DATA_FILES = {
   // than in-place edits, because most activity shards belong to the sync
   // workflow and the browser must not write them — see store.js.
   activityEdits: 'data/activity-edits.json',
+  // Shoes, bikes and other kit whose mileage is tracked (see js/cardio.js).
+  gear: 'data/gear.json',
 };
 // Synced activities, split by writer so the two can never conflict:
 //   ACTIVITY_DIR — written only by the Polar sync workflow (Actions)
@@ -105,6 +107,25 @@ export function sportMapping(type) {
 // Fuzzy matcher: how many days a plan session may differ from the
 // activity date and still be considered a candidate.
 export const MATCH_WINDOW_DAYS = 1;
+
+// Cardio modalities: an exercise with one of these (or category 'cardio')
+// gets the cardio log form, and gear can be the default for each.
+export const CARDIO_SPORTS = [
+  { id: 'run', label: 'Running' },
+  { id: 'walk', label: 'Walking / hiking' },
+  { id: 'bike', label: 'Cycling' },
+  { id: 'swim', label: 'Swimming' },
+  { id: 'row', label: 'Rowing' },
+];
+
+// Gear kinds. `sports` is what a new item defaults to; `alert` is a common
+// replace-at distance per display unit (shoes are usually retired at
+// 300–500 mi), offered as a starting point and editable.
+export const GEAR_KINDS = [
+  { id: 'shoes', label: 'Shoes', icon: '👟', sports: ['run'], alert: { mi: 400, km: 650 } },
+  { id: 'bike', label: 'Bike', icon: '🚲', sports: ['bike'], alert: null },
+  { id: 'other', label: 'Other', icon: '🎒', sports: [], alert: null },
+];
 
 export const TARGET_KINDS = [
   { id: 'reps', label: 'Sets × Reps' },

@@ -7,6 +7,7 @@ const KEY = 'ft.units';
 const LB_PER_KG = 1 / 0.45359237;
 const M_PER_MI = 1609.344;
 const CM_PER_IN = 2.54;
+const FT_PER_M = 1 / 0.3048;
 
 const DEFAULTS = { weight: 'kg', distance: 'km', length: 'cm' };
 
@@ -57,6 +58,24 @@ export function formatDistance(meters) {
   if (meters == null) return '';
   const v = distanceUnit() === 'mi' ? meters / M_PER_MI : meters / 1000;
   return `${v.toFixed(meters >= 100000 ? 0 : 2)} ${distanceUnit()}`;
+}
+
+// ---------- elevation (canonical: meters) ----------
+// Follows the distance unit: miles pair with feet, kilometers with meters.
+
+export const elevationUnit = () => (distanceUnit() === 'mi' ? 'ft' : 'm');
+export function elevationToInput(meters) {
+  if (meters == null) return null;
+  return Math.round(distanceUnit() === 'mi' ? meters * FT_PER_M : meters);
+}
+export function elevationFromInput(v) {
+  if (v == null) return null;
+  // One decimal of meters keeps a feet value stable through a round trip.
+  return distanceUnit() === 'mi' ? +(v / FT_PER_M).toFixed(1) : v;
+}
+export function formatElevation(meters) {
+  if (meters == null) return '';
+  return `${elevationToInput(meters)} ${elevationUnit()}`;
 }
 
 // ---------- pace (canonical: sec per km) ----------

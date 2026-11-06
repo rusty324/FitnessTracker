@@ -422,3 +422,14 @@ label { display: block; font-size: 0.85rem; color: var(--text-dim); margin-botto
 }
 .stat-value { font-size: 1.35rem; font-weight: 700; }
 .stat-label { font-size: 0.75rem; color: var(--text-dim); }
+
+/* ---------- Gear ---------- */
+.gear-distance { font-size: 1.25rem; font-weight: 700; white-space: nowrap; }
+.gear-bar { height: 6px; border-radius: 999px; background: var(--surface-2); overflow: hidden; margin: 10px 0 4px; }
+.gear-bar-fill { height: 100%; background: var(--ok); }
+.gear-bar-fill.warn { background: var(--warn); }
+.gear-bar-fill.danger { background: var(--danger); }
+.gear-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.check-group { display: flex; flex-wrap: wrap; gap: 6px 14px; }
+.check-inline { display: inline-flex; align-items: center; gap: 6px; font-size: 0.9rem; color: var(--text); margin: 0; }
+.check-inline input { width: auto; min-height: 0; }
