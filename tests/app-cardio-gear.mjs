@@ -118,6 +118,42 @@ step('and the extras line', /Treadmill · ↑ 300 ft · 600 kcal · max 172 bpm 
 await openGear();
 step('the run adds to the shoes', (await cardDistance('Pegasus 40')) === '20.11 mi', await cardDistance('Pegasus 40'));
 
+// ---------- typing a duration on a phone's number pad (no colon key) ----------
+await pick('Easy run');
+await page.waitForSelector(f('duration'));
+const dur = page.locator(f('duration'));
+step('the duration field asks for the number pad', (await dur.getAttribute('inputmode')) === 'numeric');
+const typed = [];
+for (const key of '4530') { await dur.press(key); typed.push(await dur.inputValue()); }
+step('digits fill in like a timer, colons placed automatically',
+  typed.join(' → ') === '0:04 → 0:45 → 4:53 → 45:30', typed.join(' → '));
+await dur.press('0');
+step('a fifth digit moves into hours', (await dur.inputValue()) === '4:53:00');
+await dur.press('Backspace');
+step('backspace steps back', (await dur.inputValue()) === '45:30');
+for (let i = 0; i < 4; i++) await dur.press('Backspace');
+step('and backspacing to the start clears it', (await dur.inputValue()) === '');
+await dur.pressSequentially('13000');
+step('13000 reads 1:30:00', (await dur.inputValue()) === '1:30:00');
+// A hardware keyboard can type colons; then the value means what it says.
+await dur.fill('');
+await dur.pressSequentially('1:5:30');
+step('a typed colon is taken literally', (await dur.inputValue()) === '1:5:30');
+await dur.fill('');
+await dur.pressSequentially('4530');
+await page.fill(f('distance'), '5');
+await page.click('.modal-actions button:has-text("Save")');
+await page.waitForSelector('.toast:has-text("Logged")');
+const timed = (await get('logs')).filter((l) => l.exerciseId === 'ex-run').at(-1);
+step('digits-only entry saves the right duration', timed.actual.movingSec === 2730, String(timed.actual.movingSec));
+// Keep the gear totals below unchanged by this extra run.
+await page.evaluate((id) => {
+  const k = 'ft.data.data/logs.json';
+  localStorage.setItem(k, JSON.stringify(JSON.parse(localStorage.getItem(k)).filter((l) => l.id !== id)));
+}, timed.id);
+await page.reload();
+await page.waitForSelector('.tabbar button');
+
 // ---------- non-cardio is untouched ----------
 await pick('Plank');
 await page.waitForSelector('.modal-title:has-text("Plank")');

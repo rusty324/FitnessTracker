@@ -6,7 +6,7 @@ import {
   distanceUnit, distanceToInput, distanceFromInput,
   elevationUnit, elevationToInput, elevationFromInput, formatElevation,
 } from '../units.js';
-import { parseHms, formatHms, NO_GEAR, defaultGear, resolveGear, inService } from '../cardio.js';
+import { parseHms, formatHms, digitsToHms, NO_GEAR, defaultGear, resolveGear, inService } from '../cardio.js';
 import { el } from './components.js';
 
 const ENVIRONMENTS = [
@@ -16,6 +16,42 @@ const ENVIRONMENTS = [
 ];
 
 export const gearIcon = (gear) => GEAR_KINDS.find((k) => k.id === gear?.kind)?.icon ?? '🎒';
+
+// iPhone's number pad has no colon, and a web page can't add keys to it. So
+// the duration field takes digits only and places the colons itself, like a
+// microwave timer (js/cardio.js digitsToHms). Typing or pasting anything
+// else — a colon from a hardware keyboard, "1:5:30" — is taken literally
+// until the field is cleared, so explicit input always means what it says.
+export function timerEntry(input) {
+  let literal = false;
+  input.addEventListener('beforeinput', (e) => {
+    if (literal) return;
+    const text = e.data ?? e.dataTransfer?.getData('text') ?? '';
+    if (!/[^\d]/.test(text)) return;
+    literal = true;
+    // A colon typed after a few digits: the timer has already laid "1" out
+    // as "0:01", so put back the digits as typed, then let the colon follow
+    // them — "1", ":" gives "1:", not "0:01:". Only for one character at the
+    // end; a paste or a replaced selection goes through untouched.
+    const atEnd = input.selectionStart === input.selectionEnd && input.selectionEnd === input.value.length;
+    if (e.inputType === 'insertText' && text.length === 1 && atEnd && input.value) {
+      e.preventDefault();
+      input.value = input.value.replace(/\D/g, '').replace(/^0+/, '') + text;
+      input.setSelectionRange?.(input.value.length, input.value.length);
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+  });
+  input.addEventListener('input', () => {
+    if (!input.value) literal = false;
+    if (literal) return;
+    const formatted = digitsToHms(input.value);
+    if (formatted !== input.value) {
+      input.value = formatted;
+      input.setSelectionRange?.(formatted.length, formatted.length);
+    }
+  });
+  return input;
+}
 
 // <select> of gear for one entry. Values: '' = use the default for this
 // sport/date, NO_GEAR, or a gear id. Retired gear is only listed when the
@@ -51,9 +87,9 @@ export function cardioFields(values = {}, { gear = [], sport = null, date }) {
   const num = (name, value, step, attrs = {}) => el('input', {
     type: 'number', inputmode: step === 1 ? 'numeric' : 'decimal', step, min: '0', value: value ?? '', dataset: { name }, ...attrs,
   });
-  const duration = el('input', {
+  const duration = timerEntry(el('input', {
     type: 'text', inputmode: 'numeric', placeholder: 'h:mm:ss', value: formatHms(values.movingSec), dataset: { name: 'duration' },
-  });
+  }));
   const distance = num('distance', distanceToInput(values.distanceM), 0.01);
   const avgHr = num('avgHr', values.avgHr, 1);
   const maxHr = num('maxHr', values.maxHr, 1);

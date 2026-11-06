@@ -45,6 +45,20 @@ export function formatHms(sec) {
   return h ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`;
 }
 
+// Timer-style entry: digits fill from the right, colons are implied.
+// "4530" -> "45:30", "13000" -> "1:30:00", "5" -> "0:05". Up to six digits
+// (99:59:59); leading zeros mean nothing and all-zero is empty, so
+// backspacing all the way down clears the field.
+export function digitsToHms(raw) {
+  const d = String(raw ?? '').replace(/\D/g, '').replace(/^0+/, '').slice(0, 6);
+  if (!d) return '';
+  const ss = d.slice(-2).padStart(2, '0');
+  const rest = d.slice(0, -2);
+  if (!rest) return `0:${ss}`;
+  if (rest.length <= 2) return `${+rest}:${ss}`;
+  return `${+rest.slice(0, -2)}:${rest.slice(-2)}:${ss}`;
+}
+
 // ---------- gear ----------
 // gearId on an entry: absent = the default gear for its sport on that date,
 // NO_GEAR = explicitly none, anything else = that gear's id. Defaults are
