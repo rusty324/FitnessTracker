@@ -13,8 +13,8 @@ export const DEFAULT_TAB = 'logs';
 // never writes here.
 export const APP_REPO = {
   owner: 'rusty324',
-  repo: 'webApps',
-  branch: 'fitnessTracker',
+  repo: 'FitnessTracker',
+  branch: 'main',
 };
 
 // Where personal data is stored — a SEPARATE PRIVATE repo, configured at
