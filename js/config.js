@@ -54,6 +54,46 @@ export const CATEGORIES = ['cardio', 'strength', 'mobility', 'plyometric', 'skil
 export const MODALITIES = ['run', 'walk', 'bike', 'swim', 'row', 'bodyweight', 'barbell', 'dumbbell', 'machine', 'band', 'stretch', 'mobility', 'other'];
 export const MEASUREMENT_TYPES = ['reps', 'duration', 'distance', 'intervals'];
 
+// Body position(s) an exercise is done in (exercise.positions; an exercise
+// can have several, e.g. a shoulder press standing or seated).
+export const POSITIONS = [
+  { id: 'standing', label: 'Standing', short: 'Standing' },
+  { id: 'sitting', label: 'Sitting', short: 'Sitting' },
+  { id: 'lying', label: 'Lying down', short: 'Lying' },
+  { id: 'kneeling', label: 'Kneeling / all fours', short: 'Kneeling' },
+  { id: 'plank', label: 'Plank / push-up position', short: 'Plank' },
+  { id: 'hanging', label: 'Hanging / supported', short: 'Hanging' },
+  { id: 'inverted', label: 'Upside down', short: 'Upside down' },
+];
+
+// Muscle groups for filtering. Exercises keep their detailed, free-text
+// primaryTargets ("latissimus dorsi", "glute medius"…); these patterns map
+// that text onto groups at read time — see js/exercise-filters.js.
+export const MUSCLE_GROUPS = [
+  { id: 'chest', label: 'Chest', match: /chest|\bpec/ },
+  { id: 'back', label: 'Back', match: /\blats?\b|latissimus|rhomboid|upper back|\bback\b|\btrap|erector/ },
+  { id: 'shoulders', label: 'Shoulders', match: /shoulder|deltoid|\bdelts?\b|rotator cuff|serratus/ },
+  { id: 'arms', label: 'Arms', match: /bicep|tricep|forearm|brachi/ },
+  { id: 'core', label: 'Core', match: /\bcore\b|\babs?\b|abdomin|oblique|anterior chain/ },
+  { id: 'glutes', label: 'Glutes', match: /glute|hip abductor|hip external rotator/ },
+  { id: 'quads', label: 'Quads', match: /quad|\blegs?\b/ },
+  { id: 'hamstrings', label: 'Hamstrings', match: /hamstring|\blegs?\b/ },
+  { id: 'hips', label: 'Hip flexors & adductors', match: /hip flexor|adductor/ },
+  { id: 'calves', label: 'Calves & shins', match: /\bcalf|calves|gastrocnemius|soleus|achilles|tibialis|\bankle|\bshin/ },
+  { id: 'cardio', label: 'Cardio', match: /cardio/ },
+];
+
+// What load an exercise needs, derived from its modality and its (non-
+// optional) equipment. Anything needing none of these is bodyweight.
+export const WEIGHT_TYPES = [
+  { id: 'bodyweight', label: 'Bodyweight (no weights)', short: 'Bodyweight' },
+  { id: 'dumbbell', label: 'Dumbbells', short: 'Dumbbells', modality: 'dumbbell', match: /dumbbell/ },
+  { id: 'barbell', label: 'Barbell', short: 'Barbell', modality: 'barbell', match: /barbell/ },
+  { id: 'kettlebell', label: 'Kettlebell', short: 'Kettlebell', modality: 'kettlebell', match: /kettlebell/ },
+  { id: 'band', label: 'Resistance band', short: 'Band', modality: 'band', match: /\bbands?\b/ },
+  { id: 'machine', label: 'Machine', short: 'Machine', modality: 'machine', match: /machine|ergometer|\berg\b|treadmill|elliptical|stationary bike|trainer|cable|smith/ },
+];
+
 // Sport type -> exercise taxonomy, for fuzzy matching. When a modality is
 // given the matcher prefers it; category is the fallback. Keys are looked up
 // case-insensitively (see sportMapping below) because Polar uses

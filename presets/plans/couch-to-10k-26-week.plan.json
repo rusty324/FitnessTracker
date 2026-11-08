@@ -80,6 +80,9 @@
         "calves",
         "achilles"
       ],
+      "positions": [
+        "standing"
+      ],
       "cues": [
         "Walk with intent — roughly the pace you'd use if you were late for a meeting.",
         "Let your arms swing naturally; don't lock them at your sides.",
@@ -100,6 +103,10 @@
         "calves",
         "tibialis anterior"
       ],
+      "positions": [
+        "standing",
+        "sitting"
+      ],
       "cues": [
         "Go slow enough that you can feel where the range starts to get tight.",
         "Full circles, not lazy wiggles.",
@@ -116,6 +123,9 @@
       "measurementType": "reps",
       "primaryTargets": [
         "tibialis anterior"
+      ],
+      "positions": [
+        "standing"
       ],
       "cues": [
         "Heels stay down the entire time; only the front of the foot moves.",
@@ -141,6 +151,9 @@
         "adductors",
         "glutes"
       ],
+      "positions": [
+        "standing"
+      ],
       "cues": [
         "Start small and let the range build; the first swing is not the biggest swing.",
         "Keep your torso upright and still — this is a hip drill, not a spine drill.",
@@ -163,6 +176,9 @@
         "cardiovascular system",
         "legs",
         "connective tissue"
+      ],
+      "positions": [
+        "standing"
       ],
       "cues": [
         "Conversational pace on the run intervals. Slower than feels natural. Then slower than that.",
@@ -192,6 +208,9 @@
         "anterior deltoid",
         "core",
         "serratus anterior"
+      ],
+      "positions": [
+        "plank"
       ],
       "cues": [
         "Brace glutes and abs so the body moves as one rigid unit.",
@@ -258,6 +277,9 @@
         "anterior chain",
         "shoulders"
       ],
+      "positions": [
+        "plank"
+      ],
       "cues": [
         "Squeeze your glutes — this alone fixes most sagging hips.",
         "Ribs down, pelvis slightly tucked. No arch in the low back.",
@@ -308,6 +330,9 @@
         "soleus",
         "achilles tendon"
       ],
+      "positions": [
+        "standing"
+      ],
       "cues": [
         "Slow on the way down. Roughly three seconds. This is the whole point of the exercise.",
         "Full range: all the way up onto the toes, all the way back down.",
@@ -351,6 +376,9 @@
       ],
       "primaryTargets": [
         "tibialis anterior"
+      ],
+      "positions": [
+        "standing"
       ],
       "cues": [
         "The further your heels are from the wall, the harder it gets — use that to scale difficulty.",
@@ -402,6 +430,9 @@
         "gluteus medius",
         "hip external rotators"
       ],
+      "positions": [
+        "lying"
+      ],
       "cues": [
         "Pelvis stays perfectly still. If your hips roll back, the range is too big.",
         "Small range, deliberate. You should feel this in the side of the upper glute.",
@@ -445,6 +476,9 @@
         "glutes",
         "shoulder stabilizers"
       ],
+      "positions": [
+        "kneeling"
+      ],
       "cues": [
         "Imagine a full glass of water on your low back — nothing spills.",
         "Reach long rather than lifting high. Height is not the goal.",
@@ -481,6 +515,9 @@
       "primaryTargets": [
         "cardiovascular system"
       ],
+      "positions": [
+        "standing"
+      ],
       "cues": [
         "Start at the pace you finished running and let it decay naturally.",
         "By the end you should be breathing normally."
@@ -502,6 +539,9 @@
         "gastrocnemius",
         "soleus",
         "achilles"
+      ],
+      "positions": [
+        "standing"
       ],
       "cues": [
         "Back heel stays flat on the ground the whole time.",
@@ -525,6 +565,9 @@
       "primaryTargets": [
         "hip flexors",
         "quadriceps"
+      ],
+      "positions": [
+        "kneeling"
       ],
       "cues": [
         "Squeeze the glute on the kneeling side first. That's the actual technique.",
@@ -550,6 +593,9 @@
         "glute medius",
         "hamstrings",
         "core"
+      ],
+      "positions": [
+        "lying"
       ],
       "cues": [
         "Drive through the heel, not the toes.",
@@ -592,6 +638,9 @@
         "cardiovascular system",
         "legs",
         "connective tissue"
+      ],
+      "positions": [
+        "standing"
       ],
       "cues": [
         "Conversational effort throughout — you should be able to speak a full sentence at any point.",

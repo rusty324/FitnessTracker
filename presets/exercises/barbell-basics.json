@@ -10,6 +10,7 @@
       "measurementType": "reps",
       "equipment": ["barbell", "squat rack", "optional: safety bars"],
       "primaryTargets": ["quadriceps", "glutes", "adductors", "spinal erectors", "core"],
+      "positions": ["standing"],
       "cues": [
         "Take a full breath and brace the whole trunk before unracking, not after.",
         "Sit between your hips rather than folding forward at the chest.",
@@ -39,6 +40,7 @@
       "measurementType": "reps",
       "equipment": ["barbell", "plates", "optional: lifting belt"],
       "primaryTargets": ["glutes", "hamstrings", "spinal erectors", "lats", "grip"],
+      "positions": ["standing"],
       "cues": [
         "Pull the slack out of the bar before you pull the weight — you should hear the plates settle.",
         "Squeeze the bar into your legs with your lats so it stays close to the body.",
@@ -67,6 +69,7 @@
       "measurementType": "reps",
       "equipment": ["barbell", "bench", "rack with safety arms"],
       "primaryTargets": ["chest", "anterior deltoid", "triceps"],
+      "positions": ["lying"],
       "cues": [
         "Pull the shoulder blades down and together and keep them pinned to the bench the whole set.",
         "Elbows at roughly 45 degrees from the torso, not flared to 90.",
@@ -95,6 +98,7 @@
       "measurementType": "reps",
       "equipment": ["barbell", "rack"],
       "primaryTargets": ["shoulders", "triceps", "upper chest", "core"],
+      "positions": ["standing"],
       "cues": [
         "Squeeze the glutes and brace the abs so the press does not turn into a standing back arch.",
         "Move your head back out of the way, then push it forward under the bar as the bar clears.",
@@ -123,6 +127,7 @@
       "measurementType": "reps",
       "equipment": ["barbell", "plates"],
       "primaryTargets": ["latissimus dorsi", "rhomboids", "rear deltoid", "biceps", "spinal erectors"],
+      "positions": ["standing"],
       "cues": [
         "Hinge to roughly 45 degrees or lower and hold that torso angle for the whole set.",
         "Start each rep by pulling the shoulder blade back, then bend the elbow.",
@@ -151,6 +156,7 @@
       "measurementType": "reps",
       "equipment": ["barbell", "rack or blocks"],
       "primaryTargets": ["hamstrings", "glutes", "spinal erectors"],
+      "positions": ["standing"],
       "cues": [
         "Push the hips backward — the bar comes down because the hips go back, not because you bend over.",
         "Keep a soft, fixed knee angle rather than squatting the weight down.",

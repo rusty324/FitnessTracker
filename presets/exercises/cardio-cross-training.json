@@ -10,6 +10,7 @@
       "measurementType": "duration",
       "equipment": ["stationary bike or trainer"],
       "primaryTargets": ["cardiovascular system", "quadriceps", "glutes"],
+      "positions": ["sitting"],
       "cues": [
         "Set the saddle so the knee is only slightly bent at the bottom of the stroke.",
         "Aim for a cadence of 80-95 rpm rather than grinding a heavy gear slowly.",
@@ -60,6 +61,7 @@
       "measurementType": "distance",
       "equipment": ["rowing ergometer"],
       "primaryTargets": ["cardiovascular system", "legs", "back", "core"],
+      "positions": ["sitting"],
       "cues": [
         "The order is legs, then back, then arms on the drive — and the exact reverse on the recovery.",
         "Roughly 60 percent of the power comes from the legs. Do not row with your arms.",
@@ -86,6 +88,7 @@
       "measurementType": "duration",
       "equipment": ["treadmill"],
       "primaryTargets": ["cardiovascular system", "glutes", "calves"],
+      "positions": ["standing"],
       "cues": [
         "Do not hold the handrails — holding on removes most of the work.",
         "Stand tall rather than leaning into the belt.",
@@ -111,6 +114,7 @@
       "measurementType": "duration",
       "equipment": ["jump rope", "hard flat surface"],
       "primaryTargets": ["calves", "achilles tendon", "coordination", "cardiovascular system"],
+      "positions": ["standing"],
       "cues": [
         "Turn the rope with the wrists, not the whole arm.",
         "Stay on the balls of the feet with small jumps, barely clearing the rope.",
@@ -139,6 +143,7 @@
       "measurementType": "duration",
       "equipment": ["elliptical machine"],
       "primaryTargets": ["cardiovascular system", "quadriceps", "glutes", "hamstrings"],
+      "positions": ["standing"],
       "cues": [
         "Keep the whole foot in contact with the pedal rather than rising onto the toes.",
         "Use the moving handles so the upper body contributes.",

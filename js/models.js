@@ -63,6 +63,7 @@ export function makeExercise({ name = '', category = 'strength', modality = 'oth
     perSide: false,
     equipment: [],
     primaryTargets: [],
+    positions: [], // POSITIONS ids
     description: '',
     cues: [],
     whyItsHere: '',

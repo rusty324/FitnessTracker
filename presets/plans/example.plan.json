@@ -16,6 +16,7 @@
       "category": "strength",
       "modality": "barbell",
       "measurementType": "reps",
+      "positions": ["standing"],
       "description": "Barbell on the upper back, squat to at least parallel and stand back up.",
       "cues": ["Brace before descending", "Knees track over toes"]
     },
@@ -24,6 +25,7 @@
       "category": "strength",
       "modality": "bodyweight",
       "measurementType": "duration",
+      "positions": ["plank"],
       "description": "Hold a straight line from head to heels on the forearms.",
       "variants": [
         { "level": 1, "name": "Knee plank" },
@@ -36,6 +38,7 @@
       "category": "cardio",
       "modality": "run",
       "measurementType": "distance",
+      "positions": ["standing"],
       "description": "Conversational-pace continuous run."
     },
     "run_walk_intervals": {
@@ -43,6 +46,7 @@
       "category": "cardio",
       "modality": "run",
       "measurementType": "intervals",
+      "positions": ["standing"],
       "description": "Alternate running and walking for the prescribed rounds."
     }
   },

@@ -8,7 +8,10 @@
 
 import * as store from '../storage/store.js';
 import { makeGoal, exerciseUsage, remapExercise } from '../models.js';
-import { RUN_GOAL_PRESETS } from '../config.js';
+import { RUN_GOAL_PRESETS, MUSCLE_GROUPS, WEIGHT_TYPES, POSITIONS } from '../config.js';
+import {
+  matchesFilters, muscleGroupsOf, weightTypesOf, positionsOf, isFiltering, NOT_SET,
+} from '../exercise-filters.js';
 import { todayStr, formatDate, formatDuration } from '../dates.js';
 import {
   formatWeight, formatDistance, formatPace, weightUnit, weightToInput, weightFromInput,
@@ -61,6 +64,24 @@ function render() {
 
 // ---------- Exercise list ----------
 
+// Search + filters survive re-renders and opening an exercise, so "Back"
+// returns to the same filtered list.
+let filters = { query: '', muscle: '', weight: '', position: '' };
+
+const labelOf = (list, id, short = false) => {
+  const item = list.find((x) => x.id === id);
+  return (short ? item?.short : null) ?? item?.label ?? id;
+};
+
+// "Strength · Chest, Arms · Barbell · Lying" — what the filters see.
+function describeExercise(ex) {
+  const groups = muscleGroupsOf(ex).map((id) => labelOf(MUSCLE_GROUPS, id)).join(', ');
+  const weights = weightTypesOf(ex).map((id) => labelOf(WEIGHT_TYPES, id, true)).join(' / ');
+  const positions = positionsOf(ex).map((id) => labelOf(POSITIONS, id, true)).join(' / ');
+  const category = ex.category ? ex.category[0].toUpperCase() + ex.category.slice(1) : '';
+  return [category, groups, weights, positions].filter(Boolean).join(' · ');
+}
+
 function renderExerciseList() {
   const lib = store.get('exercises');
   root.appendChild(el('div', { class: 'list-row' },
@@ -75,24 +96,102 @@ function renderExerciseList() {
     root.appendChild(emptyState('No exercises yet. They’re also created automatically when importing plans.'));
     return;
   }
+  fillMissingFromPresets();
+
   const byName = (a, b) => a.name.localeCompare(b.name);
   const active = lib.filter((e) => !e.archived).sort(byName);
   const archived = lib.filter((e) => e.archived).sort(byName);
 
+  // A filter menu: "All muscles", then each option with how many
+  // (non-archived) exercises it matches, then "Not set" for gaps to fill in.
+  const menu = (key, label, anyLabel, options, valuesOf) => {
+    const count = (id) => active.filter((ex) => (id === NOT_SET ? valuesOf(ex).length === 0 : valuesOf(ex).includes(id))).length;
+    const opt = (value, text, n) => el('option', {
+      value, selected: filters[key] === value, disabled: n === 0 && filters[key] !== value,
+    }, `${text} (${n})`);
+    return el('select', {
+      'aria-label': label,
+      dataset: { filter: key },
+      onchange: (e) => { filters[key] = e.target.value; update(); },
+    },
+      el('option', { value: '', selected: !filters[key] }, anyLabel),
+      options.map((o) => opt(o.id, o.label, count(o.id))),
+      opt(NOT_SET, 'Not set', count(NOT_SET)),
+    );
+  };
+  const search = el('input', {
+    type: 'search', value: filters.query, placeholder: 'Search name, muscle, equipment…',
+    'aria-label': 'Search exercises', dataset: { filter: 'query' },
+  });
+  search.addEventListener('input', () => { filters.query = search.value; update(); });
+  const selects = [
+    menu('muscle', 'Muscle group', 'All muscles', MUSCLE_GROUPS, muscleGroupsOf),
+    menu('weight', 'Weights', 'All weights', WEIGHT_TYPES, weightTypesOf),
+    menu('position', 'Position', 'All positions', POSITIONS, positionsOf),
+  ];
+  // Only weights can't be "not set": an exercise needing none is bodyweight.
+  selects[1].querySelector(`option[value="${NOT_SET}"]`).remove();
+
+  const summary = el('div', { class: 'filter-summary' });
+  const listEl = el('div', {});
+  root.append(el('div', { class: 'filter-bar' }, search, el('div', { class: 'filter-row' }, selects)), summary, listEl);
+
   const row = (ex) => el('div', { class: 'list-row tappable', onclick: () => { view = { name: 'exercise', id: ex.id }; render(); } },
     el('div', { class: 'row-main' },
       el('div', { class: 'row-title' }, ex.name),
-      el('div', { class: 'row-sub' }, `${ex.category} · ${ex.modality} · ${ex.measurementType}`),
+      el('div', { class: 'row-sub' }, describeExercise(ex) || `${ex.category} · ${ex.modality}`),
     ),
     el('span', { class: 'pill' }, String(logCountFor(ex.id)) + ' logs'),
   );
 
-  if (active.length) root.appendChild(el('div', { class: 'card' }, active.map(row)));
-  else root.appendChild(el('p', { class: 'muted' }, 'All exercises are archived.'));
+  // Only the list redraws as you type, so the search box keeps focus.
+  function update() {
+    const shown = active.filter((ex) => matchesFilters(ex, filters));
+    const shownArchived = archived.filter((ex) => matchesFilters(ex, filters));
+    listEl.innerHTML = '';
+    summary.innerHTML = '';
+    if (isFiltering(filters)) {
+      summary.append(
+        el('span', { class: 'muted' }, `${shown.length} of ${active.length} exercises`),
+        el('button', {
+          class: 'btn small secondary',
+          onclick: () => { filters = { query: '', muscle: '', weight: '', position: '' }; render(); },
+        }, 'Clear filters'),
+      );
+    }
+    if (shown.length) listEl.appendChild(el('div', { class: 'card' }, shown.map(row)));
+    else if (!active.length) listEl.appendChild(el('p', { class: 'muted' }, 'All exercises are archived.'));
+    else listEl.appendChild(emptyState('No exercises match these filters.'));
+    if (shownArchived.length) {
+      listEl.appendChild(el('h3', { class: 'muted' }, 'Archived'));
+      listEl.appendChild(el('div', { class: 'card' }, shownArchived.map(row)));
+    }
+  }
+  update();
+}
 
-  if (archived.length) {
-    root.appendChild(el('h3', { class: 'muted' }, 'Archived'));
-    root.appendChild(el('div', { class: 'card' }, archived.map(row)));
+// Libraries imported before positions existed have none. Once per page load,
+// fill empty fields of exercises that match a bundled pack or plan by name —
+// the same enrichment an import does, but never adding exercises, never
+// un-archiving, and never overwriting anything you've filled in.
+let presetsFilled = false;
+async function fillMissingFromPresets() {
+  if (presetsFilled) return;
+  presetsFilled = true;
+  if (!store.get('exercises').some((ex) => !ex.positions?.length)) return;
+  try {
+    const manifest = await loadManifest();
+    const up = libraryUpserter({ create: false });
+    for (const file of [...(manifest.exercisePacks ?? []), ...(manifest.plans ?? [])].map((x) => x.file)) {
+      const data = await loadPreset(file);
+      for (const def of Object.values(data.exerciseLibrary ?? {})) if (def?.name) up.resolve(def);
+    }
+    up.commit();
+    if (up.stats.enriched) {
+      toast(`Filled in muscles, equipment and positions for ${up.stats.enriched} exercise${up.stats.enriched === 1 ? '' : 's'} from the starter packs`);
+    }
+  } catch {
+    // Offline, or the presets moved: the filters work with what's there.
   }
 }
 
@@ -262,6 +361,9 @@ function renderExerciseDetail(id) {
   if (ex.whyItsHere) root.appendChild(el('p', { class: 'muted' }, `Why it’s here: ${ex.whyItsHere}`));
   if (ex.equipment?.length) root.appendChild(el('p', { class: 'muted' }, `Equipment: ${ex.equipment.join(', ')}`));
   if (ex.primaryTargets?.length) root.appendChild(el('p', { class: 'muted' }, `Targets: ${ex.primaryTargets.join(', ')}`));
+  if (positionsOf(ex).length) {
+    root.appendChild(el('p', { class: 'muted' }, `Position: ${positionsOf(ex).map((id) => labelOf(POSITIONS, id)).join(', ')}`));
+  }
 
   if (ex.cues?.length) {
     root.appendChild(el('div', { class: 'card' },

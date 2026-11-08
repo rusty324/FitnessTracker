@@ -14,6 +14,10 @@
         "calves",
         "tibialis anterior"
       ],
+      "positions": [
+        "standing",
+        "sitting"
+      ],
       "cues": [
         "Go slow enough that you can feel where the range starts to get tight.",
         "Full circles, not lazy wiggles.",
@@ -37,6 +41,9 @@
         "spinal erectors",
         "glutes",
         "shoulder stabilizers"
+      ],
+      "positions": [
+        "kneeling"
       ],
       "cues": [
         "Imagine a full glass of water on your low back — nothing spills.",
@@ -79,6 +86,9 @@
         "gastrocnemius",
         "soleus",
         "achilles tendon"
+      ],
+      "positions": [
+        "standing"
       ],
       "cues": [
         "Slow on the way down. Roughly three seconds. This is the whole point of the exercise.",
@@ -127,6 +137,9 @@
         "gluteus medius",
         "hip external rotators"
       ],
+      "positions": [
+        "lying"
+      ],
       "cues": [
         "Pelvis stays perfectly still. If your hips roll back, the range is too big.",
         "Small range, deliberate. You should feel this in the side of the upper glute.",
@@ -169,6 +182,9 @@
         "legs",
         "connective tissue"
       ],
+      "positions": [
+        "standing"
+      ],
       "cues": [
         "Conversational effort throughout — you should be able to speak a full sentence at any point.",
         "Quick, light, quiet steps. Shorten your stride rather than reaching forward.",
@@ -190,6 +206,9 @@
       "measurementType": "duration",
       "primaryTargets": [
         "cardiovascular system"
+      ],
+      "positions": [
+        "standing"
       ],
       "cues": [
         "Start at the pace you finished running and let it decay naturally.",
@@ -213,6 +232,9 @@
         "rear deltoids",
         "core",
         "grip"
+      ],
+      "positions": [
+        "hanging"
       ],
       "cues": [
         "Actively pull the bar down toward the hips rather than just hanging passively.",
@@ -274,6 +296,9 @@
         "anterior chain",
         "shoulders"
       ],
+      "positions": [
+        "plank"
+      ],
       "cues": [
         "Squeeze your glutes — this alone fixes most sagging hips.",
         "Ribs down, pelvis slightly tucked. No arch in the low back.",
@@ -323,6 +348,9 @@
         "hip flexors",
         "quadriceps"
       ],
+      "positions": [
+        "kneeling"
+      ],
       "cues": [
         "Squeeze the glute on the kneeling side first. That's the actual technique.",
         "Tuck the pelvis; do not arch the low back.",
@@ -349,6 +377,9 @@
         "upper chest",
         "core",
         "balance/proprioception"
+      ],
+      "positions": [
+        "inverted"
       ],
       "cues": [
         "Stack shoulders over wrists and press the floor away — don't let the upper back round.",
@@ -423,6 +454,9 @@
         "obliques",
         "grip"
       ],
+      "positions": [
+        "hanging"
+      ],
       "cues": [
         "Posteriorly tilt the pelvis at the top of the rep rather than just flexing the hips.",
         "Control the descent — a fast drop is mostly momentum, not the target muscles.",
@@ -486,6 +520,9 @@
         "forearms",
         "core"
       ],
+      "positions": [
+        "hanging"
+      ],
       "cues": [
         "Top arm pulls down toward the hip, bottom arm pushes up — the two work in opposition.",
         "Full-body tension from shoulders to feet; a loose midsection makes the hold fall apart immediately.",
@@ -542,6 +579,9 @@
         "core",
         "triceps",
         "shoulders"
+      ],
+      "positions": [
+        "hanging"
       ],
       "cues": [
         "Push the floor/bars away and shrug the shoulders down to keep the chest up.",
@@ -600,6 +640,9 @@
         "adductors",
         "glutes"
       ],
+      "positions": [
+        "standing"
+      ],
       "cues": [
         "Start small and let the range build; the first swing is not the biggest swing.",
         "Keep your torso upright and still — this is a hip drill, not a spine drill.",
@@ -622,6 +665,9 @@
         "hamstrings",
         "glutes",
         "lower back"
+      ],
+      "positions": [
+        "kneeling"
       ],
       "cues": [
         "Keep the hips extended (don't fold at the hips) — the movement should hinge at the knee.",
@@ -678,6 +724,9 @@
         "chest",
         "anterior deltoid",
         "core"
+      ],
+      "positions": [
+        "hanging"
       ],
       "cues": [
         "Lean the torso slightly forward to keep the shoulder in a safer position through the bottom.",
@@ -736,6 +785,9 @@
         "rear deltoid",
         "forearms",
         "core"
+      ],
+      "positions": [
+        "hanging"
       ],
       "cues": [
         "Initiate by depressing the shoulder blades before bending the elbows.",
@@ -804,6 +856,9 @@
         "core",
         "serratus anterior"
       ],
+      "positions": [
+        "plank"
+      ],
       "cues": [
         "Brace glutes and abs so the body moves as one rigid unit.",
         "Elbows back at about 45 degrees, not flared out to the sides.",
@@ -870,6 +925,9 @@
         "legs",
         "connective tissue"
       ],
+      "positions": [
+        "standing"
+      ],
       "cues": [
         "Conversational pace on the run intervals. Slower than feels natural. Then slower than that.",
         "Quick, light, quiet steps — if you can hear yourself thudding, shorten your stride.",
@@ -899,6 +957,9 @@
         "shoulders",
         "hip abductors",
         "core"
+      ],
+      "positions": [
+        "hanging"
       ],
       "cues": [
         "Full-body tension throughout — this is a bracing skill as much as a strength one.",
@@ -962,6 +1023,9 @@
         "hamstrings",
         "core"
       ],
+      "positions": [
+        "lying"
+      ],
       "cues": [
         "Drive through the heel, not the toes.",
         "Squeeze the glute hard at the top. Do not arch the low back to gain height.",
@@ -1005,6 +1069,9 @@
         "hamstrings",
         "adductors",
         "core"
+      ],
+      "positions": [
+        "standing"
       ],
       "cues": [
         "Weight stays over the mid-foot; heels stay planted.",
@@ -1067,6 +1134,9 @@
         "soleus",
         "achilles"
       ],
+      "positions": [
+        "standing"
+      ],
       "cues": [
         "Back heel stays flat on the ground the whole time.",
         "Straight back leg targets the upper calf; bent back knee targets the lower calf and achilles.",
@@ -1087,6 +1157,9 @@
       ],
       "primaryTargets": [
         "tibialis anterior"
+      ],
+      "positions": [
+        "standing"
       ],
       "cues": [
         "The further your heels are from the wall, the harder it gets — use that to scale difficulty.",
@@ -1132,6 +1205,9 @@
       "primaryTargets": [
         "tibialis anterior"
       ],
+      "positions": [
+        "standing"
+      ],
       "cues": [
         "Heels stay down the entire time; only the front of the foot moves.",
         "Lower under control — don't let the foot slap back down.",
@@ -1150,6 +1226,9 @@
         "cardiovascular system",
         "calves",
         "achilles"
+      ],
+      "positions": [
+        "standing"
       ],
       "cues": [
         "Walk with intent — roughly the pace you'd use if you were late for a meeting.",

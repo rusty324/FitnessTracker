@@ -433,3 +433,10 @@ label { display: block; font-size: 0.85rem; color: var(--text-dim); margin-botto
 .check-group { display: flex; flex-wrap: wrap; gap: 6px 14px; }
 .check-inline { display: inline-flex; align-items: center; gap: 6px; font-size: 0.9rem; color: var(--text); margin: 0; }
 .check-inline input { width: auto; min-height: 0; }
+
+/* ---------- Library search + filters ---------- */
+.filter-bar { display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; }
+.filter-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.filter-row select { flex: 1 1 140px; min-width: 0; width: auto; }
+.filter-summary { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.filter-summary:empty { display: none; }

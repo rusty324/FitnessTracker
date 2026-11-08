@@ -17,6 +17,14 @@ was carried over into this repo, so `git log` goes back to the first version.)*
   holds, rest, RPE, variant levels, intervals). List and calendar views;
   multiple concurrent plans. Plans import/export as portable
   `fitness-tracker-plan` v2 JSON (see below).
+- **Library search & filters** — search by name, muscle or equipment, and
+  filter by muscle group (from each exercise's listed targets, so
+  "latissimus dorsi" counts as Back), weights needed (bodyweight, dumbbells,
+  barbell, kettlebell, band, machine — from its type and required
+  equipment) and position (standing, sitting, lying, kneeling, plank,
+  hanging, upside down). "Not set" finds exercises still missing details.
+  Libraries imported before positions existed are filled in from the
+  starter packs automatically, matched by name, never overwriting your edits.
 - **Fitness Library** — the shared exercise library (descriptions, cues,
   safety notes, difficulty variants, per-set RWI history), with import
   (an `exerciseLibrary` map, a whole plan file, a single exercise, or an

@@ -9,7 +9,10 @@ import {
   migrateExercise, allSessions, sessionItems, phaseForWeek,
   sanitizeCategory, sanitizeModality, sanitizeMeasurement,
 } from '../models.js';
-import { CATEGORIES, MODALITIES, MEASUREMENT_TYPES, TARGET_KINDS } from '../config.js';
+import {
+  CATEGORIES, MODALITIES, MEASUREMENT_TYPES, TARGET_KINDS, POSITIONS, MUSCLE_GROUPS,
+} from '../config.js';
+import { muscleGroupsOf } from '../exercise-filters.js';
 import { todayStr, addDays, toDateStr, parseDateStr, formatDate, formatDuration } from '../dates.js';
 import {
   formatWeight, formatDistance, formatPaceValue, paceUnit,
@@ -571,6 +574,30 @@ export function editExercise(ex, onSaved, prefillName = '') {
   const modSel = el('select', {}, MODALITIES.map((m) => el('option', { value: m, selected: draft.modality === m }, m)));
   const measSel = el('select', {}, MEASUREMENT_TYPES.map((u) => el('option', { value: u, selected: draft.measurementType === u }, u)));
   const descInput = el('textarea', { placeholder: 'How to perform the movement (optional)' }, draft.description ?? '');
+  // Muscles and equipment stay free text (the v2 schema's shape); the
+  // library's filters map them onto groups, shown live under the field.
+  const list = (arr) => (arr ?? []).join(', ');
+  const split = (v) => v.split(',').map((x) => x.trim()).filter(Boolean);
+  const musclesInput = el('input', { value: list(draft.primaryTargets), placeholder: 'e.g. chest, triceps, front delts', dataset: { name: 'muscles' } });
+  const groupsHint = el('div', { class: 'row-sub' });
+  const showGroups = () => {
+    const ids = muscleGroupsOf({ primaryTargets: split(musclesInput.value) });
+    groupsHint.textContent = ids.length
+      ? `Filters as: ${ids.map((id) => MUSCLE_GROUPS.find((g) => g.id === id).label).join(', ')}`
+      : 'Not matched to a muscle group yet';
+  };
+  musclesInput.addEventListener('input', showGroups);
+  showGroups();
+  // One item per line: some items contain commas of their own ("dip bars,
+  // parallettes, or rings").
+  const equipInput = el('textarea', {
+    placeholder: 'One per line, e.g.\ndumbbells\noptional: bench', rows: 3, dataset: { name: 'equipment' },
+  }, (draft.equipment ?? []).join('\n'));
+  const shown = { muscles: musclesInput.value, equipment: equipInput.value };
+  const positionBoxes = POSITIONS.map((p) => {
+    const box = el('input', { type: 'checkbox', value: p.id, checked: (draft.positions ?? []).includes(p.id) });
+    return { box, label: el('label', { class: 'check-inline' }, box, ` ${p.label}`) };
+  });
   openModal(isNew ? 'New exercise' : 'Edit exercise', el('div', {},
     el('div', { class: 'field' }, el('label', {}, 'Name'), nameInput),
     el('div', { class: 'field-row' },
@@ -578,6 +605,9 @@ export function editExercise(ex, onSaved, prefillName = '') {
       el('div', { class: 'field' }, el('label', {}, 'Modality'), modSel),
       el('div', { class: 'field' }, el('label', {}, 'Measured by'), measSel),
     ),
+    el('div', { class: 'field' }, el('label', {}, 'Muscles worked'), musclesInput, groupsHint),
+    el('div', { class: 'field' }, el('label', {}, 'Equipment'), equipInput),
+    el('div', { class: 'field' }, el('label', {}, 'Position'), el('div', { class: 'check-group' }, positionBoxes.map((x) => x.label))),
     el('div', { class: 'field' }, el('label', {}, 'Description'), descInput),
   ), [
     { label: 'Cancel', class: 'btn secondary', onClick: () => {} },
@@ -591,6 +621,11 @@ export function editExercise(ex, onSaved, prefillName = '') {
           category: catSel.value,
           modality: modSel.value,
           measurementType: measSel.value,
+          // Untouched fields keep their stored lists exactly.
+          primaryTargets: musclesInput.value === shown.muscles ? draft.primaryTargets ?? [] : split(musclesInput.value),
+          equipment: equipInput.value === shown.equipment ? draft.equipment ?? []
+            : equipInput.value.split('\n').map((x) => x.trim()).filter(Boolean),
+          positions: positionBoxes.filter((x) => x.box.checked).map((x) => x.box.value),
           description: descInput.value.trim(),
         });
         store.upsert('exercises', draft);
@@ -625,6 +660,7 @@ export function exerciseDef(ex) {
     perSide: ex?.perSide || undefined,
     equipment: ex?.equipment,
     primaryTargets: ex?.primaryTargets,
+    positions: ex?.positions,
     cues: ex?.cues,
     whyItsHere: ex?.whyItsHere,
     safetyNotes: ex?.safetyNotes,
@@ -716,7 +752,10 @@ export function importPlan(data, startDate) {
   throw new Error('Unrecognized plan format — expected fitness-tracker-plan v1 or v2');
 }
 
-export function libraryUpserter() {
+// opts.create: add exercises the library doesn't have (an import). false =
+// only fill empty fields on ones it does — how missing positions are filled
+// in from the bundled packs without adding anything or un-archiving.
+export function libraryUpserter({ create = true } = {}) {
   const library = store.get('exercises').slice();
   const byName = new Map(library.map((e) => [e.name.toLowerCase(), e]));
   let changed = false;
@@ -728,6 +767,7 @@ export function libraryUpserter() {
       const name = (def.name ?? '').trim() || 'Exercise';
       let rec = byName.get(name.toLowerCase());
       const wasNew = !rec;
+      if (!rec && !create) return null;
       if (!rec) {
         rec = {
           ...makeExercise({ name }),
@@ -745,12 +785,12 @@ export function libraryUpserter() {
       for (const k of ['shortName', 'description', 'whyItsHere', 'progressionRule', 'videoSearchTerm']) {
         if (def[k] && !rec[k]) { rec[k] = def[k]; changed = true; enriched = true; }
       }
-      for (const k of ['cues', 'safetyNotes', 'variants', 'equipment', 'primaryTargets']) {
+      for (const k of ['cues', 'safetyNotes', 'variants', 'equipment', 'primaryTargets', 'positions']) {
         if (def[k]?.length && !rec[k]?.length) { rec[k] = def[k]; changed = true; enriched = true; }
       }
       if (def.perSide && !rec.perSide) { rec.perSide = true; changed = true; enriched = true; }
       // Importing a plan that uses an archived exercise puts it back in play.
-      if (rec.archived) { rec.archived = false; changed = true; enriched = true; }
+      if (rec.archived && create) { rec.archived = false; changed = true; enriched = true; }
       if (enriched && !wasNew) stats.enriched++;
       return rec.id;
     },

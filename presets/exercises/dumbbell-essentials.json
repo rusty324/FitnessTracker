@@ -10,6 +10,7 @@
       "measurementType": "reps",
       "equipment": ["dumbbell or kettlebell"],
       "primaryTargets": ["quadriceps", "glutes", "core", "upper back"],
+      "positions": ["standing"],
       "cues": [
         "Hold the weight tight against the chest — letting it drift forward turns this into a back exercise.",
         "Elbows travel down between the knees at the bottom.",
@@ -36,6 +37,7 @@
       "measurementType": "reps",
       "equipment": ["dumbbells", "bench or floor"],
       "primaryTargets": ["chest", "anterior deltoid", "triceps"],
+      "positions": ["lying"],
       "cues": [
         "Shoulder blades pinned back and down against the bench.",
         "Lower until the upper arms are roughly level with the torso; you do not need to go deeper.",
@@ -64,6 +66,7 @@
       "perSide": true,
       "equipment": ["dumbbell", "bench"],
       "primaryTargets": ["latissimus dorsi", "rhomboids", "rear deltoid", "biceps"],
+      "positions": ["kneeling"],
       "cues": [
         "Start the pull with the shoulder blade, not the hand.",
         "Row toward the hip rather than straight up toward the shoulder.",
@@ -90,6 +93,7 @@
       "measurementType": "reps",
       "equipment": ["dumbbells", "optional: bench with upright back"],
       "primaryTargets": ["shoulders", "triceps", "core"],
+      "positions": ["standing", "sitting"],
       "cues": [
         "Brace the abs and squeeze the glutes so you do not press by arching the back.",
         "Start with the dumbbells at ear height, palms forward or slightly turned in.",
@@ -117,6 +121,7 @@
       "measurementType": "reps",
       "equipment": ["dumbbells"],
       "primaryTargets": ["hamstrings", "glutes", "spinal erectors"],
+      "positions": ["standing"],
       "cues": [
         "Push the hips back rather than bending forward at the waist.",
         "Keep the dumbbells sliding close to the front of the legs.",
@@ -144,6 +149,7 @@
       "perSide": true,
       "equipment": ["dumbbells", "open floor space"],
       "primaryTargets": ["quadriceps", "glutes", "adductors", "balance"],
+      "positions": ["standing"],
       "cues": [
         "Step out far enough that the front shin stays close to vertical at the bottom.",
         "Drop the back knee straight down rather than pitching the torso forward.",
