@@ -68,6 +68,18 @@ export function filePicker(attrs = {}) {
   return el('input', { type: 'file', ...attrs });
 }
 
+// A link to an exercise's page in the Fitness Library. The click doesn't
+// bubble, so it can sit inside a row that opens something else when tapped.
+// No exercise (deleted) -> plain text.
+export function exerciseLink(ex, label = ex?.name) {
+  if (!ex) return label;
+  return el('a', {
+    class: 'ex-link',
+    href: `#/library/exercise/${encodeURIComponent(ex.id)}`,
+    onclick: (e) => e.stopPropagation(),
+  }, label);
+}
+
 export function emptyState(message) {
   return el('div', { class: 'empty-state' }, message);
 }

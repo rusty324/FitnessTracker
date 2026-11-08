@@ -440,3 +440,7 @@ label { display: block; font-size: 0.85rem; color: var(--text-dim); margin-botto
 .filter-row select { flex: 1 1 140px; min-width: 0; width: auto; }
 .filter-summary { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
 .filter-summary:empty { display: none; }
+
+/* Exercise names that open the exercise's library page. */
+.ex-link { color: var(--accent); text-decoration: none; }
+.ex-link:hover, .ex-link:focus-visible { text-decoration: underline; text-underline-offset: 2px; }

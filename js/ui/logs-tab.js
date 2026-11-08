@@ -16,7 +16,7 @@ import {
 } from '../units.js';
 import { lineChart, datePoints } from '../charts.js';
 import { isCardioExercise, hasCardioData, sportOf, defaultGear } from '../cardio.js';
-import { el, openModal, confirmDialog, toast, emptyState, filePicker } from './components.js';
+import { el, openModal, confirmDialog, toast, emptyState, filePicker, exerciseLink } from './components.js';
 import { cardioFields, cardioExtras } from './cardio-form.js';
 import { pickExercise, targetSummary } from './plans-tab.js';
 
@@ -286,7 +286,7 @@ function blockLabel(type) {
 function plannedRow(plan, session, pe, ex, existing) {
   const row = el('div', { class: 'list-row' });
   const main = el('div', { class: 'row-main' },
-    el('div', { class: 'row-title' }, ex?.name ?? '?',
+    el('div', { class: 'row-title' }, ex ? exerciseLink(ex) : '?',
       pe.optional ? el('span', { class: 'pill', style: 'margin-left:6px' }, 'optional') : ''),
     el('div', { class: 'row-sub' }, `Target: ${targetSummary(pe.target)}`),
     pe.note && el('div', { class: 'row-sub' }, pe.note),
@@ -513,7 +513,7 @@ function logRow(log, lib, planById, gear = []) {
     : '';
   return el('div', { class: 'list-row' },
     el('div', { class: 'row-main tappable', onclick: () => logEntryModal({ existing: log, ex }) },
-      el('div', { class: 'row-title' }, ex?.name ?? 'Activity'),
+      el('div', { class: 'row-title' }, ex ? exerciseLink(ex) : 'Activity'),
       el('div', { class: 'row-sub' },
         `${formatDate(log.date)} · ${actualSummary(log.actual)}${log.rpe ? ` · RPE ${log.rpe}` : ''}`),
       extras && el('div', { class: 'row-sub' }, extras),

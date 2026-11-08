@@ -1,4 +1,8 @@
 // Config-driven tab bar with lazy-loaded tab modules and hash routing.
+// The hash is #/<tab>[/<path>]; a tab module may export route(path, opts) to
+// open something inside itself (e.g. #/library/exercise/<id>). opts.navigated
+// is true when the hash changed in this page — so there's somewhere to go
+// back to — and false on the initial load.
 
 export function initTabbar({ tabs, defaultTab, navEl, viewEl, ctx }) {
   const loaded = new Map(); // tabId -> module
@@ -14,9 +18,12 @@ export function initTabbar({ tabs, defaultTab, navEl, viewEl, ctx }) {
     navEl.appendChild(btn);
   }
 
-  async function activate(tabId) {
+  async function activate(tabId, path = '', navigated = false) {
     const tab = tabs.find((t) => t.id === tabId) ?? tabs.find((t) => t.id === defaultTab) ?? tabs[0];
-    if (active?.id === tab.id) return;
+    if (active?.id === tab.id) {
+      active.module.route?.(path, { navigated });
+      return;
+    }
     if (active?.module?.unmount) active.module.unmount();
     viewEl.innerHTML = '';
     for (const btn of navEl.querySelectorAll('button')) {
@@ -29,11 +36,12 @@ export function initTabbar({ tabs, defaultTab, navEl, viewEl, ctx }) {
     }
     active = { id: tab.id, module: mod };
     await mod.mount(viewEl, ctx);
+    mod.route?.(path, { navigated });
   }
 
-  function fromHash() {
-    const m = location.hash.match(/^#\/([\w-]+)/);
-    activate(m ? m[1] : defaultTab);
+  function fromHash(event) {
+    const m = location.hash.match(/^#\/([\w-]+)(?:\/(.*))?$/);
+    activate(m ? m[1] : defaultTab, m?.[2] ?? '', !!event);
   }
 
   window.addEventListener('hashchange', fromHash);

@@ -24,13 +24,43 @@ import { renderGear } from './gear-view.js';
 
 let root = null;
 let unsub = null;
-let view = { name: 'exercises' }; // {name:'exercises'} | {name:'exercise', id} | {name:'goals'} | {name:'gear'}
+// {name:'exercises'} | {name:'exercise', id, linked} | {name:'goals'} | {name:'gear'}
+// `linked`: opened from a link elsewhere in the app, so "Back" returns there.
+let view = { name: 'exercises' };
 
 export function mount(elRoot) {
   root = elRoot;
   unsub = store.onChange((e) => {
     if (e.type === 'changed') render();
   });
+  render();
+}
+
+// #/library/exercise/<id> opens that exercise (see tabbar.js). The bare
+// #/library keeps whatever was open, as the tab always has.
+export function route(path, { navigated = false } = {}) {
+  const m = /^exercise\/(.+)$/.exec(path);
+  if (m) {
+    view = { name: 'exercise', id: decodeURIComponent(m[1]), linked: navigated };
+    // Mounting rendered the previous view first, which clears a sub-path
+    // from the hash; put it back (same history entry, so Back still works).
+    history.replaceState(null, '', `#/library/exercise/${m[1]}`);
+    render();
+  } else if (view.linked) {
+    view = { ...view, linked: false };
+    render();
+  }
+}
+
+// In-tab navigation keeps the hash in step without adding history entries,
+// so a reload lands in the same place and Back skips the in-tab steps.
+function showExercise(id) {
+  view = { name: 'exercise', id };
+  history.replaceState(null, '', `#/library/exercise/${encodeURIComponent(id)}`);
+  render();
+}
+function showList() {
+  view = { name: 'exercises' };
   render();
 }
 
@@ -42,6 +72,9 @@ export function unmount() {
 function render() {
   if (!root) return;
   root.innerHTML = '';
+  // Anything but an exercise page drops a leftover #/library/exercise/<id>,
+  // so a reload doesn't reopen an exercise you've navigated away from.
+  if (view.name !== 'exercise' && /^#\/library\/./.test(location.hash)) history.replaceState(null, '', '#/library');
   root.appendChild(el('div', { class: 'segmented' },
     el('button', {
       class: view.name === 'exercises' || view.name === 'exercise' ? 'active' : '',
@@ -136,7 +169,7 @@ function renderExerciseList() {
   const listEl = el('div', {});
   root.append(el('div', { class: 'filter-bar' }, search, el('div', { class: 'filter-row' }, selects)), summary, listEl);
 
-  const row = (ex) => el('div', { class: 'list-row tappable', onclick: () => { view = { name: 'exercise', id: ex.id }; render(); } },
+  const row = (ex) => el('div', { class: 'list-row tappable', onclick: () => showExercise(ex.id) },
     el('div', { class: 'row-main' },
       el('div', { class: 'row-title' }, ex.name),
       el('div', { class: 'row-sub' }, describeExercise(ex) || `${ex.category} · ${ex.modality}`),
@@ -327,11 +360,15 @@ function importExercisesModal() {
 
 function renderExerciseDetail(id) {
   const ex = store.get('exercises').find((e) => e.id === id);
-  if (!ex) { view = { name: 'exercises' }; render(); return; }
+  if (!ex) { showList(); return; }
 
   root.appendChild(el('div', { class: 'list-row' },
     el('div', { class: 'row-main' },
-      el('button', { class: 'btn small secondary', onclick: () => { view = { name: 'exercises' }; render(); } }, '‹ Library'),
+      // Reached from a link (e.g. a planned exercise on the Logs page):
+      // go back there. Otherwise, or after a reload, back to the list.
+      view.linked
+        ? el('button', { class: 'btn small secondary', onclick: () => history.back() }, '‹ Back')
+        : el('button', { class: 'btn small secondary', onclick: () => showList() }, '‹ Library'),
     ),
     el('div', { class: 'row-actions' },
       el('button', { class: 'btn small secondary', onclick: () => editExercise(ex, () => render()) }, 'Edit'),
