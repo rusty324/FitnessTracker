@@ -1,0 +1,174 @@
+{
+  "format": "fitness-tracker-exercise-library",
+  "formatVersion": 2,
+  "exerciseLibrary": {
+    "back_squat": {
+      "name": "Back Squat",
+      "shortName": "Back Squat",
+      "category": "strength",
+      "modality": "barbell",
+      "measurementType": "reps",
+      "equipment": ["barbell", "squat rack", "optional: safety bars"],
+      "primaryTargets": ["quadriceps", "glutes", "adductors", "spinal erectors", "core"],
+      "cues": [
+        "Take a full breath and brace the whole trunk before unracking, not after.",
+        "Sit between your hips rather than folding forward at the chest.",
+        "Drive the floor apart with your feet so the knees track over the toes.",
+        "Keep the bar stacked over mid-foot the whole way down and up."
+      ],
+      "whyItsHere": "The highest-yield lower-body strength lift: it loads the whole leg and trunk together through a long range, and it scales cleanly for decades.",
+      "safetyNotes": [
+        "Set the safety bars at just below your bottom position before your first working set — a failed squat with no safeties is the most dangerous common gym mistake.",
+        "Sharp knee or low-back pain is a stop signal; general muscular burn is not.",
+        "Do not let the low back round at the bottom. If it rounds, you have gone past the depth your hips currently allow."
+      ],
+      "variants": [
+        { "level": 1, "name": "Box Squat", "description": "Squat to a box set at a comfortable depth, pausing briefly before standing. Teaches depth consistency." },
+        { "level": 2, "name": "Goblet Squat", "description": "Hold a single dumbbell or kettlebell at the chest. Front-loading keeps the torso upright and is very forgiving." },
+        { "level": 3, "name": "Empty-Bar Back Squat", "description": "The full pattern with just the bar, grooving the setup and bracing." },
+        { "level": 4, "name": "Loaded Back Squat", "description": "Progressively loaded, full depth with the thighs at or below parallel." }
+      ],
+      "progressionRule": "Add a small increment (2.5 kg / 5 lb) once you hit the top of the prescribed rep range on every set with clean depth and no knee cave. When a session stalls twice in a row, repeat the weight rather than pushing through.",
+      "description": "With the bar resting across the upper back, brace hard, then descend by sitting the hips back and down while the knees travel forward, until the thighs reach at least parallel. Drive back up by pushing the floor away, keeping the bar tracking in a straight vertical line over the middle of the foot."
+    },
+    "conventional_deadlift": {
+      "name": "Conventional Deadlift",
+      "shortName": "Deadlift",
+      "category": "strength",
+      "modality": "barbell",
+      "measurementType": "reps",
+      "equipment": ["barbell", "plates", "optional: lifting belt"],
+      "primaryTargets": ["glutes", "hamstrings", "spinal erectors", "lats", "grip"],
+      "cues": [
+        "Pull the slack out of the bar before you pull the weight — you should hear the plates settle.",
+        "Squeeze the bar into your legs with your lats so it stays close to the body.",
+        "Push the floor away rather than yanking the bar upward.",
+        "Finish by standing tall with the glutes, not by leaning back."
+      ],
+      "whyItsHere": "The most direct way to train the whole posterior chain as a unit, and the pattern that carries over most obviously to lifting things in real life.",
+      "safetyNotes": [
+        "A rounding low back under load is the main injury risk here. Reduce the weight rather than fighting the position.",
+        "Reset your brace and setup between every rep on heavy sets rather than bouncing the bar off the floor.",
+        "If your grip fails before your back does, use a mixed grip or straps rather than letting the bar slip."
+      ],
+      "variants": [
+        { "level": 1, "name": "Rack Pull / Elevated Deadlift", "description": "Bar raised on blocks or pins to shorten the range while hip mobility develops." },
+        { "level": 2, "name": "Trap-Bar Deadlift", "description": "Neutral handles put the load closer to your centre of mass, which is easier on the low back." },
+        { "level": 3, "name": "Conventional Deadlift", "description": "Standard bar-on-floor pull." }
+      ],
+      "progressionRule": "Progress in small increments and keep the top set well short of a grinding maximum. Deadlifts recover more slowly than squats, so add load roughly half as often.",
+      "description": "Stand with mid-foot under the bar, hinge down and grip just outside the knees, then set a flat back and heavy brace. Pull the slack out, then drive through the floor and stand up with the bar tracking against your legs, finishing tall with the hips fully extended. Lower under control along the same path."
+    },
+    "bench_press": {
+      "name": "Barbell Bench Press",
+      "shortName": "Bench",
+      "category": "strength",
+      "modality": "barbell",
+      "measurementType": "reps",
+      "equipment": ["barbell", "bench", "rack with safety arms"],
+      "primaryTargets": ["chest", "anterior deltoid", "triceps"],
+      "cues": [
+        "Pull the shoulder blades down and together and keep them pinned to the bench the whole set.",
+        "Elbows at roughly 45 degrees from the torso, not flared to 90.",
+        "Touch the chest with control instead of bouncing the bar off it.",
+        "Drive your feet into the floor to stay tight."
+      ],
+      "whyItsHere": "The standard barbell horizontal press, and the easiest upper-body lift to load progressively and measure honestly.",
+      "safetyNotes": [
+        "Always use safety arms or a spotter. This is the one lift where failing a rep alone can pin you under the bar.",
+        "Do not use a thumbless grip — a rolled bar landing on your chest or throat is a catastrophic and entirely avoidable injury.",
+        "Front-of-shoulder pinching usually means the elbows are flaring too wide."
+      ],
+      "variants": [
+        { "level": 1, "name": "Push-Up", "description": "The bodyweight version of the same pattern, scaled by hand or foot elevation." },
+        { "level": 2, "name": "Dumbbell Bench Press", "description": "Independent arms, easier on the shoulder, and safe to fail without a spotter." },
+        { "level": 3, "name": "Barbell Bench Press", "description": "Standard full-range barbell press." }
+      ],
+      "progressionRule": "Add the smallest available increment once every set hits the top of the rep range with a controlled touch. Upper-body lifts progress more slowly than lower-body ones — expect roughly half the rate.",
+      "description": "Lie on the bench with the eyes roughly under the bar, set the shoulder blades back and down, and take a grip a bit wider than shoulder width. Unrack, lower the bar under control to the lower chest with the elbows tucked to about 45 degrees, then press back up and slightly back toward the shoulders."
+    },
+    "overhead_press": {
+      "name": "Standing Overhead Press",
+      "shortName": "OHP",
+      "category": "strength",
+      "modality": "barbell",
+      "measurementType": "reps",
+      "equipment": ["barbell", "rack"],
+      "primaryTargets": ["shoulders", "triceps", "upper chest", "core"],
+      "cues": [
+        "Squeeze the glutes and brace the abs so the press does not turn into a standing back arch.",
+        "Move your head back out of the way, then push it forward under the bar as the bar clears.",
+        "Finish with the bar over the mid-foot and the biceps beside the ears.",
+        "Keep the bar path as vertical as possible."
+      ],
+      "whyItsHere": "The most honest test of upper-body pressing strength, because there is no bench to brace against — the trunk has to do real work.",
+      "safetyNotes": [
+        "If you cannot reach a full overhead position without arching hard through the low back, work on thoracic and shoulder mobility before adding load.",
+        "Press in a rack with pins set, or be prepared to lower the bar back to the shoulders under control."
+      ],
+      "variants": [
+        { "level": 1, "name": "Seated Dumbbell Press", "description": "Supported torso, independent arms, easier to scale." },
+        { "level": 2, "name": "Standing Dumbbell Press", "description": "Adds the trunk-bracing demand while keeping the shoulder-friendly neutral grip." },
+        { "level": 3, "name": "Standing Barbell Press", "description": "Strict, no leg drive." },
+        { "level": 4, "name": "Push Press", "description": "A small dip and leg drive to move heavier loads than a strict press allows." }
+      ],
+      "progressionRule": "This lift progresses the slowest of the four main barbell lifts. Add the smallest increment available, and expect to hold weights for multiple sessions.",
+      "description": "With the bar racked across the front deltoids and a shoulder-width grip, brace the trunk hard, then press the bar straight overhead, moving the head back to let it pass and then pushing it through once the bar clears. Lock out with the bar over the middle of the foot, then lower under control to the shoulders."
+    },
+    "barbell_row": {
+      "name": "Barbell Bent-Over Row",
+      "shortName": "Barbell Row",
+      "category": "strength",
+      "modality": "barbell",
+      "measurementType": "reps",
+      "equipment": ["barbell", "plates"],
+      "primaryTargets": ["latissimus dorsi", "rhomboids", "rear deltoid", "biceps", "spinal erectors"],
+      "cues": [
+        "Hinge to roughly 45 degrees or lower and hold that torso angle for the whole set.",
+        "Start each rep by pulling the shoulder blade back, then bend the elbow.",
+        "Pull toward the belly button, not the collarbone.",
+        "No heaving with the hips — if the torso rises to move the weight, the weight is too heavy."
+      ],
+      "whyItsHere": "Balances the pressing work. Rowing volume roughly matching pressing volume is the simplest way to keep shoulders healthy over years of training.",
+      "safetyNotes": [
+        "Holding a hinged position under load is fatiguing for the low back — do not row on the same day you deadlift heavy unless you are managing total volume deliberately.",
+        "Round-backed rowing under load is a common cause of low-back strain."
+      ],
+      "variants": [
+        { "level": 1, "name": "Chest-Supported Row", "description": "Torso supported on an incline bench, removing the low-back demand entirely." },
+        { "level": 2, "name": "Single-Arm Dumbbell Row", "description": "One hand braced on a bench, allowing a longer range and easier loading." },
+        { "level": 3, "name": "Barbell Bent-Over Row", "description": "Both arms, unsupported hinge." },
+        { "level": 4, "name": "Pendlay Row", "description": "Torso parallel to the floor, bar reset on the ground between every rep." }
+      ],
+      "progressionRule": "Progress reps within the range first, then add load. If the torso angle starts creeping upward across the set, hold the weight until it stops.",
+      "description": "Hinge at the hips with a flat back until the torso is somewhere between 45 degrees and parallel to the floor, holding the bar with an overhand grip. Row the bar to the lower ribs or navel by driving the elbows back, pause briefly, then lower under control without letting the torso rise."
+    },
+    "romanian_deadlift": {
+      "name": "Romanian Deadlift",
+      "shortName": "RDL",
+      "category": "strength",
+      "modality": "barbell",
+      "measurementType": "reps",
+      "equipment": ["barbell", "rack or blocks"],
+      "primaryTargets": ["hamstrings", "glutes", "spinal erectors"],
+      "cues": [
+        "Push the hips backward — the bar comes down because the hips go back, not because you bend over.",
+        "Keep a soft, fixed knee angle rather than squatting the weight down.",
+        "Stop at the point where the hamstrings are fully stretched but the back is still flat.",
+        "Drag the bar down your thighs to keep it close."
+      ],
+      "whyItsHere": "The cleanest way to train the hip hinge and load the hamstrings through a long range, which supports the deadlift and helps protect the hamstrings in sprinting and running.",
+      "safetyNotes": [
+        "Depth is set by your hamstring flexibility, not by touching the floor. Going lower by rounding the back defeats the exercise.",
+        "Expect significant delayed soreness the first few times — start lighter than you think you need to."
+      ],
+      "variants": [
+        { "level": 1, "name": "Dumbbell RDL", "description": "Two dumbbells, easier to control and to bail out of." },
+        { "level": 2, "name": "Barbell RDL", "description": "Standard, both legs." },
+        { "level": 3, "name": "Single-Leg RDL", "description": "One leg, which adds a large balance and hip-stability demand." }
+      ],
+      "progressionRule": "Add load only while you can still reach the same depth with a flat back. Range quality comes before weight on this lift.",
+      "description": "Stand holding the bar at the hips with a shoulder-width grip and a soft bend in the knees. Push the hips straight back, letting the bar slide down the thighs while the back stays flat, until you feel a strong stretch in the hamstrings. Reverse by driving the hips forward and squeezing the glutes at the top."
+    }
+  }
+}

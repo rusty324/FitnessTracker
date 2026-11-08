@@ -1,0 +1,56 @@
+name: Polar sync
+
+on:
+  schedule:
+    - cron: '17 */4 * * *' # every 4h, off the top of the hour
+  workflow_dispatch: {}
+
+concurrency:
+  group: polar-sync
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    env:
+      # Must match "Folder in the repo" in the app's Settings. Unset = data,
+      # "/" = repo root. Set it as a repo variable, not a secret.
+      DATA_DIR: ${{ vars.DATA_DIR }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Pull new Polar activities
+        env:
+          POLAR_ACCESS_TOKEN: ${{ secrets.POLAR_ACCESS_TOKEN }}
+          POLAR_USER_ID: ${{ secrets.POLAR_USER_ID }}
+          # Optional: set to the same password used in the app so the sync can
+          # read and write encrypted shards (see README "Encryption").
+          ENCRYPTION_PASSWORD: ${{ secrets.ENCRYPTION_PASSWORD }}
+          # Optional bounds (repo *variables*, not secrets — see README).
+          # SYNC_TYPES: sport allowlist, e.g. "RUNNING,CYCLING".
+          # SYNC_MAX_ACTIVITIES: per-run cap (default 200).
+          SYNC_TYPES: ${{ vars.SYNC_TYPES }}
+          SYNC_MAX_ACTIVITIES: ${{ vars.SYNC_MAX_ACTIVITIES }}
+        run: node scripts/polar-sync.mjs
+
+      - name: Commit and push
+        run: |
+          git config user.name "polar-sync[bot]"
+          git config user.email "polar-sync@users.noreply.github.com"
+          DIR="${DATA_DIR:-data}"; DIR="${DIR#/}"; DIR="${DIR%/}"
+          git add "${DIR:+$DIR/}activities"
+          if git diff --cached --quiet; then
+            echo "No new activities"
+            exit 0
+          fi
+          git commit -m "Sync Polar activities"
+          git push || (git pull --rebase && git push)

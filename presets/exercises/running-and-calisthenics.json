@@ -1,0 +1,1163 @@
+{
+  "format": "fitness-tracker-exercise-library",
+  "formatVersion": 2,
+  "exerciseLibrary": {
+    "ankle_circles_calf_pumps": {
+      "name": "Ankle Circles & Calf Pumps",
+      "shortName": "Ankle Circles",
+      "category": "mobility",
+      "modality": "mobility",
+      "measurementType": "reps",
+      "perSide": true,
+      "primaryTargets": [
+        "ankle joint",
+        "calves",
+        "tibialis anterior"
+      ],
+      "cues": [
+        "Go slow enough that you can feel where the range starts to get tight.",
+        "Full circles, not lazy wiggles.",
+        "Calf pumps should be smooth and rhythmic, not explosive."
+      ],
+      "whyItsHere": "Restricted ankle dorsiflexion is a well-documented contributor to shin and calf overload. This takes 60 seconds and directly addresses it.",
+      "description": "Standing or seated, lift one foot and trace slow circles with the toes — full range, as if drawing the largest circle you can with your big toe. Do half the reps in each direction, then switch feet. Follow with calf pumps: standing, rise onto the balls of both feet and lower back down through a full range, unloaded and rhythmic. Together these move the ankle through the range it will actually use while running and get fluid moving through the lower leg."
+    },
+    "bird_dog": {
+      "name": "Bird-Dog",
+      "shortName": "Bird-Dog",
+      "category": "strength",
+      "modality": "bodyweight",
+      "measurementType": "reps",
+      "perSide": true,
+      "equipment": [
+        "mat optional"
+      ],
+      "primaryTargets": [
+        "deep core",
+        "spinal erectors",
+        "glutes",
+        "shoulder stabilizers"
+      ],
+      "cues": [
+        "Imagine a full glass of water on your low back — nothing spills.",
+        "Reach long rather than lifting high. Height is not the goal.",
+        "Do not let the hips rotate open as the leg goes back.",
+        "Move slowly. This is a control exercise, not a conditioning one."
+      ],
+      "whyItsHere": "Trains anti-rotation control in the exact diagonal pattern running uses — opposite arm and leg working together while the trunk stays quiet.",
+      "variants": [
+        {
+          "level": 1,
+          "name": "Arm-Only or Leg-Only Bird-Dog",
+          "description": "Extend just one limb at a time while learning to keep the torso level."
+        },
+        {
+          "level": 2,
+          "name": "Standard Bird-Dog",
+          "description": "Opposite arm and leg together."
+        },
+        {
+          "level": 3,
+          "name": "Bird-Dog with Extended Hold",
+          "description": "Standard, with a five second hold at full extension."
+        }
+      ],
+      "progressionRule": "Progress the hold duration at full extension before adding reps. The plan builds holds from 0 to 5 seconds across the phases.",
+      "description": "On hands and knees, hands under shoulders and knees under hips. Simultaneously extend one arm forward and the opposite leg back until both are roughly parallel with the floor. Hold briefly, then return with control and switch sides. The entire value of the exercise is in what does not move: your torso should stay completely level, as if balancing a glass of water on your low back."
+    },
+    "calf_raise": {
+      "name": "Calf Raise",
+      "shortName": "Calf Raise",
+      "category": "strength",
+      "modality": "bodyweight",
+      "measurementType": "reps",
+      "equipment": [
+        "optional: step for extended range",
+        "wall or rail for balance"
+      ],
+      "primaryTargets": [
+        "gastrocnemius",
+        "soleus",
+        "achilles tendon"
+      ],
+      "cues": [
+        "Slow on the way down. Roughly three seconds. This is the whole point of the exercise.",
+        "Full range: all the way up onto the toes, all the way back down.",
+        "Brief pause at the top of each rep.",
+        "Keep your weight over the big toe and second toe — don't let the ankle roll outward."
+      ],
+      "whyItsHere": "The calf complex absorbs a large share of landing forces. A calf that fatigues early passes that load onto the shin and the tibialis anterior — a direct route to shin splints. This is the second highest-value strength exercise in the plan after tibialis raises.",
+      "variants": [
+        {
+          "level": 1,
+          "name": "Double-Leg Calf Raise (flat ground)",
+          "description": "Both feet on flat ground, full range."
+        },
+        {
+          "level": 2,
+          "name": "Double-Leg Calf Raise (off a step)",
+          "description": "Forefeet on a step, heels dropping below the step at the bottom for extended range."
+        },
+        {
+          "level": 3,
+          "name": "Single-Leg Calf Raise (flat ground)",
+          "description": "One leg at a time, flat ground, other foot lifted."
+        },
+        {
+          "level": 4,
+          "name": "Single-Leg Calf Raise (off a step)",
+          "description": "One leg, forefoot on a step, heel dropping below at the bottom."
+        }
+      ],
+      "progressionRule": "The plan moves you from double-leg to single-leg at week 9. Within a level, progress reps. Adding the step (extended range) is a meaningful jump in load — take it only when the flat-ground version is easy.",
+      "description": "Rise onto the balls of your feet through a full range, pause briefly at the top, then lower slowly and with control. The lowering phase is the part that actually builds tendon capacity, so take roughly three seconds on the way down. Once you move to the single-leg variant, use a wall or rail for balance only — do not push through it to assist the lift."
+    },
+    "clamshell": {
+      "name": "Clamshell",
+      "shortName": "Clamshell",
+      "category": "strength",
+      "modality": "bodyweight",
+      "measurementType": "reps",
+      "perSide": true,
+      "equipment": [
+        "mat optional",
+        "optional: resistance band above the knees"
+      ],
+      "primaryTargets": [
+        "gluteus medius",
+        "hip external rotators"
+      ],
+      "cues": [
+        "Pelvis stays perfectly still. If your hips roll back, the range is too big.",
+        "Small range, deliberate. You should feel this in the side of the upper glute.",
+        "Rest a hand on your top hip to feel whether it's rotating.",
+        "Slow and controlled in both directions."
+      ],
+      "whyItsHere": "Gluteus medius weakness lets the pelvis drop and the knee collapse inward on each landing. That changes tibial loading and is a recognized contributor to lower-leg running injuries.",
+      "variants": [
+        {
+          "level": 1,
+          "name": "Bodyweight Clamshell",
+          "description": "No external resistance."
+        },
+        {
+          "level": 2,
+          "name": "Banded Clamshell",
+          "description": "Light resistance band looped just above the knees."
+        },
+        {
+          "level": 3,
+          "name": "Banded Clamshell with Hip Lift",
+          "description": "Banded, with the bottom hip lifted off the floor to load the down-side glute as well."
+        }
+      ],
+      "progressionRule": "Progress reps, then add a band. This exercise is replaced by single-leg glute bridges from week 9.",
+      "description": "Lie on your side with hips and knees bent about 45 and 90 degrees respectively, feet stacked and in line with your spine. Keeping your feet touching and your pelvis absolutely still, rotate the top knee open like a clamshell. The range is small and that is correct — most of the apparent range in a sloppy clamshell comes from rolling the pelvis backward, which removes the target muscle entirely."
+    },
+    "continuous_run": {
+      "name": "Continuous Run",
+      "shortName": "Run",
+      "category": "cardio",
+      "modality": "run",
+      "measurementType": "duration",
+      "equipment": [
+        "running shoes",
+        "watch or app"
+      ],
+      "primaryTargets": [
+        "cardiovascular system",
+        "legs",
+        "connective tissue"
+      ],
+      "cues": [
+        "Conversational effort throughout — you should be able to speak a full sentence at any point.",
+        "Quick, light, quiet steps. Shorten your stride rather than reaching forward.",
+        "Land with your foot under your hip.",
+        "If the duration feels impossible, slow down rather than cutting it short."
+      ],
+      "whyItsHere": "Continuous easy running is the actual target skill. Once tissue tolerance is built in phase 1, accumulating easy minutes is what turns a run-walker into a 10K finisher.",
+      "safetyNotes": [
+        "Taking a walk break is always preferable to pushing through pain or grinding to a stop.",
+        "If you finish a run unable to hold a conversation, you ran the whole thing too fast."
+      ],
+      "description": "Run continuously for the prescribed duration at an easy, conversational effort. This is time-based on purpose: distance and pace targets encourage racing yourself, while a clock target only asks you to keep moving. Nearly all of the aerobic benefit here comes from accumulated easy minutes, not from running any of them quickly."
+    },
+    "cool_down_walk": {
+      "name": "Cool-Down Walk",
+      "shortName": "Cool-Down Walk",
+      "category": "cardio",
+      "modality": "walk",
+      "measurementType": "duration",
+      "primaryTargets": [
+        "cardiovascular system"
+      ],
+      "cues": [
+        "Start at the pace you finished running and let it decay naturally.",
+        "By the end you should be breathing normally."
+      ],
+      "whyItsHere": "Cheap, low-cost transition out of impact work. Also the natural window for the stretches that follow.",
+      "description": "An easy walk immediately after the run, gradually slowing. Lets heart rate come down gradually rather than dropping off a cliff, and gives the legs a few minutes of low-grade movement before you sit down in a car or at a desk."
+    },
+    "front_lever": {
+      "name": "Front Lever",
+      "shortName": "Front Lever",
+      "category": "skill",
+      "modality": "bodyweight",
+      "measurementType": "duration",
+      "equipment": [
+        "pull-up bar or rings"
+      ],
+      "primaryTargets": [
+        "lats",
+        "biceps",
+        "rear deltoids",
+        "core",
+        "grip"
+      ],
+      "cues": [
+        "Actively pull the bar down toward the hips rather than just hanging passively.",
+        "Posteriorly tilt the pelvis and squeeze the glutes to keep the hips from sagging.",
+        "Keep the arms straight; this is a lat/back hold, not an isometric bicep curl.",
+        "Depress the shoulder blades rather than letting them ride up toward the ears."
+      ],
+      "whyItsHere": "The sagittal-plane counterpart to the side lever, and one of the most common calisthenics skill goals — added since the request was open to other progressions.",
+      "safetyNotes": [
+        "Elbow strain (biceps tendon) is a common overuse issue — keep the arms straight through the hold and don't try to compensate for a weak back by bending the elbows.",
+        "Grip fatigue can end a hold before the back does — ab straps or a towel grip can help isolate the intended muscles if grip is the limiter."
+      ],
+      "variants": [
+        {
+          "level": 1,
+          "name": "Tuck Front Lever",
+          "description": "Hanging from the bar, knees tucked tightly to the chest, body roughly horizontal under the bar."
+        },
+        {
+          "level": 2,
+          "name": "Advanced Tuck Front Lever",
+          "description": "Hips more open than level 1, knees still bent, a longer effective lever."
+        },
+        {
+          "level": 3,
+          "name": "Single-Leg Front Lever",
+          "description": "One leg extended straight, the other still tucked."
+        },
+        {
+          "level": 4,
+          "name": "Straddle Front Lever",
+          "description": "Both legs straight and spread wide, which shortens the effective lever compared to legs together."
+        },
+        {
+          "level": 5,
+          "name": "Half-Straddle Front Lever",
+          "description": "Legs straight with a narrower straddle than level 4."
+        },
+        {
+          "level": 6,
+          "name": "Full Front Lever",
+          "description": "Legs together and fully extended, whole body rigid and horizontal under the bar."
+        }
+      ],
+      "progressionRule": "Progress hold duration within a level first. Move up a level once the target duration is held with a straight line and arms locked out for two straight sessions, then reset duration to the bottom of the range.",
+      "description": "A static hold, hanging from a bar or rings, with the body held rigid and horizontal beneath the bar, facing the floor."
+    },
+    "front_plank": {
+      "name": "Front Plank",
+      "shortName": "Plank",
+      "category": "strength",
+      "modality": "other",
+      "measurementType": "duration",
+      "equipment": [
+        "mat optional"
+      ],
+      "primaryTargets": [
+        "deep core",
+        "anterior chain",
+        "shoulders"
+      ],
+      "cues": [
+        "Squeeze your glutes — this alone fixes most sagging hips.",
+        "Ribs down, pelvis slightly tucked. No arch in the low back.",
+        "Breathe normally throughout. If you're holding your breath, the hold is too hard.",
+        "End the set when form breaks, not when the timer says so."
+      ],
+      "whyItsHere": "Trunk stiffness is what keeps your pelvis from dropping on each stride. A wobbly pelvis changes how load travels down the leg, which is a plausible contributor to lower-leg pain over long runs.",
+      "safetyNotes": [
+        "Stop the set the moment your hips sag — a broken-form plank trains nothing useful."
+      ],
+      "variants": [
+        {
+          "level": 1,
+          "name": "Incline Plank",
+          "description": "Forearms on a bench or counter, feet on the floor."
+        },
+        {
+          "level": 2,
+          "name": "Knee Plank",
+          "description": "Forearms and knees down, hips extended in a straight line."
+        },
+        {
+          "level": 3,
+          "name": "Standard Front Plank",
+          "description": "Forearms and toes, full body straight."
+        },
+        {
+          "level": 4,
+          "name": "Long-Lever Plank",
+          "description": "Standard plank with elbows shifted forward, ahead of the shoulders."
+        }
+      ],
+      "progressionRule": "Progress by hold duration within a variant level. When you hit the prescribed duration for all sets with a rigid torso and normal breathing, move up a variant level and reset to a shorter duration.",
+      "description": "Forearms on the ground under your shoulders, body in a straight line from head to heels. Actively brace: squeeze glutes, tuck the pelvis slightly so the low back doesn't sag, and pull your elbows toward your toes without actually moving them. A hard, well-braced 30 seconds is worth far more than a sagging two minutes."
+    },
+    "half_kneeling_hip_flexor_stretch": {
+      "name": "Half-Kneeling Hip Flexor Stretch",
+      "shortName": "Hip Flexor Stretch",
+      "category": "mobility",
+      "modality": "stretch",
+      "measurementType": "duration",
+      "perSide": true,
+      "equipment": [
+        "mat or cushion for the knee"
+      ],
+      "primaryTargets": [
+        "hip flexors",
+        "quadriceps"
+      ],
+      "cues": [
+        "Squeeze the glute on the kneeling side first. That's the actual technique.",
+        "Tuck the pelvis; do not arch the low back.",
+        "Torso stays tall and vertical.",
+        "Small forward shift is plenty — this is not a lunge."
+      ],
+      "whyItsHere": "You sit in a cubicle all day, which keeps the hip flexors short. Short hip flexors limit hip extension, which shortens your stride behind you and pushes you toward overreaching in front — the exact overstriding pattern the shoe store flagged in your gait.",
+      "description": "Kneel on one knee with the other foot planted in front, both knees at roughly 90 degrees. Squeeze the glute on the kneeling side and tuck your pelvis under — this alone creates most of the stretch. Then shift your weight gently forward. Keep your torso upright rather than leaning forward, which would let the low back arch and remove the stretch from the hip."
+    },
+    "handstand_push_up": {
+      "name": "Handstand Push-Up",
+      "shortName": "HSPU",
+      "category": "skill",
+      "modality": "bodyweight",
+      "measurementType": "reps",
+      "equipment": [
+        "wall",
+        "optional: folded mat or yoga blocks to extend range",
+        "optional: paralettes"
+      ],
+      "primaryTargets": [
+        "shoulders",
+        "triceps",
+        "upper chest",
+        "core",
+        "balance/proprioception"
+      ],
+      "cues": [
+        "Stack shoulders over wrists and press the floor away — don't let the upper back round.",
+        "Keep a slight hollow-body brace rather than an arched banana shape.",
+        "Descend slowly and under control; the eccentric is where most of the strength is actually built.",
+        "Fingers spread wide and gripping the floor for balance."
+      ],
+      "whyItsHere": "Pairs an overhead pressing strength progression with an inversion/balance progression, since most people are limited by balance and wrist/shoulder tolerance well before they're limited by raw pressing strength.",
+      "safetyNotes": [
+        "Practice falling out of a handstand (forward roll, cartwheel-out, or stepping down) before attempting freestanding work — most injuries here come from an uncontrolled fall, not the press.",
+        "Wrist discomfort: reduce range, use paralettes to keep a neutral wrist, and build up gradually.",
+        "Neck: keep it neutral, don't let the head jam forward into the floor."
+      ],
+      "variants": [
+        {
+          "level": 1,
+          "name": "Crow / Crane Stand (Hold)",
+          "description": "Hands on the floor, knees resting on the backs of the upper arms/triceps, feet lifted off the ground — a balance hold, not a press."
+        },
+        {
+          "level": 2,
+          "name": "Wall-Assisted Handstand Hold",
+          "description": "Full handstand with the body supported against a wall (chest-to-wall or back-to-wall) — a duration hold to build inverted tolerance."
+        },
+        {
+          "level": 3,
+          "name": "Pike Push-Up (Feet Elevated)",
+          "description": "Feet on a box or bench, hips piked high, hands on the floor; press to bring the head toward the floor between the hands."
+        },
+        {
+          "level": 4,
+          "name": "Wall Handstand Push-Up (Partial Range)",
+          "description": "Full wall handstand, lowering until the head touches a folded mat, then pressing back up."
+        },
+        {
+          "level": 5,
+          "name": "Wall Handstand Push-Up (Full Range)",
+          "description": "Same wall setup, lowering all the way until the head lightly touches the floor."
+        },
+        {
+          "level": 6,
+          "name": "Freestanding Handstand Push-Up",
+          "description": "No wall support — balance and press are trained together."
+        },
+        {
+          "level": 7,
+          "name": "One-Arm Handstand Push-Up (Assisted)",
+          "description": "Wall or spotter-assisted; most of the load is on one arm, the other arm only lightly touching for balance."
+        },
+        {
+          "level": 8,
+          "name": "One-Arm Handstand Push-Up (Full)",
+          "description": "Single-arm, freestanding."
+        }
+      ],
+      "progressionRule": "For hold-based levels (1-2), progress hold duration before moving up. For press-based levels (3 onward), progress reps within a level first, then move up once the target reps/sets are hit with full range and no wobble for two straight sessions.",
+      "description": "An inverted overhead press. Early levels are balance holds rather than presses; from level 3 onward it becomes pressing strength in a progressively more inverted, less-supported position."
+    },
+    "hanging_leg_raise": {
+      "name": "Hanging Leg Raise",
+      "shortName": "Hanging Leg Raise",
+      "category": "strength",
+      "modality": "bodyweight",
+      "measurementType": "reps",
+      "equipment": [
+        "pull-up bar",
+        "optional: ab straps to remove grip as the limiter"
+      ],
+      "primaryTargets": [
+        "hip flexors",
+        "rectus abdominis",
+        "obliques",
+        "grip"
+      ],
+      "cues": [
+        "Posteriorly tilt the pelvis at the top of the rep rather than just flexing the hips.",
+        "Control the descent — a fast drop is mostly momentum, not the target muscles.",
+        "Keep the swing out of it; a still bar means the reps are coming from the core, not momentum.",
+        "Exhale on the way up to help engage the deep abdominals."
+      ],
+      "whyItsHere": "Straight-leg hanging raises are one of the highest-value core exercises for the lever line (side lever, front lever, human flag) since they train the same hip-flexor-dominant, straight-leg strength those holds need.",
+      "safetyNotes": [
+        "Grip fatigue often ends the set before the abs do — ab straps remove that limiter if it's the goal to train the core specifically.",
+        "Swinging to generate momentum is a common compensation as fatigue sets in — stop the set once it starts rather than grinding out swingy reps."
+      ],
+      "variants": [
+        {
+          "level": 1,
+          "name": "Lying Knee Raise (Floor)",
+          "description": "Lying on the back, knees pulled toward the chest, low back pressed into the floor throughout."
+        },
+        {
+          "level": 2,
+          "name": "Lying Straight-Leg Raise (Floor)",
+          "description": "Legs extended straight, raised toward vertical and lowered under control without the low back arching off the floor."
+        },
+        {
+          "level": 3,
+          "name": "Hanging Knee Raise",
+          "description": "Hanging from the bar, knees pulled up toward the chest."
+        },
+        {
+          "level": 4,
+          "name": "Hanging Bent-Knee Raise (Higher Range)",
+          "description": "Knees driven higher toward the chest/upper torso with more posterior pelvic tilt than level 3."
+        },
+        {
+          "level": 5,
+          "name": "Hanging Straight-Leg Raise (Partial)",
+          "description": "Legs extended throughout, raised to roughly hip height/horizontal."
+        },
+        {
+          "level": 6,
+          "name": "Full Hanging Straight-Leg Raise",
+          "description": "Legs extended throughout, raised well above horizontal toward the bar."
+        }
+      ],
+      "progressionRule": "Progress reps within a level first. Move up a level once the target reps/sets are hit with no swing and full control for two straight sessions, then reset reps to the bottom of the range.",
+      "description": "Raise the legs from a dead hang using the abdominals and hip flexors while resisting the tendency to swing, then lower under control back to a full hang."
+    },
+    "human_flag": {
+      "name": "Human Flag",
+      "shortName": "Human Flag",
+      "category": "skill",
+      "modality": "bodyweight",
+      "measurementType": "duration",
+      "perSide": true,
+      "equipment": [
+        "vertical pole — flagpole, playground post, or a squat rack upright"
+      ],
+      "primaryTargets": [
+        "lats",
+        "obliques",
+        "shoulders",
+        "forearms",
+        "core"
+      ],
+      "cues": [
+        "Top arm pulls down toward the hip, bottom arm pushes up — the two work in opposition.",
+        "Full-body tension from shoulders to feet; a loose midsection makes the hold fall apart immediately.",
+        "Keep the hips and shoulders stacked in the same vertical plane.",
+        "Grip the pole hard — this is as much a grip skill as a core one early on."
+      ],
+      "whyItsHere": "Included alongside the side lever since the two are commonly trained together and share the same lateral bracing pattern, just on different apparatus.",
+      "safetyNotes": [
+        "Wrist and forearm strain from the grip demands is common — build grip endurance separately if it's the limiting factor.",
+        "Make sure the pole is actually rated to be climbed/hung from before loading it with a flag attempt."
+      ],
+      "variants": [
+        {
+          "level": 1,
+          "name": "Wall Human Flag Lean",
+          "description": "Standing beside a wall or pole, leaning the body into a supported plank-like position with the feet still touching the ground, each side."
+        },
+        {
+          "level": 2,
+          "name": "Vertical Flag (Feet Down)",
+          "description": "Full vertical grip on the pole with the top-pull/bottom-push pattern engaged, feet still lightly touching the ground for balance, each side."
+        },
+        {
+          "level": 3,
+          "name": "Tuck Human Flag",
+          "description": "Feet off the ground, knees tucked to the chest, body held roughly horizontal beside the pole, each side."
+        },
+        {
+          "level": 4,
+          "name": "Straddle Human Flag",
+          "description": "Legs straight and spread wide to shorten the effective lever, each side."
+        },
+        {
+          "level": 5,
+          "name": "Full Human Flag",
+          "description": "Legs together and fully extended, entire body rigid and horizontal beside the pole, each side."
+        }
+      ],
+      "progressionRule": "Progress hold duration within a level first. Move up a level once the target duration is held with a straight line and no drift toward the pole for two straight sessions, then reset duration to the bottom of the range.",
+      "description": "A static hold where the body is rigid and horizontal alongside a vertical pole, supported by a top hand pulling down and a bottom hand pushing up. A close relative of the side lever, trained on a vertical pole instead of a horizontal bar. Trained and logged per side."
+    },
+    "l_sit": {
+      "name": "L-Sit",
+      "shortName": "L-Sit",
+      "category": "skill",
+      "modality": "bodyweight",
+      "measurementType": "duration",
+      "equipment": [
+        "parallettes, floor, dip bars, or rings"
+      ],
+      "primaryTargets": [
+        "hip flexors",
+        "quadriceps",
+        "core",
+        "triceps",
+        "shoulders"
+      ],
+      "cues": [
+        "Push the floor/bars away and shrug the shoulders down to keep the chest up.",
+        "Point the toes and squeeze the quads to keep the legs from sagging.",
+        "Posteriorly tilt the pelvis rather than arching the low back to get the legs up.",
+        "Keep breathing normally rather than holding the breath through the hold."
+      ],
+      "whyItsHere": "One of the most useful general core static holds in calisthenics, and a natural stepping stone toward the leg positions used in the front and side lever lines.",
+      "safetyNotes": [
+        "Hip flexor tightness/strain is common when this is trained often — pair it with hip flexor mobility work rather than only holds.",
+        "Wrist discomfort: use parallettes or a slightly bent-wrist grip to reduce load on the wrist."
+      ],
+      "variants": [
+        {
+          "level": 1,
+          "name": "Tuck L-Sit (Assisted)",
+          "description": "Supported on the hands, knees tucked to the chest, feet barely off the ground."
+        },
+        {
+          "level": 2,
+          "name": "Tuck L-Sit (Full Hold)",
+          "description": "Knees fully tucked, feet clear of the floor, hips lifted, held with straight arms."
+        },
+        {
+          "level": 3,
+          "name": "One-Leg-Extended L-Sit",
+          "description": "One leg extended straight out, the other still tucked."
+        },
+        {
+          "level": 4,
+          "name": "Straddle L-Sit",
+          "description": "Both legs straight and spread wide, which shortens the effective lever compared to legs together."
+        },
+        {
+          "level": 5,
+          "name": "Full L-Sit",
+          "description": "Both legs straight and together, held parallel to the floor."
+        }
+      ],
+      "progressionRule": "Progress hold duration within a level first. Move up a level once the target duration is held with straight arms and no leg sag for two straight sessions, then reset duration to the bottom of the range.",
+      "description": "A static hold supported on the hands with the legs extended out in front, roughly parallel to the floor, body forming an L shape."
+    },
+    "leg_swings_front_back_side_side": {
+      "name": "Leg Swings — Front/Back & Side/Side",
+      "shortName": "Leg Swings",
+      "category": "mobility",
+      "modality": "mobility",
+      "measurementType": "reps",
+      "perSide": true,
+      "equipment": [
+        "wall or rail for balance"
+      ],
+      "primaryTargets": [
+        "hip flexors",
+        "hamstrings",
+        "adductors",
+        "glutes"
+      ],
+      "cues": [
+        "Start small and let the range build; the first swing is not the biggest swing.",
+        "Keep your torso upright and still — this is a hip drill, not a spine drill.",
+        "Relaxed and rhythmic, never forced or bouncy at end range."
+      ],
+      "whyItsHere": "Prepares the hip through the range running actually demands, and gets the glutes contributing from step one rather than after mile one.",
+      "description": "Hold a wall or rail for balance. Swing one leg forward and back in a relaxed arc, letting the range grow over the first few reps rather than forcing it immediately. Then turn to face the support and swing the same leg side to side across your body. Do the prescribed reps in each plane, then switch legs. Keep your torso quiet — the movement comes from the hip, not from throwing your upper body around."
+    },
+    "nordic_hamstring_curl": {
+      "name": "Nordic Hamstring Curl",
+      "shortName": "Nordic Curl",
+      "category": "strength",
+      "modality": "bodyweight",
+      "measurementType": "reps",
+      "equipment": [
+        "partner or anchored pad to pin the ankles",
+        "optional: a nordic curl bench"
+      ],
+      "primaryTargets": [
+        "hamstrings",
+        "glutes",
+        "lower back"
+      ],
+      "cues": [
+        "Keep the hips extended (don't fold at the hips) — the movement should hinge at the knee.",
+        "Lower as slowly as the hamstrings allow; the eccentric is where nearly all of the benefit is.",
+        "Catch with the hands and use them to help push back up, especially at the harder levels.",
+        "Keep the core braced so the lower back doesn't take over from the hamstrings."
+      ],
+      "whyItsHere": "Added as a posterior-chain complement to the squat/pistol line — most calisthenics leg work is quad-dominant, and this is one of the few bodyweight exercises that directly loads the hamstrings eccentrically.",
+      "safetyNotes": [
+        "This produces significant delayed-onset soreness even at low reps when new to it — start with very few reps regardless of how easy the first ones feel.",
+        "Stop the descent and catch with the hands the moment control is lost rather than trying to fight it all the way down; a hard, uncontrolled drop can strain the hamstring."
+      ],
+      "variants": [
+        {
+          "level": 1,
+          "name": "Nordic Curl (Small Range, Fast Catch)",
+          "description": "Lean forward only a small controlled amount before catching with the hands."
+        },
+        {
+          "level": 2,
+          "name": "Nordic Curl (Half Range)",
+          "description": "Lean further before catching, with a slower controlled descent than level 1."
+        },
+        {
+          "level": 3,
+          "name": "Nordic Curl (Assisted Full Range)",
+          "description": "Use a band anchored in front, or push off the floor partway down, to manage the hardest part of the range."
+        },
+        {
+          "level": 4,
+          "name": "Nordic Curl (Full Range, Eccentric Only)",
+          "description": "Lower all the way to the floor under control with no push-off, then reset with the hands rather than pulling back up."
+        },
+        {
+          "level": 5,
+          "name": "Full Nordic Curl",
+          "description": "Lower all the way under control and pull back up to kneeling using the hamstrings alone."
+        }
+      ],
+      "progressionRule": "Progress reps within a level first, very conservatively given the soreness this produces. Move up a level once the target reps/sets are controlled for two straight sessions, then reset reps to the bottom of the range.",
+      "description": "Kneeling with the ankles pinned, lean the torso forward as far as possible under hamstring control, catching with the hands before the face hits the floor, then push back up to kneeling."
+    },
+    "parallel_bar_dip": {
+      "name": "Parallel Bar Dip",
+      "shortName": "Dip",
+      "category": "strength",
+      "modality": "bodyweight",
+      "measurementType": "reps",
+      "equipment": [
+        "dip bars, parallettes, sturdy chairs, or rings"
+      ],
+      "primaryTargets": [
+        "triceps",
+        "chest",
+        "anterior deltoid",
+        "core"
+      ],
+      "cues": [
+        "Lean the torso slightly forward to keep the shoulder in a safer position through the bottom.",
+        "Control the descent rather than dropping into the bottom.",
+        "Keep the shoulders down away from the ears rather than shrugging under load.",
+        "Full lockout at the top — partial reps are worse than fewer full ones."
+      ],
+      "whyItsHere": "Complements the push-up line as the other major bodyweight pressing pattern; added since the request was open to other calisthenics progressions.",
+      "safetyNotes": [
+        "Going too deep too soon is the most common cause of shoulder pain here — stop the descent at the point where the front of the shoulder starts to feel stretched, not just where the elbow geometry allows.",
+        "Ring dips add an instability demand on top of the strength demand — regress to bars first if the shoulders are still stabilizing."
+      ],
+      "variants": [
+        {
+          "level": 1,
+          "name": "Bench/Chair Dip (Feet on Floor)",
+          "description": "Hands behind on a bench or chair, feet on the floor, knees bent, lowering and raising the body."
+        },
+        {
+          "level": 2,
+          "name": "Bench Dip (Feet Elevated)",
+          "description": "Feet elevated on another bench or box, legs straight, a longer and harder lever than level 1."
+        },
+        {
+          "level": 3,
+          "name": "Support Hold + Negative Dip",
+          "description": "Full support hold on bars or rings, then a slow controlled lowering into the bottom position."
+        },
+        {
+          "level": 4,
+          "name": "Full Parallel Bar Dip",
+          "description": "Full range dip on bars or rings from full lockout to the bottom and back."
+        },
+        {
+          "level": 5,
+          "name": "Weighted or Ring Dip",
+          "description": "Added external load (belt or vest) or performed on rings for the instability demand."
+        }
+      ],
+      "progressionRule": "Progress reps within a level first. Move up a level once the target reps/sets are hit with full range and no shoulder pinching for two straight sessions, then reset reps to the bottom of the range.",
+      "description": "Support the body on two parallel bars (or an equivalent), lower until the shoulders drop below the elbows, then press back to full lockout."
+    },
+    "pull_up": {
+      "name": "Pull-Up",
+      "shortName": "Pull-Up",
+      "category": "strength",
+      "modality": "bodyweight",
+      "measurementType": "reps",
+      "equipment": [
+        "pull-up bar or rings",
+        "optional: resistance band for assistance"
+      ],
+      "primaryTargets": [
+        "latissimus dorsi",
+        "biceps",
+        "rear deltoid",
+        "forearms",
+        "core"
+      ],
+      "cues": [
+        "Initiate by depressing the shoulder blades before bending the elbows.",
+        "Pull the elbows down and back rather than just flexing the biceps.",
+        "Keep the ribs down and avoid excessive lumbar arch or leg kipping.",
+        "Lower under control rather than dropping from the top."
+      ],
+      "whyItsHere": "The core vertical/horizontal pulling progression. Inverted rows build the pulling pattern and scapular control at manageable leverage before the full bodyweight vertical pull is attempted.",
+      "safetyNotes": [
+        "Grip fatigue is often the limiting factor before the back is — don't let a failing grip turn into an uncontrolled drop.",
+        "Kipping to get extra reps changes the exercise into something else and increases shoulder strain; keep it strict through at least level 5."
+      ],
+      "variants": [
+        {
+          "level": 1,
+          "name": "Inverted Row (Feet Planted, High Bar)",
+          "description": "Bar at roughly chest/waist height, feet on the floor with knees bent, body diagonal; pull the chest to the bar."
+        },
+        {
+          "level": 2,
+          "name": "Inverted Row (Feet Elevated / Rings)",
+          "description": "Feet extended straight on a bench or held out with rings, body closer to horizontal for a longer lever."
+        },
+        {
+          "level": 3,
+          "name": "Scapular Pull-Up + Negative Pull-Up",
+          "description": "Active hang scapular depression reps, followed by a slow 3-5 second controlled lowering from the top (chin-over-bar) position."
+        },
+        {
+          "level": 4,
+          "name": "Band-Assisted Pull-Up",
+          "description": "A light-to-moderate resistance band looped under the feet or knees removes a portion of bodyweight through the full pull."
+        },
+        {
+          "level": 5,
+          "name": "Full Pull-Up",
+          "description": "Dead hang to chin clearing the bar, strict, no kip."
+        },
+        {
+          "level": 6,
+          "name": "Chest-to-Bar Pull-Up",
+          "description": "A higher, more explosive pull bringing the upper chest/sternum toward the bar."
+        },
+        {
+          "level": 7,
+          "name": "Muscle-Up (Transition)",
+          "description": "The chest-to-bar pull continues into a false-grip transition over the bar or rings, finishing in a supported dip lockout above it."
+        }
+      ],
+      "progressionRule": "Progress reps within a level first. Move up a level once the level's target reps/sets are hit strictly for two straight sessions, then reset reps to the bottom of the range.",
+      "description": "Grip a bar or rings, pull the body upward by driving the elbows down and back, and lower under control to a full hang or a supported start position, depending on the variant."
+    },
+    "push_up": {
+      "name": "Push-Up",
+      "shortName": "Push-Up",
+      "category": "strength",
+      "modality": "bodyweight",
+      "measurementType": "reps",
+      "equipment": [
+        "optional: low support object for one-arm assistance"
+      ],
+      "primaryTargets": [
+        "chest",
+        "triceps",
+        "anterior deltoid",
+        "core",
+        "serratus anterior"
+      ],
+      "cues": [
+        "Brace glutes and abs so the body moves as one rigid unit.",
+        "Elbows back at about 45 degrees, not flared out to the sides.",
+        "Full range every rep — a harder variant done with half range is worse than an easier one done fully.",
+        "Keep the neck neutral; don't crane it to look up."
+      ],
+      "whyItsHere": "The standard entry point into calisthenics pressing strength. The whole line from knee push-up to one-arm push-up is really one continuous progression in leverage and unilateral load tolerance.",
+      "safetyNotes": [
+        "Wrist pain: try fists, push-up handles, or paralettes to keep the wrist neutral.",
+        "Archer and one-arm work loads the shoulder asymmetrically — stop the set if you feel impingement-type pinching rather than muscular fatigue."
+      ],
+      "variants": [
+        {
+          "level": 1,
+          "name": "Knee Push-Up",
+          "description": "Knees down, hips extended so the torso and thighs form a straight line, hands slightly wider than shoulders."
+        },
+        {
+          "level": 2,
+          "name": "Standard Push-Up",
+          "description": "Full plank on hands and toes, hands roughly shoulder-width or slightly outside."
+        },
+        {
+          "level": 3,
+          "name": "Diamond (Triceps) Push-Up",
+          "description": "Hands together under the chest, index fingers and thumbs touching, elbows staying tucked close to the ribs."
+        },
+        {
+          "level": 4,
+          "name": "Archer Push-Up",
+          "description": "Hands placed wide; shift most of the weight onto one arm while the other stays extended out to the side barely loaded, alternating sides each rep."
+        },
+        {
+          "level": 5,
+          "name": "Typewriter Push-Up",
+          "description": "From the archer bottom position, slide across while staying low, shifting weight from one extended-arm side to the other, before pressing back up."
+        },
+        {
+          "level": 6,
+          "name": "One-Arm Push-Up (Assisted)",
+          "description": "One hand on the floor doing the work; the other hand rests lightly on a low support (block or low step) or feet spread wide for a stable tripod base."
+        },
+        {
+          "level": 7,
+          "name": "One-Arm Push-Up (Full)",
+          "description": "Single arm, feet together, free arm held behind the back or out to the side for counter-rotation control."
+        }
+      ],
+      "progressionRule": "Progress reps within a level first. Move up a level once the level's target reps/sets are hit with full range and a rigid torso for two straight sessions, then reset reps to the bottom of the range.",
+      "description": "Hands roughly shoulder-width (or as specified by the variant), body rigid from head to heels or head to knees, elbows tracking back at roughly 45 degrees rather than flared to 90. Lower under control to the surface, then press back up without the hips sagging or piking."
+    },
+    "run_walk_intervals": {
+      "name": "Run/Walk Intervals",
+      "shortName": "Run/Walk",
+      "category": "cardio",
+      "modality": "run",
+      "measurementType": "duration",
+      "equipment": [
+        "running shoes",
+        "interval timer (watch or app)"
+      ],
+      "primaryTargets": [
+        "cardiovascular system",
+        "legs",
+        "connective tissue"
+      ],
+      "cues": [
+        "Conversational pace on the run intervals. Slower than feels natural. Then slower than that.",
+        "Quick, light, quiet steps — if you can hear yourself thudding, shorten your stride.",
+        "Land with your foot underneath your hip, not reaching out in front of your body.",
+        "Walk the recovery intervals briskly — this is recovery, not a break."
+      ],
+      "whyItsHere": "Bone and tendon adapt to load much more slowly than your heart and lungs do. Your cardio fitness will improve faster than your shins can tolerate, which is precisely how people re-injure themselves. The walk intervals are the brake on that mismatch.",
+      "safetyNotes": [
+        "If shin pain appears during an interval, stop the session. Do not finish out the rounds.",
+        "Effort should stay conversational even as intervals lengthen — longer, not harder."
+      ],
+      "description": "Alternate a set running interval with a set walking recovery, repeated for the prescribed number of rounds. Run at conversational effort — if you could not speak a full sentence, you are going too fast, and in the early weeks you will almost certainly want to go too fast. Walk the recovery briskly rather than shuffling. The structure is deliberate: short bouts of impact loading with full recovery between them build tendon and bone tolerance far more safely than the same total volume run continuously."
+    },
+    "side_lever": {
+      "name": "Side Lever",
+      "shortName": "Side Lever",
+      "category": "skill",
+      "modality": "bodyweight",
+      "measurementType": "duration",
+      "perSide": true,
+      "equipment": [
+        "pull-up bar, rings, or parallettes"
+      ],
+      "primaryTargets": [
+        "obliques",
+        "lats",
+        "shoulders",
+        "hip abductors",
+        "core"
+      ],
+      "cues": [
+        "Full-body tension throughout — this is a bracing skill as much as a strength one.",
+        "Keep the hips and shoulders stacked in the same vertical plane; don't let the hips sag toward the floor.",
+        "Breathe normally during the hold rather than holding your breath.",
+        "End the set the moment form breaks, not when the clock says so."
+      ],
+      "whyItsHere": "A lateral-plane static strength skill that complements the sagittal-plane front lever and builds the same full-body tension the requested progression (wall lean to full side lever) is built around.",
+      "safetyNotes": [
+        "Shoulder strain is common when jumping levels too fast — regress if you feel pinching rather than muscular fatigue.",
+        "Grip fatigue can end a hold before the target muscles do; ab straps or a towel grip can help isolate the intended muscles if grip is the limiter."
+      ],
+      "variants": [
+        {
+          "level": 1,
+          "name": "Wall Side Lean (Hold)",
+          "description": "Standing sideways next to a wall, leaning the whole body away from it while bracing — learns full-body lateral tension without a bar, each side."
+        },
+        {
+          "level": 2,
+          "name": "Tuck Side Lever",
+          "description": "Supported on a bar/rings, hips and knees tucked tightly to the chest, body rotated to the side, each side."
+        },
+        {
+          "level": 3,
+          "name": "Advanced Tuck Side Lever",
+          "description": "Same setup with the hips more open (less tuck), a longer effective lever, each side."
+        },
+        {
+          "level": 4,
+          "name": "Straddle Side Lever",
+          "description": "Legs straight and spread wide, which shortens the effective lever compared to legs together, each side."
+        },
+        {
+          "level": 5,
+          "name": "Half-Lay Side Lever",
+          "description": "One leg extended straight, the other still bent/tucked, each side."
+        },
+        {
+          "level": 6,
+          "name": "Full Side Lever",
+          "description": "Both legs fully extended and together, whole body rigid and horizontal, supported to the side, each side."
+        }
+      ],
+      "progressionRule": "Progress hold duration within a level first. Move up a level once the target duration is held with a straight, rigid line for two straight sessions, then reset duration to the bottom of the range.",
+      "description": "A static hold where the body is rigid and roughly horizontal, rotated to face sideways rather than facing the bar. Trained and logged per side since strength differences between sides are common and should be tracked separately rather than averaged."
+    },
+    "single_leg_glute_bridge": {
+      "name": "Single-Leg Glute Bridge",
+      "shortName": "SL Glute Bridge",
+      "category": "strength",
+      "modality": "bodyweight",
+      "measurementType": "reps",
+      "perSide": true,
+      "equipment": [
+        "mat optional"
+      ],
+      "primaryTargets": [
+        "glute maximus",
+        "glute medius",
+        "hamstrings",
+        "core"
+      ],
+      "cues": [
+        "Drive through the heel, not the toes.",
+        "Squeeze the glute hard at the top. Do not arch the low back to gain height.",
+        "Hips stay level — the unsupported side must not drop.",
+        "If you cramp in the hamstring, move your planted foot slightly closer to your body."
+      ],
+      "whyItsHere": "A direct, single-leg progression from clamshells. Running is a series of single-leg landings, so single-leg hip strength transfers more directly than any two-legged version.",
+      "variants": [
+        {
+          "level": 1,
+          "name": "Double-Leg Glute Bridge",
+          "description": "Both feet planted. Use this if the single-leg version causes hamstring cramping."
+        },
+        {
+          "level": 2,
+          "name": "Single-Leg Glute Bridge",
+          "description": "One foot planted, other leg lifted."
+        },
+        {
+          "level": 3,
+          "name": "Feet-Elevated Single-Leg Glute Bridge",
+          "description": "Planted foot on a low step or bench."
+        }
+      ],
+      "progressionRule": "Progress reps within a level, then elevate the planted foot. Hip level-ness is the form gate — regress if the free hip drops.",
+      "description": "Lie on your back, one foot planted with the knee bent, the other leg extended or held with the knee toward your chest. Drive through the planted heel to lift your hips until your body forms a straight line from shoulder to knee. Hold briefly at the top, then lower with control. Keep both hip bones level throughout — the side you are not standing on should not sag toward the floor."
+    },
+    "squat": {
+      "name": "Squat",
+      "shortName": "Squat",
+      "category": "strength",
+      "modality": "bodyweight",
+      "measurementType": "reps",
+      "equipment": [
+        "optional: box or bench for pistol assistance",
+        "optional: rail or TRX for balance"
+      ],
+      "primaryTargets": [
+        "quadriceps",
+        "glutes",
+        "hamstrings",
+        "adductors",
+        "core"
+      ],
+      "cues": [
+        "Weight stays over the mid-foot; heels stay planted.",
+        "Knees track in line with the toes rather than caving inward.",
+        "Keep the low back neutral — no rounding at the bottom.",
+        "Descend at a controlled pace rather than dropping into the bottom."
+      ],
+      "whyItsHere": "The whole line from quarter squat to pistol squat is a single progression in range of motion and single-leg load tolerance rather than a set of different exercises.",
+      "safetyNotes": [
+        "Knee pain during single-leg work: regress a level and check that the knee is tracking over the toes rather than caving in.",
+        "Balance loss on the unassisted pistol is normal early on — keep a rail or TRX within reach rather than risking a fall."
+      ],
+      "variants": [
+        {
+          "level": 1,
+          "name": "Quarter Squat",
+          "description": "Descend to roughly 30 degrees of knee bend, both legs."
+        },
+        {
+          "level": 2,
+          "name": "Half Squat",
+          "description": "Descend until the thighs are at roughly 45 degrees, both legs."
+        },
+        {
+          "level": 3,
+          "name": "Parallel Bodyweight Squat",
+          "description": "Full-depth squat, thighs at or just below parallel, both legs."
+        },
+        {
+          "level": 4,
+          "name": "Bulgarian Split Squat (Rear-Foot-Elevated)",
+          "description": "Rear foot elevated on a bench, front leg doing most of the work through a full range, each leg."
+        },
+        {
+          "level": 5,
+          "name": "Assisted Pistol Squat",
+          "description": "One leg, holding a rail or TRX (or descending onto a box to limit range), opposite leg extended forward, each leg."
+        },
+        {
+          "level": 6,
+          "name": "Pistol Squat (Full)",
+          "description": "Full single-leg squat to depth with no support, opposite leg extended forward, arms out for counterbalance, each leg."
+        }
+      ],
+      "progressionRule": "Progress reps within a level first. Move up a level once the level's target reps/sets are hit with full range and no knee cave for two straight sessions, then reset reps to the bottom of the range.",
+      "description": "Feet roughly shoulder-width, descend by bending the hips and knees together while keeping the heels down and the torso reasonably upright, then drive back up to standing."
+    },
+    "standing_calf_stretch": {
+      "name": "Standing Calf Stretch",
+      "shortName": "Calf Stretch",
+      "category": "mobility",
+      "modality": "stretch",
+      "measurementType": "duration",
+      "perSide": true,
+      "equipment": [
+        "wall"
+      ],
+      "primaryTargets": [
+        "gastrocnemius",
+        "soleus",
+        "achilles"
+      ],
+      "cues": [
+        "Back heel stays flat on the ground the whole time.",
+        "Straight back leg targets the upper calf; bent back knee targets the lower calf and achilles.",
+        "Steady hold — no bouncing.",
+        "Should feel like a stretch, never like a sharp pull."
+      ],
+      "whyItsHere": "Calf tightness restricts ankle dorsiflexion, which is directly implicated in shin and achilles overload.",
+      "description": "Facing a wall, hands on it, step one foot well back with the leg straight and the heel pressed down. Hold for the prescribed time, feeling the stretch in the upper calf. Then bend the back knee slightly while keeping the heel down — this shifts the stretch lower, into the soleus and achilles. Hold both positions on each side."
+    },
+    "standing_tibialis_raises": {
+      "name": "Standing Tibialis Raises",
+      "shortName": "Tib Raises",
+      "category": "strength",
+      "modality": "bodyweight",
+      "measurementType": "reps",
+      "equipment": [
+        "wall"
+      ],
+      "primaryTargets": [
+        "tibialis anterior"
+      ],
+      "cues": [
+        "The further your heels are from the wall, the harder it gets — use that to scale difficulty.",
+        "Heels stay planted; do not rock back onto them.",
+        "Three seconds on the lowering phase. Never let the foot slap down.",
+        "A burning ache in the front of the shin during the set is expected and fine."
+      ],
+      "whyItsHere": "Direct strengthening of the exact muscle that fails in shin splints. Given that you get them easily and have a heel-strike tendency, this is the single most important accessory exercise in the plan. Do not skip it, including on weeks where everything else feels easy.",
+      "safetyNotes": [
+        "Muscular burn during the set is expected. Sharp or bony pain along the shin edge is not — stop if you get that."
+      ],
+      "variants": [
+        {
+          "level": 1,
+          "name": "Wall Tib Raise (heels close)",
+          "description": "Heels roughly six inches from the wall. Least leverage, easiest."
+        },
+        {
+          "level": 2,
+          "name": "Wall Tib Raise (heels far)",
+          "description": "Heels twelve or more inches from the wall. More bodyweight loading the muscle."
+        },
+        {
+          "level": 3,
+          "name": "Single-Leg Wall Tib Raise",
+          "description": "One foot at a time against the wall."
+        },
+        {
+          "level": 4,
+          "name": "Weighted Tib Raise",
+          "description": "Standard wall position holding a dumbbell or kettlebell against the chest."
+        }
+      ],
+      "progressionRule": "Progress reps first, then walk the heels further from the wall, then go single-leg. Do not rush this — the tibialis anterior responds well to consistent moderate loading and poorly to sudden jumps.",
+      "description": "Stand with your back flat against a wall and your heels six to twelve inches out from it. Keeping your heels planted and your back on the wall, pull your toes and forefeet up toward your shins as far as they will go. Pause at the top, then lower slowly — roughly three seconds down. This is the loaded, deliberate version of the warm-up drill, and it should burn along the front of the shin by the end of a set. That burn is the target, not a warning sign."
+    },
+    "standing_tibialis_raises_activation": {
+      "name": "Standing Tibialis Raises (activation)",
+      "shortName": "Tib Raises (Activation)",
+      "category": "other",
+      "modality": "other",
+      "measurementType": "reps",
+      "primaryTargets": [
+        "tibialis anterior"
+      ],
+      "cues": [
+        "Heels stay down the entire time; only the front of the foot moves.",
+        "Lower under control — don't let the foot slap back down.",
+        "You should feel this in the muscle along the front-outside of your shin."
+      ],
+      "whyItsHere": "The tibialis anterior is the muscle that decelerates your foot after heel contact. It is usually the specific tissue that hurts in 'shin splints'. Given your history and a heel-strike tendency, this muscle is the single highest-value thing to train in this whole plan.",
+      "description": "Stand with your back against a wall, heels roughly six inches out from the baseboard. Keeping your heels planted, pull your toes and forefeet up toward your shins as far as they will go, pause briefly at the top, then lower with control. This is the activation version — light, quick, and meant to wake the muscle up rather than fatigue it."
+    },
+    "warm_up_walk": {
+      "name": "Warm-Up Walk",
+      "shortName": "Warm-Up Walk",
+      "category": "cardio",
+      "modality": "run",
+      "measurementType": "duration",
+      "primaryTargets": [
+        "cardiovascular system",
+        "calves",
+        "achilles"
+      ],
+      "cues": [
+        "Walk with intent — roughly the pace you'd use if you were late for a meeting.",
+        "Let your arms swing naturally; don't lock them at your sides.",
+        "By the end you should feel slightly warm, not winded."
+      ],
+      "whyItsHere": "Cold tissue is stiffer and absorbs impact worse. For someone with a shin splint history, skipping the warm-up is one of the cheapest ways to invite a recurrence.",
+      "description": "A brisk, purposeful walk to raise core temperature and get blood into the calves, shins, and feet before any impact loading. This is not a stroll — aim for a pace where you could talk but would rather not sing. The point is to make the first running interval feel like a continuation of what you're already doing rather than a cold shock to tissue that has been sitting in a chair all day."
+    }
+  }
+}

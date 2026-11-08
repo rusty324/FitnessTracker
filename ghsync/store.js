@@ -1,0 +1,573 @@
+// ghsync — a GitHub-backed private data store for static sites.
+//
+// One factory call gives you cache-first reads, write-through saves with
+// sha-checked PUTs, an offline dirty queue, background refresh, per-record
+// conflict merging, and optional password encryption. Nothing here is
+// specific to any app: pass your own collections and it works.
+//
+// Write ownership (the reason browser/Actions conflicts can't happen):
+// every repo file must have exactly one writer. The browser owns everything
+// in `files`; if a workflow in the data repo writes other paths, keep those
+// paths out of `files` and read them through readFile()/refreshDir().
+// The merge path below only ever handles browser-vs-browser (second device
+// or tab) conflicts, merged per record id with local dirty records winning.
+// Note: a record deleted locally can resurrect from such a merge; accepted
+// for a single-user tool.
+
+import { createCache } from './cache.js';
+import {
+  makeClient, createTokenStore, normalizeDir,
+  ConflictError, NotFoundError, AuthError, NotConfiguredError, RateLimitError, RequestError,
+  NetworkError, ServerError,
+} from './github-api.js';
+import { encryptJson, decryptJson, isEnvelope } from './crypto.js';
+
+export {
+  ConflictError, NotFoundError, AuthError, NotConfiguredError, RateLimitError, RequestError,
+  NetworkError, ServerError,
+};
+
+// Keep in step with CHANGELOG.md. Shown in error reports, so a report says
+// which copy of ghsync produced it.
+export const VERSION = '1.2';
+
+// Failures that clear on their own: the write stays queued and the status is
+// 'pending'. Everything else is 'error' — it needs a person — even though the
+// write stays queued and keeps retrying too.
+const isTransient = (e) => e instanceof NetworkError || e instanceof RateLimitError || e instanceof ServerError;
+
+// localStorage refused a write (quota). The edit was NOT stored anywhere.
+export class StorageFullError extends Error {
+  constructor(path) {
+    super(`Browser storage is full — couldn't save ${path}. Delete something or free space, then try again.`);
+    this.name = 'StorageFullError';
+    this.path = path;
+  }
+}
+
+// A repo file that isn't valid JSON (hand-edited, truncated…). Reported by
+// refresh(); the rest of the files still load and the local copy is kept.
+export class CorruptFileError extends Error {
+  constructor(paths) {
+    super(`Couldn't read ${paths.join(', ')} from the data repo: not valid JSON. Keeping the local copy.`);
+    this.name = 'CorruptFileError';
+    this.paths = paths;
+  }
+}
+
+// A collection file in the repo that ghsync can't safely merge into or load:
+// not a list, or a list with records that have no id. Merging by id would
+// overwrite the first and collapse the second, so neither is touched — the
+// local copy is kept, the edit stays queued, and the user is told which file.
+export class ShapeError extends Error {
+  constructor(path, found, where = 'in the data repo') {
+    super(`${path} ${where} isn’t a list of records with ids (found ${found}), so ghsync won’t merge into it or `
+      + 'overwrite it. Your local copy is kept and will upload once that file is fixed, moved or deleted in the repo '
+      + '— or once Settings points at a folder that belongs only to this app.');
+    this.name = 'ShapeError';
+    this.path = path;
+    this.found = found;
+  }
+}
+
+function describe(data) {
+  if (Array.isArray(data)) return 'a list';
+  if (data === null) return 'null';
+  return typeof data === 'object' ? 'an object' : `a ${typeof data}`;
+}
+
+// What a collection file must hold. `null` is what pre-1.1 copies wrote for a
+// collection that had never been used — there is nothing in it to lose, so it
+// reads as empty. Everything else must be a list; `requireIds` also demands an
+// id on every record, which the merge needs.
+function records(path, data, { requireIds = false, where } = {}) {
+  if (data == null) return [];
+  if (!Array.isArray(data)) throw new ShapeError(path, describe(data), where);
+  if (requireIds) {
+    const i = data.findIndex((r) => !r || typeof r !== 'object' || r.id == null || r.id === '');
+    if (i >= 0) throw new ShapeError(path, `a record without an id at position ${i + 1}`, where);
+  }
+  return data;
+}
+
+const isQuotaError = (e) => e?.name === 'QuotaExceededError' || e?.name === 'NS_ERROR_DOM_QUOTA_REACHED' || e?.code === 22;
+
+/**
+ * @param {object} opts
+ * @param {string}   opts.appId       localStorage namespace, e.g. 'notes'.
+ * @param {object}   opts.files       collection -> repo path, all browser-owned.
+ * @param {string[]} [opts.encrypted] collections encrypted when a password is set.
+ * @param {(path:string)=>boolean} [opts.encryptPath] extra predicate for
+ *                   app-owned paths outside `files` (e.g. month shards).
+ * @param {object}   [opts.migrate]   collection -> (record)=>record, applied on read.
+ * @param {object}   [opts.defaultRepo] {owner, repo, branch} or null for local-only.
+ * @param {()=>string[]} [opts.extraPaths] app-owned repo paths to include when
+ *                   re-encrypting or seeding a new repo.
+ * @param {()=>Promise<boolean>} [opts.onRefresh] called at the end of refresh();
+ *                   return true if it changed anything.
+ * @param {number}   [opts.retryMs]   dirty-queue retry interval (0 disables).
+ */
+export function createStore(opts) {
+  const {
+    appId,
+    files,
+    encrypted = [],
+    encryptPath = () => false,
+    migrate = {},
+    defaultRepo = null,
+    extraPaths = () => [],
+    onRefresh = async () => false,
+    retryMs = 30000,
+  } = opts;
+
+  const REPO_KEY = `${appId}.datarepo`;
+  const PW_KEY = `${appId}.enc.pw`;
+  const cache = createCache(appId);
+  const tokens = createTokenStore(`${appId}.pat`);
+
+  // ---------- data repository ----------
+  // Personal data lives in a separate PRIVATE repo, never the public one that
+  // serves the app. It's configured at runtime so switching repos needs no
+  // redeploy; the client reads this getter on every call, so a change in
+  // Settings takes effect immediately.
+
+  function getDataRepo() {
+    try {
+      const stored = JSON.parse(localStorage.getItem(REPO_KEY));
+      if (stored?.owner && stored?.repo) return { branch: 'main', dir: 'data', ...stored };
+    } catch {
+      // fall through to the default
+    }
+    return defaultRepo;
+  }
+
+  // cfg.dir: folder in the repo that holds the app's data/ tree ('' = root).
+  // Throws on an invalid folder before anything is stored.
+  function setDataRepo(cfg) {
+    if (cfg?.owner && cfg?.repo) {
+      localStorage.setItem(REPO_KEY, JSON.stringify({
+        owner: cfg.owner.trim(),
+        repo: cfg.repo.trim(),
+        branch: (cfg.branch || 'main').trim(),
+        dir: normalizeDir(cfg.dir),
+      }));
+    } else {
+      localStorage.removeItem(REPO_KEY);
+    }
+  }
+
+  function hasDataRepo() {
+    const c = getDataRepo();
+    return !!(c?.owner && c?.repo);
+  }
+
+  // Remote sync needs both a token and a destination.
+  const canSync = () => tokens.has() && hasDataRepo();
+
+  const client = makeClient(getDataRepo, tokens);
+  const listeners = new Set();
+  let status = 'local'; // 'local' | 'ok' | 'pending' | 'error'
+  let lastError = null;
+  let lastErrorAt = null; // when lastError happened, for error reports
+
+  // ---------- encryption (optional password) ----------
+  // When a password is set, the `encrypted` collections (and anything
+  // encryptPath() claims) are written as AES-GCM envelopes — see crypto.js.
+  // The local cache is always plaintext: the device is trusted, same as the PAT.
+
+  const lockedPaths = new Set(); // envelopes we couldn't decrypt (no/wrong password)
+  const password = () => localStorage.getItem(PW_KEY) || '';
+
+  // Returns the previous password, so a caller can put it back when the new
+  // one turns out not to unlock the synced files.
+  function setPassword(pw) {
+    const prev = password();
+    if (pw) localStorage.setItem(PW_KEY, pw);
+    else localStorage.removeItem(PW_KEY);
+    return prev;
+  }
+
+  function encryption() {
+    return { enabled: !!password(), locked: lockedPaths.size > 0 };
+  }
+
+  const encryptedPaths = () => encrypted.map((c) => files[c]);
+  function isEncryptedPath(path) {
+    return encryptedPaths().includes(path) || encryptPath(path);
+  }
+
+  // Repo-file (de)serialization boundary — the ONLY place ciphertext exists.
+  async function serializeFile(path, data) {
+    const body = password() && isEncryptedPath(path) ? await encryptJson(data, password()) : data;
+    return JSON.stringify(body, null, 2) + '\n';
+  }
+
+  // -> { data } on success, { locked: true } when an envelope can't be opened.
+  async function deserializeFile(path, parsed) {
+    if (!isEnvelope(parsed)) {
+      lockedPaths.delete(path);
+      return { data: parsed };
+    }
+    if (password()) {
+      try {
+        const data = await decryptJson(parsed, password());
+        lockedPaths.delete(path);
+        return { data };
+      } catch {
+        // fall through to locked
+      }
+    }
+    lockedPaths.add(path);
+    return { locked: true };
+  }
+
+  function emit(event) {
+    for (const fn of listeners) fn(event);
+  }
+
+  function setStatus(s, err = null) {
+    status = s;
+    if (err !== lastError) lastErrorAt = err ? new Date().toISOString() : null;
+    lastError = err;
+    emit({ type: 'sync-status', status: s, error: err });
+  }
+
+  function onChange(fn) {
+    listeners.add(fn);
+    return () => listeners.delete(fn);
+  }
+
+  // queued: repo paths with edits not yet uploaded.
+  function syncStatus() {
+    return { status, error: lastError, errorAt: lastErrorAt, connected: canSync(), queued: cache.getQueue() };
+  }
+
+  // Recompute the badge state from current settings. Called after the token or
+  // data repo changes so the UI reflects it immediately, rather than staying
+  // stale until the next sync happens to run.
+  function refreshStatus() {
+    setStatus(canSync() ? (cache.getQueue().length ? 'pending' : 'ok') : 'local');
+  }
+
+  // Every cache write goes through here: a full localStorage must surface as
+  // an error, not vanish (the edit would otherwise exist only on screen).
+  function writeCache(path, data) {
+    try {
+      cache.setData(path, data);
+    } catch (e) {
+      if (!isQuotaError(e)) throw e;
+      const err = new StorageFullError(path);
+      setStatus('error', err);
+      throw err;
+    }
+  }
+
+  // ---------- reads ----------
+
+  function get(collection) {
+    const data = cache.getData(files[collection]) ?? [];
+    const fn = migrate[collection];
+    return fn ? data.map(fn) : data;
+  }
+
+  // ---------- writes ----------
+
+  async function save(collection, records) {
+    const path = files[collection];
+    writeCache(path, records);
+    cache.markDirty(path);
+    emit({ type: 'changed', collection });
+    await push(path, collection);
+  }
+
+  async function upsert(collection, record) {
+    const records = get(collection).slice();
+    const i = records.findIndex((r) => r.id === record.id);
+    if (i >= 0) records[i] = record;
+    else records.push(record);
+    await save(collection, records);
+  }
+
+  async function remove(collection, id) {
+    await save(collection, get(collection).filter((r) => r.id !== id));
+  }
+
+  // Pushes of one path run one at a time, in order. Without this an older
+  // PUT that finishes last could mark the file clean over a newer edit, and
+  // overlapping flushes would upload the same file several times.
+  const pushing = new Map(); // path -> promise of the last queued push
+  function push(path, collection) {
+    const run = (pushing.get(path) || Promise.resolve()).catch(() => {}).then(() => pushNow(path, collection));
+    pushing.set(path, run);
+    run.catch(() => {}).finally(() => { if (pushing.get(path) === run) pushing.delete(path); });
+    return run;
+  }
+
+  async function pushNow(path, collection) {
+    if (!canSync() || !navigator.onLine) {
+      setStatus(canSync() ? 'pending' : 'local');
+      return;
+    }
+    // Already uploaded by an earlier push in the chain (they coalesce).
+    if (!cache.isDirty(path)) {
+      setStatus(cache.getQueue().length ? 'pending' : 'ok');
+      return;
+    }
+    // Never loaded on this device (null, not []): there is nothing local to
+    // upload, and writing it would replace the remote file with "null".
+    if (cache.getData(path) == null) {
+      cache.clearDirty(path);
+      setStatus(cache.getQueue().length ? 'pending' : 'ok');
+      return;
+    }
+    setStatus('pending');
+    try {
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const data = cache.getData(path);
+        const sent = JSON.stringify(data);
+        const content = await serializeFile(path, data);
+        try {
+          const sha = await client.putFile(path, content, cache.getSha(path), `Update ${path}`);
+          cache.setSha(path, sha);
+          // Only clean if nothing changed while the PUT was in flight; a newer
+          // edit stays queued (its own push is already chained behind this one).
+          if (JSON.stringify(cache.getData(path)) === sent) cache.clearDirty(path);
+          setStatus(cache.getQueue().length ? 'pending' : 'ok');
+          return;
+        } catch (e) {
+          if (!(e instanceof ConflictError)) throw e;
+          await mergeRemote(path, collection);
+        }
+      }
+      throw new Error(`Gave up pushing ${path} after repeated conflicts`);
+    } catch (e) {
+      // The path stays queued and is retried either way; the status only says
+      // whether that's expected to work by itself (offline, rate limit, 5xx)
+      // or needs a person (bad token, rejected request, full storage, a file
+      // that can't be merged, repeated conflicts, a bug).
+      setStatus(isTransient(e) ? 'pending' : 'error', e);
+    }
+  }
+
+  async function mergeRemote(path, collection) {
+    let remote = [];
+    let sha = null;
+    try {
+      const f = await client.getFile(path);
+      const res = await deserializeFile(path, JSON.parse(f.content));
+      // Locked remote = encrypted under a password we don't have; merging is
+      // impossible and overwriting would destroy data. Stay dirty and queued.
+      if (res.locked) throw new Error(`Cannot merge ${path}: encrypted with an unknown password`);
+      // Anything but a list of records with ids is refused, never treated as
+      // empty — treating it as empty is what overwrote other data.
+      remote = records(path, res.data, { requireIds: true });
+      sha = f.sha;
+    } catch (e) {
+      if (!(e instanceof NotFoundError)) throw e;
+    }
+    const local = records(path, cache.getData(path), { requireIds: true, where: 'in this browser' });
+    const byId = new Map();
+    for (const r of remote) byId.set(r.id, r);
+    for (const r of local) byId.set(r.id, r); // local dirty records win
+    writeCache(path, [...byId.values()]);
+    cache.setSha(path, sha);
+    if (collection) emit({ type: 'changed', collection });
+  }
+
+  // Retry everything still dirty (called on 'online' and on a timer).
+  async function flushQueue() {
+    for (const path of cache.getQueue()) {
+      const collection = Object.keys(files).find((k) => files[k] === path);
+      await push(path, collection);
+    }
+  }
+
+  // ---------- background refresh ----------
+
+  // One refresh at a time; seeding and re-encryption wait for it (see
+  // settled()) so they never race a download that is still landing.
+  let refreshing = null;
+  function refresh() {
+    if (!refreshing) refreshing = doRefresh().finally(() => { refreshing = null; });
+    return refreshing;
+  }
+  const settled = () => refreshing || Promise.resolve();
+
+  // A remote file may only replace the cache if, by the time it has been
+  // downloaded and decrypted, the path still has no unpushed edit and no push
+  // has moved its sha meanwhile — otherwise the download is already stale.
+  const untouched = (path, shaBefore) => !cache.isDirty(path) && !pushing.has(path) && cache.getSha(path) === shaBefore;
+
+  // -> 'changed' | 'same' | 'locked' | 'skipped'. Throws on network/auth
+  // errors; collects unparseable files into `corrupt`, and collection files
+  // that aren't lists into `misshapen` (neither replaces the local copy).
+  async function pullFile(path, knownSha, corrupt, misshapen = []) {
+    const shaBefore = cache.getSha(path);
+    if (!untouched(path, shaBefore) || (knownSha && knownSha === shaBefore)) return 'skipped';
+    let f;
+    try {
+      f = await client.getFile(path);
+    } catch (e) {
+      if (e instanceof NotFoundError) return 'same'; // absent file = empty collection
+      throw e;
+    }
+    if (f.sha === shaBefore) return 'same';
+    let parsed;
+    try {
+      parsed = JSON.parse(f.content);
+    } catch {
+      corrupt.push(path);
+      return 'skipped';
+    }
+    const res = await deserializeFile(path, parsed);
+    if (res.locked) {
+      // Keep the old cache and old sha so we retry once unlocked.
+      emit({ type: 'sync-status', status, error: lastError });
+      return 'locked';
+    }
+    if (!untouched(path, shaBefore)) return 'skipped'; // edited while downloading
+    let data = res.data;
+    if (Object.values(files).includes(path)) {
+      // A collection must reach the app as a list. App-owned paths read via
+      // refreshDir() may hold any shape, so only collections are checked.
+      try {
+        data = records(path, data);
+      } catch (e) {
+        if (!(e instanceof ShapeError)) throw e;
+        misshapen.push(e);
+        return 'skipped';
+      }
+    }
+    writeCache(path, data);
+    cache.setSha(path, f.sha);
+    return 'changed';
+  }
+
+  let corruptFiles = [];
+  let misshapenFiles = [];
+
+  async function doRefresh() {
+    if (!canSync() || !navigator.onLine) return;
+    corruptFiles = [];
+    misshapenFiles = [];
+    try {
+      for (const [collection, path] of Object.entries(files)) {
+        if ((await pullFile(path, null, corruptFiles, misshapenFiles)) === 'changed') emit({ type: 'changed', collection });
+      }
+      await onRefresh();
+      if (corruptFiles.length) setStatus('error', new CorruptFileError(corruptFiles));
+      else if (misshapenFiles.length) setStatus('error', misshapenFiles[0]);
+      else if (!cache.getQueue().length) setStatus('ok');
+    } catch (e) {
+      // A dropped connection or a 5xx during a background refresh changes
+      // nothing — the next refresh simply tries again, and flagging a
+      // momentary blip would make a healthy badge look broken. A rate limit is
+      // noted (it can last a while). Anything else needs a person.
+      if (e instanceof RateLimitError) setStatus(status, e);
+      else if (!isTransient(e)) setStatus('error', e);
+    }
+  }
+
+  // ---------- raw file access (for app-owned paths outside `files`) ----------
+
+  const readFile = (path) => cache.getData(path);
+
+  // Write an app-owned path through the same cache/queue/encryption path as a
+  // collection. Used for sharded data (one file per month, say) that doesn't
+  // fit the collection model.
+  async function writeFile(path, data) {
+    writeCache(path, data);
+    cache.markDirty(path);
+    await push(path, null);
+  }
+
+  // Pull every file in a repo directory into the cache. Returns the paths seen
+  // and whether anything changed. Locally-dirty paths are skipped so an
+  // unpushed local write isn't clobbered by the remote.
+  // Unparseable files are skipped and reported by the surrounding refresh().
+  async function refreshDir(dir, match = () => true) {
+    const paths = [];
+    let changed = false;
+    for (const entry of await client.listDir(dir)) {
+      if (!match(entry.name)) continue;
+      paths.push(entry.path);
+      if ((await pullFile(entry.path, entry.sha, corruptFiles, misshapenFiles)) === 'changed') changed = true;
+    }
+    return { paths, changed };
+  }
+
+  // ---------- migrations and seeding ----------
+
+  // Re-upload cached collections to the data repo. `collections` defaults to
+  // the encryptable ones, which is what enabling/disabling a password needs;
+  // pass all of `files` to seed a freshly-created repo from this browser.
+  // extraPaths() are rewritten too; when one of them is Actions-owned these
+  // migration writes are the documented exception, and a conflict is ignored
+  // because the workflow will reconverge on its next run.
+  async function rewriteEncryptedFiles(collections = encrypted) {
+    if (!canSync()) return; // local mode, or no repo configured yet
+    await settled();
+    for (const collection of collections) {
+      const path = files[collection];
+      if (cache.getData(path) == null) continue; // never loaded here: nothing to (re)write
+      cache.markDirty(path);
+      await push(path, collection);
+    }
+    for (const path of extraPaths()) {
+      const data = cache.getData(path);
+      if (!Array.isArray(data)) continue; // never had it decrypted — skip
+      const content = await serializeFile(path, data);
+      try {
+        const sha = await client.putFile(path, content, cache.getSha(path), `Update ${path}`);
+        cache.setSha(path, sha);
+      } catch (e) {
+        if (!(e instanceof ConflictError)) throw e;
+      }
+    }
+  }
+
+  // Seed a newly configured data repo with everything this browser holds.
+  // Shas are cleared first so each file is created rather than sha-checked
+  // against a different repo's history.
+  async function pushAllData() {
+    if (!canSync()) throw new Error('Set a data repository and a token first');
+    await settled();
+    for (const path of Object.values(files)) cache.setSha(path, null);
+    for (const path of extraPaths()) cache.setSha(path, null);
+    await rewriteEncryptedFiles(Object.keys(files));
+  }
+
+  // ---------- lifecycle ----------
+
+  function init() {
+    window.addEventListener('online', () => flushQueue());
+    // Cross-tab: another tab wrote localStorage — re-render rather than merge later.
+    window.addEventListener('storage', (e) => {
+      if (e.key?.startsWith(cache.dataPrefix)) emit({ type: 'changed', collection: 'external' });
+    });
+    if (retryMs) {
+      setInterval(() => {
+        if (cache.getQueue().length) flushQueue();
+      }, retryMs);
+    }
+    setStatus(canSync() ? (cache.getQueue().length ? 'pending' : 'ok') : 'local');
+    refresh(); // fire-and-forget background load
+  }
+
+  return {
+    // configuration
+    getDataRepo, setDataRepo, hasDataRepo,
+    getToken: tokens.get, setToken: tokens.set, hasToken: tokens.has,
+    setPassword, encryption,
+    // data
+    get, save, upsert, remove,
+    // status and events
+    onChange, emit, syncStatus, refreshStatus, canSync,
+    // sync
+    refresh, flushQueue, rewriteEncryptedFiles, pushAllData, init,
+    // escape hatches for app-owned paths
+    client, cache, readFile, writeFile, refreshDir, push,
+    serializeFile, deserializeFile, isEncryptedPath,
+    files,
+  };
+}

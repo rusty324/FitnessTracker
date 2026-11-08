@@ -1,0 +1,168 @@
+{
+  "format": "fitness-tracker-exercise-library",
+  "formatVersion": 2,
+  "exerciseLibrary": {
+    "goblet_squat": {
+      "name": "Goblet Squat",
+      "shortName": "Goblet Squat",
+      "category": "strength",
+      "modality": "dumbbell",
+      "measurementType": "reps",
+      "equipment": ["dumbbell or kettlebell"],
+      "primaryTargets": ["quadriceps", "glutes", "core", "upper back"],
+      "cues": [
+        "Hold the weight tight against the chest — letting it drift forward turns this into a back exercise.",
+        "Elbows travel down between the knees at the bottom.",
+        "Sit straight down rather than leaning forward.",
+        "Keep the whole foot planted; heels do not lift."
+      ],
+      "whyItsHere": "The most forgiving loaded squat there is. The front-loaded position forces an upright torso automatically, which makes it the best place to learn depth before touching a barbell.",
+      "safetyNotes": [
+        "If the heels lift at the bottom, stop at the depth where they stay planted and work on ankle mobility separately."
+      ],
+      "variants": [
+        { "level": 1, "name": "Bodyweight Squat", "description": "No load, learning the pattern and range." },
+        { "level": 2, "name": "Goblet Squat", "description": "Single weight held at the chest." },
+        { "level": 3, "name": "Tempo Goblet Squat", "description": "Three seconds down and a one-second pause at the bottom." }
+      ],
+      "progressionRule": "Progress reps to the top of the range, then step up to the next dumbbell. Once the largest dumbbell you own is easy for 12+ reps, switch to a barbell or add tempo.",
+      "description": "Hold a single dumbbell or kettlebell vertically against your chest with both hands. Squat straight down, letting the elbows pass inside the knees, until the thighs are at least parallel. Stand back up by driving through the whole foot while keeping the weight pinned to the chest."
+    },
+    "dumbbell_bench_press": {
+      "name": "Dumbbell Bench Press",
+      "shortName": "DB Bench",
+      "category": "strength",
+      "modality": "dumbbell",
+      "measurementType": "reps",
+      "equipment": ["dumbbells", "bench or floor"],
+      "primaryTargets": ["chest", "anterior deltoid", "triceps"],
+      "cues": [
+        "Shoulder blades pinned back and down against the bench.",
+        "Lower until the upper arms are roughly level with the torso; you do not need to go deeper.",
+        "Elbows at about 45 degrees, not flared straight out.",
+        "Press the dumbbells slightly toward each other at the top without clanging them together."
+      ],
+      "whyItsHere": "Independent arms mean each side does its own work, and a failed rep just gets set down instead of pinning you. For training alone at home this is strictly safer than a barbell.",
+      "safetyNotes": [
+        "Getting heavy dumbbells into position is its own skill: sit on the bench with them on your thighs and kick them back as you lie down.",
+        "Stop the descent when the front of the shoulder feels stretched rather than chasing maximum depth."
+      ],
+      "variants": [
+        { "level": 1, "name": "Floor Press", "description": "Lying on the floor, which limits the range and protects the shoulder." },
+        { "level": 2, "name": "Flat Dumbbell Bench Press", "description": "Standard, on a flat bench." },
+        { "level": 3, "name": "Incline Dumbbell Bench Press", "description": "Bench set to 30-45 degrees, shifting emphasis to the upper chest and shoulders." }
+      ],
+      "progressionRule": "Progress reps within the range, then move up a dumbbell size. Because dumbbell jumps are large, expect to lose several reps when you step up — that is normal.",
+      "description": "Lying on a bench with a dumbbell in each hand at chest level, press both weights up until the arms are extended, then lower under control until the upper arms are about level with the torso."
+    },
+    "dumbbell_row": {
+      "name": "Single-Arm Dumbbell Row",
+      "shortName": "DB Row",
+      "category": "strength",
+      "modality": "dumbbell",
+      "measurementType": "reps",
+      "perSide": true,
+      "equipment": ["dumbbell", "bench"],
+      "primaryTargets": ["latissimus dorsi", "rhomboids", "rear deltoid", "biceps"],
+      "cues": [
+        "Start the pull with the shoulder blade, not the hand.",
+        "Row toward the hip rather than straight up toward the shoulder.",
+        "Keep the torso square — resist the urge to twist to gain range.",
+        "Control the lowering; do not let the weight yank the arm straight."
+      ],
+      "whyItsHere": "The easiest way to build real pulling strength with minimal equipment, and the supported position means the low back is not a limiting factor.",
+      "safetyNotes": [
+        "Twisting the torso to lift more weight turns a back exercise into a rotational strain. Keep the shoulders level."
+      ],
+      "variants": [
+        { "level": 1, "name": "Chest-Supported Dumbbell Row", "description": "Lying face down on an incline bench, removing all low-back involvement." },
+        { "level": 2, "name": "Single-Arm Dumbbell Row", "description": "One knee and hand braced on a bench." },
+        { "level": 3, "name": "Bent-Over Dumbbell Row", "description": "Both arms, unsupported hinge, which adds a trunk demand." }
+      ],
+      "progressionRule": "Progress reps per side to the top of the range on both sides, then move up a dumbbell. Always let the weaker side set the load.",
+      "description": "With one knee and the same-side hand on a bench, hold a dumbbell in the free hand with the arm hanging straight down. Pull the dumbbell toward the hip by driving the elbow back, pause briefly at the top, then lower under control to a full stretch."
+    },
+    "dumbbell_shoulder_press": {
+      "name": "Dumbbell Shoulder Press",
+      "shortName": "DB Press",
+      "category": "strength",
+      "modality": "dumbbell",
+      "measurementType": "reps",
+      "equipment": ["dumbbells", "optional: bench with upright back"],
+      "primaryTargets": ["shoulders", "triceps", "core"],
+      "cues": [
+        "Brace the abs and squeeze the glutes so you do not press by arching the back.",
+        "Start with the dumbbells at ear height, palms forward or slightly turned in.",
+        "Press up and very slightly inward so the weights finish over the shoulders.",
+        "Lower under control all the way back to ear height."
+      ],
+      "whyItsHere": "Overhead pressing keeps the shoulders strong through their full range. Dumbbells let each arm find a comfortable path, which suits shoulders that dislike a fixed barbell.",
+      "safetyNotes": [
+        "If you cannot get the arms fully overhead without the ribs flaring, press seated with back support and work on thoracic mobility.",
+        "Neutral grip (palms facing each other) is usually the friendliest option for a cranky shoulder."
+      ],
+      "variants": [
+        { "level": 1, "name": "Seated Dumbbell Press", "description": "Back supported on an upright bench." },
+        { "level": 2, "name": "Standing Dumbbell Press", "description": "Unsupported, adding the trunk-bracing demand." },
+        { "level": 3, "name": "Single-Arm Standing Press", "description": "One arm at a time, which adds a strong anti-lateral-flexion core demand." }
+      ],
+      "progressionRule": "Progress reps first. Shoulder strength climbs slowly, so expect to spend several sessions at each dumbbell size.",
+      "description": "Hold a dumbbell at each shoulder at about ear height. Brace the trunk, then press both weights overhead until the arms are locked out with the weights over the shoulders. Lower with control back to the start."
+    },
+    "dumbbell_rdl": {
+      "name": "Dumbbell Romanian Deadlift",
+      "shortName": "DB RDL",
+      "category": "strength",
+      "modality": "dumbbell",
+      "measurementType": "reps",
+      "equipment": ["dumbbells"],
+      "primaryTargets": ["hamstrings", "glutes", "spinal erectors"],
+      "cues": [
+        "Push the hips back rather than bending forward at the waist.",
+        "Keep the dumbbells sliding close to the front of the legs.",
+        "Soft knees held at a fixed angle throughout.",
+        "Stop where the hamstrings stretch and the back is still flat."
+      ],
+      "whyItsHere": "Trains the hip hinge, the single most transferable movement pattern for picking things up safely. It also directly loads the hamstrings, which most home programmes under-train.",
+      "safetyNotes": [
+        "Depth is limited by hamstring flexibility, not by reaching the floor. Rounding the back to go lower removes the benefit and adds risk."
+      ],
+      "variants": [
+        { "level": 1, "name": "Hip Hinge (no weight)", "description": "Pattern practice with a dowel along the back to feel a neutral spine." },
+        { "level": 2, "name": "Dumbbell RDL", "description": "Both legs, dumbbells in each hand." },
+        { "level": 3, "name": "Single-Leg Dumbbell RDL", "description": "One leg, adding a large balance and hip-stability challenge." }
+      ],
+      "progressionRule": "Add reps to the top of the range before adding load, and only if range and back position hold.",
+      "description": "Stand holding a dumbbell in each hand in front of the thighs with a slight bend in the knees. Push the hips back and let the weights travel down the front of the legs while keeping the back flat, until you feel a strong hamstring stretch. Drive the hips forward to return to standing."
+    },
+    "dumbbell_walking_lunge": {
+      "name": "Dumbbell Walking Lunge",
+      "shortName": "DB Lunge",
+      "category": "strength",
+      "modality": "dumbbell",
+      "measurementType": "reps",
+      "perSide": true,
+      "equipment": ["dumbbells", "open floor space"],
+      "primaryTargets": ["quadriceps", "glutes", "adductors", "balance"],
+      "cues": [
+        "Step out far enough that the front shin stays close to vertical at the bottom.",
+        "Drop the back knee straight down rather than pitching the torso forward.",
+        "Drive through the whole front foot to stand up.",
+        "Keep the torso tall and the ribs down."
+      ],
+      "whyItsHere": "Single-leg loading exposes and fixes side-to-side strength differences that a two-legged squat happily hides, and it carries over directly to walking, running, and stairs.",
+      "safetyNotes": [
+        "Knee pain here usually means the step is too short. Lengthen the stride before reducing the weight.",
+        "If balance is the limiter, do reverse lunges in place instead of walking ones."
+      ],
+      "variants": [
+        { "level": 1, "name": "Split Squat (static)", "description": "Feet stay planted, moving straight up and down." },
+        { "level": 2, "name": "Reverse Lunge", "description": "Stepping backward, which is easier on the knee than stepping forward." },
+        { "level": 3, "name": "Walking Lunge", "description": "Travelling forward, alternating legs." },
+        { "level": 4, "name": "Bulgarian Split Squat", "description": "Rear foot elevated on a bench, loading the front leg heavily." }
+      ],
+      "progressionRule": "Count reps per leg. Progress reps to the top of the range on both legs before increasing the dumbbells.",
+      "description": "Hold a dumbbell in each hand at your sides. Step forward into a lunge, lowering until the back knee is just above the floor and the front thigh is roughly parallel. Drive through the front foot to stand, bringing the back leg through into the next step."
+    }
+  }
+}

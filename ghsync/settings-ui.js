@@ -1,0 +1,436 @@
+// Drop-in Settings UI for ghsync: the data repository, the GitHub token, and
+// the optional encryption password — the three things every ghsync app needs
+// and nobody wants to rewrite.
+//
+// It returns section SPECS ({ id, name, state, body }) rather than a modal, so
+// the host app renders them in whatever chrome it already has and can mix in
+// its own sections. Zero dependencies; the markup uses plain class names
+// (btn / field / field-row / muted / list-row), styled by ghsync.css if the
+// host has nothing of its own.
+
+import { normalizeDir } from './github-api.js';
+import { VERSION } from './store.js';
+
+export function h(tag, attrs = {}, ...children) {
+  const node = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === 'class') node.className = v;
+    else if (k === 'dataset') Object.assign(node.dataset, v);
+    else if (k.startsWith('on') && typeof v === 'function') node.addEventListener(k.slice(2), v);
+    else if (v === true) node.setAttribute(k, '');
+    else if (v !== false && v != null) node.setAttribute(k, v);
+  }
+  for (const c of children.flat()) {
+    if (c == null || c === false) continue;
+    node.append(c.nodeType ? c : document.createTextNode(c));
+  }
+  return node;
+}
+
+// Why a remote action can't run yet, or null when it can.
+export function syncBlocker(store) {
+  const missing = [];
+  if (!store.hasDataRepo()) missing.push('a data repository');
+  if (!store.hasToken()) missing.push('a GitHub token');
+  return missing.length ? `Set ${missing.join(' and ')} first.` : null;
+}
+
+// "owner/repo/folder" for display.
+export function repoLabel(cfg) {
+  if (!cfg?.owner || !cfg?.repo) return '';
+  const dir = normalizeDir(cfg.dir);
+  return `${cfg.owner}/${cfg.repo}${dir === '/' ? ' (root)' : `/${dir}`}`;
+}
+
+// A public data repo publishes everything synced to it, and if it is the repo
+// serving this site, Pages puts the data on the web. Warn loudly. Returns true
+// when it warned.
+export function warnIfPublic(info, toast) {
+  if (info?.private !== false) return false;
+  toast('Warning: that repo is PUBLIC — anything synced there is readable by anyone. '
+    + 'Use a private repo, or at least enable encryption below.', 'error');
+  return true;
+}
+
+// Header badge text/class for the current sync state. `title` is the error
+// message, for a tooltip. `actionable` is true when there is an error worth
+// showing: make the badge clickable then, and open errorPanel() on click.
+export function badgeState(store) {
+  const { status, error } = store.syncStatus();
+  const title = error?.message ?? '';
+  const actionable = !!error && (status === 'error' || status === 'pending');
+  if (store.encryption().locked) return { text: '🔒 locked', cls: 'error', title, actionable };
+  if (status === 'local') return { text: 'local only', cls: '', title: '', actionable: false };
+  if (status === 'pending') return { text: 'pending sync', cls: 'pending', title, actionable };
+  if (status === 'error') return { text: 'sync error', cls: 'error', title, actionable };
+  return { text: 'synced', cls: 'ok', title: '', actionable: false };
+}
+
+// Plain-text diagnostics for the current sync state, for pasting into an
+// issue or a chat. Never includes the token or the encryption password — the
+// token is also scrubbed from the text in case a message ever echoed it.
+export function errorReport(store) {
+  const { status, error, errorAt, queued = [] } = store.syncStatus();
+  const repo = store.getDataRepo();
+  const { enabled, locked } = store.encryption();
+  const lines = [
+    `ghsync ${VERSION} sync report — ${new Date().toISOString()}`,
+    `Status:     ${status}${locked ? ' (some files locked: wrong or missing password)' : ''}`,
+  ];
+  if (error) {
+    lines.push(`Error:      ${error.name || 'Error'}: ${error.message}`);
+    if (errorAt) lines.push(`Since:      ${errorAt}`);
+    if (error.path) lines.push(`File:       ${error.path}`);
+    if (error.paths) lines.push(`Files:      ${error.paths.join(', ')}`);
+    if (error.status) lines.push(`HTTP:       ${error.status}`);
+    if (error.cause?.message) lines.push(`Cause:      ${error.cause.message}`);
+  } else {
+    lines.push('Error:      none');
+  }
+  lines.push(
+    `Repo:       ${repo?.owner && repo?.repo ? `${repoLabel(repo)} (branch ${repo.branch || 'main'})` : 'not set'}`,
+    `Token:      ${store.hasToken() ? 'saved (not shown)' : 'not set'}`,
+    `Encryption: ${enabled ? 'on' : 'off'}`,
+    `Queued:     ${queued.length ? queued.join(', ') : 'nothing'}`,
+    `Online:     ${navigator.onLine ? 'yes' : 'no'}`,
+    `Page:       ${location.origin}${location.pathname}`,
+    `Browser:    ${navigator.userAgent}`,
+  );
+  const stack = String(error?.stack || '').split('\n').slice(1, 9).map((l) => `  ${l.trim()}`);
+  if (stack.length && stack[0].trim()) lines.push('Stack:', ...stack);
+  let text = lines.join('\n');
+  const token = store.getToken();
+  if (token) text = text.split(token).join('[token]');
+  return text;
+}
+
+/**
+ * The body of a "sync error" pop-up: the report in a read-only box, a Copy
+ * button, and Retry now. The host wraps it in its own modal or <dialog>.
+ * @param {object} store
+ * @param {object} o
+ * @param {(msg:string, type?:string)=>void} o.toast
+ * @param {(status:object)=>void} [o.onRetry] called with syncStatus() after a retry
+ */
+export function errorPanel(store, { toast, onRetry = () => {} }) {
+  const box = h('textarea', {
+    class: 'gh-report',
+    readonly: true,
+    spellcheck: 'false',
+    'aria-label': 'Sync error details',
+    style: 'width:100%;min-height:200px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;white-space:pre;overflow:auto',
+  });
+  box.value = errorReport(store);
+
+  const copy = async () => {
+    box.focus();
+    box.select();
+    try {
+      await navigator.clipboard.writeText(box.value);
+      toast('Copied to the clipboard');
+    } catch {
+      // No clipboard API (or no permission): fall back to the selection.
+      let ok = false;
+      try { ok = document.execCommand('copy'); } catch { /* unsupported */ }
+      toast(ok ? 'Copied to the clipboard' : 'Couldn’t copy automatically — the text is selected, copy it from there',
+        ok ? '' : 'error');
+    }
+  };
+  const retryBtn = h('button', {
+    class: 'btn secondary',
+    onclick: async () => {
+      retryBtn.disabled = true;
+      await store.flushQueue();
+      await store.refresh();
+      box.value = errorReport(store);
+      retryBtn.disabled = false;
+      const st = store.syncStatus();
+      toast(st.status === 'ok' ? 'Synced' : `Still ${st.status === 'error' ? 'failing' : 'pending'}: ${st.error?.message || 'see details'}`,
+        st.status === 'ok' ? '' : 'error');
+      onRetry(st);
+    },
+  }, 'Retry now');
+
+  return h('div', {},
+    h('p', { class: 'muted', style: 'margin-top:0' },
+      'Copy this into a bug report or a chat. It contains no token or password.'),
+    box,
+    h('div', { class: 'field-row', style: 'margin-top:8px' },
+      h('button', { class: 'btn', onclick: copy }, 'Copy'),
+      retryBtn,
+    ),
+  );
+}
+
+/**
+ * @param {object} o
+ * @param {object} o.store    a createStore() instance
+ * @param {(msg:string, type?:string)=>void} o.toast
+ * @param {()=>void} [o.onChange] re-render the host app (data or units changed)
+ * @param {(sectionId:string)=>void} [o.reopen] reopen Settings on a section
+ * @param {object} [o.text]   copy overrides — see DEFAULT_TEXT below
+ * @returns {Array<{id:string,name:string,state:string,body:HTMLElement}>}
+ */
+export function syncSections({ store, toast, onChange = () => {}, reopen = () => {}, text = {} }) {
+  const t = { ...DEFAULT_TEXT, ...text };
+  return [dataRepoSection(), tokenSection(), privacySection()];
+
+  // Personal data lives in a separate PRIVATE repo, not the public one that
+  // serves the app. Configured here so it needs no redeploy, and left unset
+  // by default so nothing personal is ever written somewhere public.
+  function dataRepoSection() {
+    const current = store.getDataRepo();
+    const ownerInput = h('input', { value: current?.owner ?? t.defaultOwner, placeholder: 'github-username' });
+    const repoInput = h('input', { value: current?.repo ?? '', placeholder: t.repoPlaceholder });
+    const branchInput = h('input', { value: current?.branch ?? 'main', placeholder: 'main' });
+    const dirInput = h('input', { value: current ? (current.dir ?? 'data') : 'data', placeholder: 'data', 'aria-label': 'Folder' });
+    const preview = h('p', { class: 'muted', style: 'margin:0' });
+    const showPreview = () => {
+      try {
+        const d = normalizeDir(dirInput.value);
+        preview.textContent = d === '/'
+          ? `Files go in the repo root, e.g. ${t.previewFile}`
+          : `Files go in ${d}/, e.g. ${d}/${t.previewFile}`;
+      } catch (e) {
+        preview.textContent = e.message;
+      }
+    };
+    dirInput.addEventListener('input', showPreview);
+    showPreview();
+
+    const blocker = syncBlocker(store);
+    const seedBtn = h('button', {
+      class: 'btn secondary',
+      disabled: !!blocker,
+      onclick: async () => {
+        seedBtn.disabled = true;
+        try {
+          await store.pushAllData();
+          // Pushes queue rather than throw on failure, so check what's left.
+          const { status, error } = store.syncStatus();
+          if (status === 'ok') toast('Uploaded all local data to the data repo');
+          else toast(`Upload didn’t finish: ${error?.message || 'some changes are still queued'}. It will retry automatically.`, 'error');
+        } catch (e) {
+          toast(e.message, 'error');
+        }
+        seedBtn.disabled = false;
+        onChange();
+      },
+    }, 'Upload all local data');
+
+    const save = async () => {
+      if (!repoInput.value.trim() || !ownerInput.value.trim()) {
+        toast('Enter an owner and a repo name', 'error');
+        return;
+      }
+      const before = repoLabel(store.getDataRepo());
+      try {
+        store.setDataRepo({ owner: ownerInput.value, repo: repoInput.value, branch: branchInput.value, dir: dirInput.value });
+      } catch (e) {
+        toast(e.message, 'error');
+        return;
+      }
+      store.refreshStatus();
+      const moved = before && before !== repoLabel(store.getDataRepo());
+      if (store.hasToken()) {
+        try {
+          const info = await store.client.validate();
+          if (!warnIfPublic(info, toast)) {
+            toast(moved ? 'Saved — press “Upload all local data” to copy your data to the new location' : 'Data repo saved — syncing');
+          }
+          store.refresh().then(onChange);
+        } catch {
+          toast('Saved, but GitHub could not reach that repo — check the name and token scope', 'error');
+        }
+      } else {
+        toast('Data repo saved — now add a token below');
+      }
+      reopen('token');
+    };
+
+    return {
+      id: 'datarepo',
+      name: 'Data repository',
+      state: current?.owner && current?.repo ? repoLabel(current) : 'not set',
+      body: h('div', {},
+        h('p', { class: 'muted' },
+          current?.owner && current?.repo
+            ? `Syncing to ${repoLabel(current)} (branch ${current.branch}). This should be a private repo.`
+            : 'Not set — the app is local-only, keeping everything in this browser. '
+              + 'Create a private repo on GitHub and enter it here to sync.'),
+        h('div', { class: 'field-row' },
+          h('div', { class: 'field' }, h('label', {}, 'Owner'), ownerInput),
+          h('div', { class: 'field' }, h('label', {}, 'Repo'), repoInput),
+          h('div', { class: 'field' }, h('label', {}, 'Branch'), branchInput),
+        ),
+        h('div', { class: 'field' }, h('label', {}, 'Folder in the repo'), dirInput, preview),
+        h('p', { class: 'muted', style: 'margin:4px 0 0' },
+          'Use “/” for the repo root. Changing the folder doesn’t move existing files — press “Upload all local data” afterwards to write everything to the new folder.'),
+        h('div', { class: 'field-row' },
+          h('button', { class: 'btn', onclick: save }, 'Save data repo'),
+          seedBtn,
+        ),
+        blocker
+          ? h('p', { class: 'muted', style: 'margin:6px 0 0' }, `Upload needs a token too. ${blocker}`)
+          : h('p', { class: 'muted', style: 'margin:6px 0 0' },
+              'Press “Upload all local data” once, right after connecting a new repo, to seed it from this browser.'),
+        t.appRepoNote ? h('p', { class: 'muted' }, t.appRepoNote) : null,
+      ),
+    };
+  }
+
+  // The PAT used to reach the data repo. Save sits directly under the input.
+  function tokenSection() {
+    const patInput = h('input', {
+      type: 'password',
+      placeholder: store.hasToken() ? '••••••••  (token saved)' : 'github_pat_…',
+      autocomplete: 'off',
+    });
+    const save = async () => {
+      const v = patInput.value.trim();
+      if (!v) {
+        toast('Paste a token into the field first', 'error');
+        return;
+      }
+      store.setToken(v);
+      store.refreshStatus();
+      try {
+        const info = await store.client.validate();
+        if (!warnIfPublic(info, toast)) toast('Token saved — syncing');
+        store.flushQueue().then(() => store.refresh()).then(onChange);
+      } catch (e) {
+        toast(e.name === 'NotConfiguredError'
+          ? 'Token saved — set a data repository above to start syncing'
+          : 'Token saved, but GitHub rejected it — check its scope and expiry', 'error');
+      }
+      reopen('token');
+    };
+
+    return {
+      id: 'token',
+      name: 'GitHub token',
+      state: store.hasToken() ? 'saved' : 'not set',
+      body: h('div', {},
+        h('p', { class: 'muted' }, t.tokenScopeNote),
+        h('div', { class: 'field' }, h('label', {}, 'Personal access token'), patInput),
+        h('div', { class: 'field-row' },
+          h('button', { class: 'btn', onclick: save }, 'Save token'),
+          h('button', {
+            class: 'btn secondary',
+            onclick: () => {
+              store.setToken('');
+              toast('Token cleared — app is local-only');
+              store.refreshStatus();
+              reopen('token');
+            },
+          }, 'Clear token'),
+        ),
+        h('p', { class: 'muted' },
+          'The token stays in this browser (localStorage) and is only sent to api.github.com.'),
+      ),
+    };
+  }
+
+  // Optional password encrypting the sensitive collections in the repo
+  // (AES-GCM, see crypto.js). Enable/change re-writes those files; disabling
+  // decrypts them back to plaintext.
+  function privacySection() {
+    const { enabled, locked } = store.encryption();
+    const pwInput = h('input', {
+      type: 'password',
+      placeholder: enabled ? 'new password…' : 'password…',
+      autocomplete: 'new-password',
+    });
+
+    const apply = async () => {
+      const pw = pwInput.value.trim();
+      if (!pw) { toast('Enter a password first', 'error'); return; }
+      setBusy(true);
+      const prev = store.setPassword(pw);
+      await store.refresh(); // decrypt anything currently locked
+      if (store.encryption().locked) {
+        // Don't keep a password that can't read the repo: the next write
+        // would encrypt with it and leave files under two passwords.
+        store.setPassword(prev);
+        toast('That password doesn’t unlock the synced files', 'error');
+      } else {
+        await store.rewriteEncryptedFiles();
+        toast(enabled ? 'Password updated' : 'Encryption enabled');
+        onChange();
+      }
+      setBusy(false);
+      reopen('privacy');
+    };
+    const disable = async () => {
+      if (store.encryption().locked) {
+        toast('Unlock with the current password before disabling', 'error');
+        return;
+      }
+      setBusy(true);
+      store.setPassword('');
+      await store.rewriteEncryptedFiles();
+      toast('Encryption disabled — files stored as plaintext again');
+      setBusy(false);
+      onChange();
+      reopen('privacy');
+    };
+    const applyBtn = h('button', { class: 'btn secondary', onclick: apply },
+      locked ? 'Unlock' : enabled ? 'Change password' : 'Enable encryption');
+    const disableBtn = enabled ? h('button', { class: 'btn secondary', onclick: disable }, 'Disable') : null;
+    const setBusy = (b) => {
+      applyBtn.disabled = b;
+      if (disableBtn) disableBtn.disabled = b;
+    };
+
+    return {
+      id: 'privacy',
+      name: 'Privacy',
+      state: locked ? '🔒 locked' : enabled ? 'encryption on' : 'encryption off',
+      body: h('div', {},
+        h('p', { class: 'muted' },
+          locked ? t.privacyLocked : enabled ? t.privacyOn : t.privacyOff),
+        h('div', { class: 'field' }, h('label', {}, 'Encryption password'), pwInput),
+        h('div', { class: 'field-row' }, applyBtn, disableBtn),
+        h('p', { class: 'muted' },
+          '⚠ There is no recovery: a lost password means the encrypted data can’t be read.'),
+      ),
+    };
+  }
+}
+
+// One checklist row: "what do I still need to do?" at a glance.
+export function checkRow(label, done, detail, onClick) {
+  return h('div', { class: 'list-row check-row tappable', onclick: onClick },
+    h('span', { class: `mark ${done ? 'done' : 'todo'}` }, done ? '✓' : '○'),
+    h('div', { class: 'row-main' },
+      h('div', { class: 'row-title' }, label),
+      h('div', { class: 'row-sub' }, detail),
+    ),
+  );
+}
+
+// The two setup steps every ghsync app has. Host apps append their own rows.
+export function setupRows(store, reveal) {
+  const repo = store.getDataRepo();
+  return [
+    checkRow('Data repository', store.hasDataRepo(),
+      store.hasDataRepo() ? repoLabel(repo) : 'not set — tap to configure',
+      () => reveal('datarepo')),
+    checkRow('GitHub token', store.hasToken(),
+      store.hasToken() ? 'saved in this browser' : 'not set — tap to add',
+      () => reveal('token')),
+  ];
+}
+
+const DEFAULT_TEXT = {
+  defaultOwner: '',
+  repoPlaceholder: 'my-app-data',
+  previewFile: 'notes.json',
+  appRepoNote: '',
+  tokenScopeNote: 'A fine-grained personal access token scoped to only your private data repo, '
+    + 'with Contents read/write. It needs no access to the public repo that serves this app.',
+  privacyLocked: 'Some synced files are encrypted and the password is missing or wrong — '
+    + 'enter it below to unlock.',
+  privacyOn: 'Your data is encrypted in the repo.',
+  privacyOff: 'Optional second layer: encrypt your data before it is committed.',
+};

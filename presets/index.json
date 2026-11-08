@@ -1,0 +1,57 @@
+{
+  "format": "fitness-tracker-presets",
+  "formatVersion": 1,
+  "description": "Starter content shipped with the site. The app fetches these with a plain relative request — no token needed. Add your own by dropping a file in presets/plans or presets/exercises and adding an entry here.",
+  "plans": [
+    {
+      "id": "couch-to-10k-26-week",
+      "name": "Couch to 10K — 26-Week Conservative Build",
+      "description": "Three sessions a week from sedentary to 10K-equivalent duration. Ramps impact slowly, deloads every fourth week, and puts lower-leg strength work in every session. Built around a shin-splint history.",
+      "file": "plans/couch-to-10k-26-week.plan.json",
+      "weeks": 26,
+      "sessions": 78,
+      "level": "beginner",
+      "tags": ["running", "10k", "beginner", "injury-prevention"]
+    },
+    {
+      "id": "example-plan",
+      "name": "Example Plan (edit me)",
+      "description": "A tiny one-week plan demonstrating every target kind — reps with a range, duration with a variant level, distance with a pace, and intervals. The best starting point for writing your own.",
+      "file": "plans/example.plan.json",
+      "weeks": 1,
+      "sessions": 2,
+      "level": "beginner",
+      "tags": ["template", "example"]
+    }
+  ],
+  "exercisePacks": [
+    {
+      "id": "running-and-calisthenics",
+      "name": "Running & Calisthenics",
+      "description": "Running warm-ups, shin and calf injury-prevention work, and a full calisthenics skill ladder (pull-up, push-up, dip, squat, L-sit, front lever, human flag) with progression variants.",
+      "file": "exercises/running-and-calisthenics.json",
+      "count": 26
+    },
+    {
+      "id": "barbell-basics",
+      "name": "Barbell Basics",
+      "description": "The six foundational barbell lifts — squat, deadlift, bench, overhead press, row, and RDL — each with a regression ladder and loading guidance.",
+      "file": "exercises/barbell-basics.json",
+      "count": 6
+    },
+    {
+      "id": "dumbbell-essentials",
+      "name": "Dumbbell Essentials",
+      "description": "A complete home-gym set covering squat, hinge, push, pull, press, and lunge with nothing but dumbbells and a bench.",
+      "file": "exercises/dumbbell-essentials.json",
+      "count": 6
+    },
+    {
+      "id": "cardio-cross-training",
+      "name": "Cardio & Cross-Training",
+      "description": "Low- and no-impact aerobic options — bike, swim, row, incline walk, elliptical, and jump rope — for building fitness while managing impact load.",
+      "file": "exercises/cardio-cross-training.json",
+      "count": 6
+    }
+  ]
+}

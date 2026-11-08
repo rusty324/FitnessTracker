@@ -1,0 +1,159 @@
+{
+  "format": "fitness-tracker-exercise-library",
+  "formatVersion": 2,
+  "exerciseLibrary": {
+    "stationary_bike": {
+      "name": "Stationary Bike",
+      "shortName": "Bike",
+      "category": "cardio",
+      "modality": "bike",
+      "measurementType": "duration",
+      "equipment": ["stationary bike or trainer"],
+      "primaryTargets": ["cardiovascular system", "quadriceps", "glutes"],
+      "cues": [
+        "Set the saddle so the knee is only slightly bent at the bottom of the stroke.",
+        "Aim for a cadence of 80-95 rpm rather than grinding a heavy gear slowly.",
+        "Keep the upper body quiet — no rocking side to side."
+      ],
+      "whyItsHere": "Zero-impact aerobic work. This is the standard substitute when the shins, knees, or feet need a break from running but the aerobic system does not.",
+      "safetyNotes": [
+        "Knee pain on the bike is almost always a saddle-height problem. Raise the saddle before blaming the knee."
+      ],
+      "variants": [
+        { "level": 1, "name": "Easy Spin", "description": "Conversational effort at a light resistance." },
+        { "level": 2, "name": "Steady Aerobic Ride", "description": "Moderate resistance held at a consistent effort." },
+        { "level": 3, "name": "Interval Ride", "description": "Alternating hard efforts with easy spinning recovery." }
+      ],
+      "description": "Ride at a steady, controlled effort for the prescribed duration. Because there is no impact, the bike can absorb aerobic volume that your legs could not tolerate as running, which makes it the most useful cross-training tool for anyone managing a lower-leg injury history."
+    },
+    "lap_swimming": {
+      "name": "Lap Swimming",
+      "shortName": "Swim",
+      "category": "cardio",
+      "modality": "swim",
+      "measurementType": "distance",
+      "equipment": ["pool", "goggles", "optional: pull buoy, kickboard"],
+      "primaryTargets": ["cardiovascular system", "lats", "shoulders", "core"],
+      "cues": [
+        "Exhale continuously underwater so the only job on the breath is to inhale.",
+        "Reach long on each stroke and rotate from the hips rather than the shoulders alone.",
+        "Kick from the hip with relatively straight legs, small and steady.",
+        "Rest on the clock at the wall rather than drifting between lengths."
+      ],
+      "whyItsHere": "Fully unloaded aerobic training that also opens the shoulders and thoracic spine. Useful when even the bike is too much, such as during a bone-stress injury.",
+      "safetyNotes": [
+        "Never swim alone in an unsupervised pool or open water.",
+        "Shoulder pain during freestyle often comes from crossing the hand over the midline on entry."
+      ],
+      "variants": [
+        { "level": 1, "name": "Kickboard Lengths", "description": "Legs only, holding a board. Builds water comfort with no stroke demand." },
+        { "level": 2, "name": "Continuous Easy Freestyle", "description": "Steady swimming with rest as needed at the wall." },
+        { "level": 3, "name": "Interval Set", "description": "Repeated efforts on a fixed send-off, such as 8 × 50 m." }
+      ],
+      "description": "Swim the prescribed distance at an easy to moderate effort. Distance is the natural unit in a pool, since lengths are fixed and easy to count. Treat total distance rather than pace as the thing to build."
+    },
+    "rowing_erg": {
+      "name": "Rowing Machine",
+      "shortName": "Row",
+      "category": "cardio",
+      "modality": "row",
+      "measurementType": "distance",
+      "equipment": ["rowing ergometer"],
+      "primaryTargets": ["cardiovascular system", "legs", "back", "core"],
+      "cues": [
+        "The order is legs, then back, then arms on the drive — and the exact reverse on the recovery.",
+        "Roughly 60 percent of the power comes from the legs. Do not row with your arms.",
+        "Keep the chain travelling in a flat horizontal line.",
+        "Take a slower, stronger stroke rather than a fast, short, frantic one."
+      ],
+      "whyItsHere": "One of the few low-impact options that trains the upper body and the aerobic system at once, which makes it efficient when time is short.",
+      "safetyNotes": [
+        "Low-back soreness from rowing usually means you are opening the back too early in the drive, before the legs have finished.",
+        "Set the damper around 3-5 rather than 10; a high damper is not the same thing as a hard workout."
+      ],
+      "variants": [
+        { "level": 1, "name": "Technique Rowing", "description": "Light effort focused on stroke sequencing." },
+        { "level": 2, "name": "Steady-State Row", "description": "Continuous rowing at a conversational effort." },
+        { "level": 3, "name": "Interval Row", "description": "Repeated hard pieces such as 500 m efforts with rest between." }
+      ],
+      "description": "Row the prescribed distance with a controlled stroke: drive with the legs, swing the back open, then pull the handle to the lower ribs, and reverse that order on the way back to the catch."
+    },
+    "incline_treadmill_walk": {
+      "name": "Incline Treadmill Walk",
+      "shortName": "Incline Walk",
+      "category": "cardio",
+      "modality": "walk",
+      "measurementType": "duration",
+      "equipment": ["treadmill"],
+      "primaryTargets": ["cardiovascular system", "glutes", "calves"],
+      "cues": [
+        "Do not hold the handrails — holding on removes most of the work.",
+        "Stand tall rather than leaning into the belt.",
+        "Raise the incline before raising the speed."
+      ],
+      "whyItsHere": "Gets the heart rate genuinely elevated at walking impact levels. This is the best bridge between walking and running for someone rebuilding tissue tolerance.",
+      "safetyNotes": [
+        "Clip the safety key to your clothing.",
+        "Step onto the belt only once it is moving slowly, and step off to the side rails to stop."
+      ],
+      "variants": [
+        { "level": 1, "name": "Flat Brisk Walk", "description": "No incline, purposeful pace." },
+        { "level": 2, "name": "Moderate Incline Walk", "description": "5-8 percent grade at a comfortable speed." },
+        { "level": 3, "name": "Steep Incline Walk", "description": "10-15 percent grade, hands off the rails." }
+      ],
+      "description": "Walk at a brisk pace on an inclined treadmill for the prescribed duration. Effort is controlled by the grade rather than the speed, which keeps impact low while the aerobic demand stays high."
+    },
+    "jump_rope": {
+      "name": "Jump Rope",
+      "shortName": "Rope",
+      "category": "plyometric",
+      "modality": "other",
+      "measurementType": "duration",
+      "equipment": ["jump rope", "hard flat surface"],
+      "primaryTargets": ["calves", "achilles tendon", "coordination", "cardiovascular system"],
+      "cues": [
+        "Turn the rope with the wrists, not the whole arm.",
+        "Stay on the balls of the feet with small jumps, barely clearing the rope.",
+        "Land softly and quietly — noise means you are landing stiff.",
+        "Keep the elbows close to the ribs."
+      ],
+      "whyItsHere": "Cheap, portable calf and achilles conditioning that also builds the elastic stiffness running depends on. Very easy to overdo, which is why it is prescribed in short bouts.",
+      "safetyNotes": [
+        "This is genuinely high impact on the calves and achilles. Build up in small increments and stop at the first sign of achilles soreness.",
+        "Avoid it entirely during an active shin or achilles flare-up."
+      ],
+      "variants": [
+        { "level": 1, "name": "Rope-less Bounce", "description": "The jumping rhythm with no rope, learning a soft landing." },
+        { "level": 2, "name": "Basic Two-Foot Bounce", "description": "Standard steady skipping." },
+        { "level": 3, "name": "Alternating-Foot Skip", "description": "A running rhythm on the spot." },
+        { "level": 4, "name": "Double-Unders", "description": "Two rope passes per jump." }
+      ],
+      "progressionRule": "Progress total duration in small steps, in sets of 30-60 seconds rather than one long block, and only when the calves are not sore from the previous session.",
+      "description": "Skip continuously for the prescribed duration, keeping the jumps small and the landings soft. Break the total into short sets rather than one continuous block when you are new to it."
+    },
+    "elliptical": {
+      "name": "Elliptical Trainer",
+      "shortName": "Elliptical",
+      "category": "cardio",
+      "modality": "other",
+      "measurementType": "duration",
+      "equipment": ["elliptical machine"],
+      "primaryTargets": ["cardiovascular system", "quadriceps", "glutes", "hamstrings"],
+      "cues": [
+        "Keep the whole foot in contact with the pedal rather than rising onto the toes.",
+        "Use the moving handles so the upper body contributes.",
+        "Stand tall instead of hunching over the console."
+      ],
+      "whyItsHere": "Mimics the running motion closely with essentially no impact, which makes it the most specific cross-training option when running itself has to pause.",
+      "safetyNotes": [
+        "Numb or tingling toes usually means you are leaning too far forward onto the front of the pedals; shift your weight back."
+      ],
+      "variants": [
+        { "level": 1, "name": "Easy Elliptical", "description": "Light resistance, conversational effort." },
+        { "level": 2, "name": "Steady Aerobic", "description": "Moderate resistance held for the full duration." },
+        { "level": 3, "name": "Interval Session", "description": "Alternating hard and easy blocks." }
+      ],
+      "description": "Move through the prescribed duration at a steady effort, driving with the legs and pushing and pulling the handles so the upper body shares the work."
+    }
+  }
+}
