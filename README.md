@@ -1,14 +1,15 @@
 # Fitness Tracker & Planner
 
 A single-user fitness tracking and planning web app that runs entirely on
-GitHub Pages — no backend. Data is saved as JSON files in this branch via the
-GitHub Contents API, with localStorage as a write-through cache so the app
-works offline and syncs when you're back online. Polar activities sync in
+GitHub Pages — no backend. Data is saved as JSON files in a separate private
+GitHub repo via the GitHub Contents API, with localStorage as a write-through
+cache so the app works offline and syncs when you're back online. Polar activities sync in
 automatically via a scheduled GitHub Actions workflow, and GPX/TCX files from
 any device can be imported directly.
 
-*(This branch is one app in the webApps collection — GitHub Pages serves
-whichever branch is selected in the repo's Pages settings.)*
+*(This app used to live on the `fitnessTracker` branch of
+[rusty324/webApps](https://github.com/rusty324/webApps/tree/fitnessTracker),
+which keeps its full commit history.)*
 
 ## Features
 
@@ -61,8 +62,8 @@ whichever branch is selected in the repo's Pages settings.)*
 
 ### 1. Enable GitHub Pages
 
-Repo → Settings → Pages → deploy from branch `fitnessTracker`, root folder.
-The app then lives at `https://<user>.github.io/webApps/`.
+Repo → Settings → Pages → deploy from branch `main`, root folder.
+The app then lives at `https://<user>.github.io/FitnessTracker/`.
 
 This repo can safely stay **public** — it contains only the app and the
 starter presets. Your personal data goes somewhere else entirely:

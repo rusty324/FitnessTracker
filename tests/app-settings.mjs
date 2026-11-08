@@ -76,8 +76,8 @@ step('token persisted', (await page.evaluate(() => localStorage.getItem('ft.pat'
 step('badge leaves local-only', (await page.textContent('#sync-badge')) !== 'local only', await page.textContent('#sync-badge'));
 step('validate probed the data repo, never the public app repo',
   gh.calls.some((c) => c.url === 'https://api.github.com/repos/rusty324/my-private-data')
-  && !gh.calls.some((c) => c.url.includes('/webApps')),
-  gh.calls.find((c) => c.url.includes('/webApps'))?.url ?? 'no validate call');
+  && !gh.calls.some((c) => c.url.toLowerCase().includes('/fitnesstracker')),
+  gh.calls.find((c) => c.url.toLowerCase().includes('/fitnesstracker'))?.url ?? 'no validate call');
 
 // ---- now the remote actions work ----
 await expand('activitysync');
