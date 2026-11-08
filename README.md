@@ -7,9 +7,8 @@ cache so the app works offline and syncs when you're back online. Polar activiti
 automatically via a scheduled GitHub Actions workflow, and GPX/TCX files from
 any device can be imported directly.
 
-*(This app used to live on the `fitnessTracker` branch of
-[rusty324/webApps](https://github.com/rusty324/webApps/tree/fitnessTracker),
-which keeps its full commit history.)*
+*(This app was first developed on a branch of rusty324/webApps. That history
+was carried over into this repo, so `git log` goes back to the first version.)*
 
 ## Features
 
