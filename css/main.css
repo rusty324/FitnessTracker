@@ -146,6 +146,21 @@ input, select, textarea {
   width: 100%;
 }
 input[type="number"] { -moz-appearance: textfield; }
+/* iOS Safari sizes date/time inputs from the native control: they get an
+   intrinsic minimum width and ignore width:100%, so on a phone they run past
+   the screen edge. Without the native appearance and that minimum they fit
+   their container like any other input; tapping still opens the picker. */
+input[type="date"], input[type="time"], input[type="datetime-local"] {
+  -webkit-appearance: none;
+  appearance: none;
+  min-width: 0;
+  max-width: 100%;
+  display: block;
+}
+/* Without the native look, iOS centres the value and collapses an empty
+   field; keep it left-aligned and a full line tall. */
+input[type="date"]::-webkit-date-and-time-value,
+input[type="time"]::-webkit-date-and-time-value { text-align: left; min-height: 1.5em; }
 textarea { min-height: 70px; resize: vertical; }
 label { display: block; font-size: 0.85rem; color: var(--text-dim); margin-bottom: 4px; }
 .field { margin-bottom: 12px; }
