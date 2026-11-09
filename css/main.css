@@ -476,3 +476,47 @@ label { display: block; font-size: 0.85rem; color: var(--text-dim); margin-botto
 .sets-table .all-sets th, .sets-table .all-sets td { padding-bottom: 8px; border-bottom: 1px solid var(--border); }
 .sets-table .all-sets th { color: var(--text); font-weight: 600; }
 .sets-table .all-sets + tbody tr:first-child th, .sets-table .all-sets + tbody tr:first-child td { padding-top: 8px; }
+
+/* ---------- Desktop ----------
+   The layout is built for a phone. On a wide screen with a mouse it read as
+   heavy: header and tab bar ran edge to edge around a narrow column, two
+   stacked full-width nav bars sat above any content, and touch-sized controls
+   looked chunky. Here the main tabs move into the header as one bar aligned
+   with the content column, sub-tabs shrink to fit, and controls get denser.
+   Gated on a fine pointer so a touch-only tablet keeps the phone layout. */
+@media (min-width: 960px) and (hover: hover) and (pointer: fine) {
+  :root { --tap: 36px; }
+
+  .app-header {
+    height: 57px;
+    padding-block: 0;
+    /* Line the title and actions up with the content column's edges. */
+    padding-inline: max(16px, calc(50% - 368px));
+  }
+  .tabbar {
+    position: fixed;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    height: 56px;
+    z-index: 21; /* over the sticky header it sits in */
+    background: none;
+    border: none;
+  }
+  .tabbar button {
+    flex: none;
+    padding: 0 16px;
+    min-height: 0;
+    font-size: 0.92rem;
+  }
+  .tabbar button:hover:not(.active) { color: var(--text); }
+
+  .view { padding-top: 20px; }
+
+  .segmented { width: fit-content; max-width: 100%; }
+  .segmented button { flex: none; padding: 5px 18px; min-height: 32px; }
+
+  button.btn { padding: 7px 14px; font-size: 0.9rem; }
+  button.btn.small { min-height: 30px; padding: 4px 10px; }
+  input, select, textarea { padding: 7px 10px; font-size: 0.95rem; }
+}
