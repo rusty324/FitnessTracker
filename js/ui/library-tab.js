@@ -21,6 +21,7 @@ import { el, openModal, confirmDialog, toast, emptyState, downloadJson, filePick
 import { loadManifest, loadPreset } from '../presets.js';
 import { editExercise, pickExercise, targetSummary, libraryUpserter, exerciseDef, slug } from './plans-tab.js';
 import { renderGear } from './gear-view.js';
+import { repsPerSet, formatSets } from '../sets.js';
 
 let root = null;
 let unsub = null;
@@ -556,12 +557,19 @@ function rwiSection(ex) {
   const card = el('div', { class: 'card' });
   for (const log of logs) {
     const w = weightOn(log.date, metrics);
-    const perSet = log.actual?.reps ?? log.actual?.durationSec ?? log.actual?.movingSec ?? null;
-    const sets = log.actual?.sets ?? 1;
+    // Each set's own reps (or the duration), so a set that came up short
+    // counts for what it was.
+    const reps = repsPerSet(log.actual);
+    const perSet = reps.length ? reps : [log.actual?.durationSec ?? log.actual?.movingSec].filter((x) => x != null);
     let rwiText = '—';
-    if (perSet != null && w != null) {
-      const rwi = perSet * (goal.targetWeight / w);
-      rwiText = `RWI ${rwi.toFixed(1)}/set${sets > 1 ? ` · total ${(rwi * sets).toFixed(1)}` : ''}`;
+    if (perSet.length && w != null) {
+      const ratio = goal.targetWeight / w;
+      const each = perSet.map((x) => x * ratio);
+      const total = each.reduce((a, b) => a + b, 0);
+      const uniform = each.every((x) => x === each[0]);
+      rwiText = uniform
+        ? `RWI ${each[0].toFixed(1)}/set${each.length > 1 ? ` · total ${total.toFixed(1)}` : ''}`
+        : `RWI ${each.map((x) => x.toFixed(1)).join(' / ')} · total ${total.toFixed(1)}`;
     }
     card.appendChild(el('div', { class: 'list-row' },
       el('div', { class: 'row-main' },
@@ -579,7 +587,7 @@ function rwiSection(ex) {
 
 function summarizeActual(actual = {}) {
   const parts = [];
-  if (actual.sets != null && actual.reps != null) parts.push(`${actual.sets} × ${actual.reps}`);
+  if (formatSets(actual)) parts.push(formatSets(actual));
   if (actual.durationSec) parts.push(formatDuration(actual.durationSec));
   if (actual.distanceM) parts.push(formatDistance(actual.distanceM));
   if (actual.movingSec && !actual.durationSec) parts.push(formatDuration(actual.movingSec));

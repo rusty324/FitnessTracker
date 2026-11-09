@@ -18,6 +18,8 @@ import { lineChart, datePoints } from '../charts.js';
 import { isCardioExercise, hasCardioData, sportOf, defaultGear } from '../cardio.js';
 import { el, openModal, confirmDialog, toast, emptyState, filePicker, exerciseLink } from './components.js';
 import { cardioFields, cardioExtras } from './cardio-form.js';
+import { setsForm } from './sets-form.js';
+import { formatSets } from '../sets.js';
 import { pickExercise, targetSummary } from './plans-tab.js';
 
 let root = null;
@@ -123,9 +125,8 @@ function activitiesWithStatus() {
 export function actualSummary(actual) {
   if (!actual) return '';
   const parts = [];
-  if (actual.sets != null && actual.reps != null) {
-    parts.push(`${actual.sets} × ${actual.reps}${actual.weight ? ` @ ${formatWeight(actual.weight)}` : ''}`);
-  }
+  const sets = formatSets(actual);
+  if (sets) parts.push(`${sets}${actual.weight ? ` @ ${formatWeight(actual.weight)}` : ''}`);
   if (actual.distanceM) parts.push(formatDistance(actual.distanceM));
   if (actual.movingSec) parts.push(formatDuration(actual.movingSec));
   if (actual.distanceM && actual.movingSec) parts.push(formatPace(actual.distanceM, actual.movingSec));
@@ -313,7 +314,7 @@ function inferKind(actual) {
   if (!actual) return null;
   if (actual.distanceM != null || actual.movingSec != null) return 'distance';
   if (actual.durationSec != null) return 'duration';
-  if (actual.sets != null || actual.reps != null || actual.weight != null) return 'reps';
+  if (actual.sets != null || actual.reps != null || actual.setReps != null || actual.weight != null) return 'reps';
   return null;
 }
 
@@ -350,14 +351,16 @@ function logEntryModal({ existing = null, plan = null, session = null, pe = null
   const dateInput = el('input', { type: 'date', value: entry.date });
   const fields = el('div', { class: 'field-row' });
   let cardioForm = null;
+  let repsForm = null;
   const num = (name, value, step = 1) =>
     el('input', { type: 'number', inputmode: 'decimal', step, value: value ?? '', dataset: { name } });
   const field = (label, input) => el('div', { class: 'field' }, el('label', {}, label), input);
 
   if (kind === 'reps') {
+    repsForm = setsForm(existing ? a : {}, t);
     fields.append(
-      field('Sets', num('sets', a.sets ?? t.sets)),
-      field('Reps', num('reps', a.reps ?? t.reps)),
+      field('Sets', repsForm.sets),
+      field('Reps (every set)', repsForm.reps),
       field(`Weight (${weightUnit()})`, num('weight', weightToInput(a.weight ?? t.weight) ?? '', 0.5)),
     );
   } else if (kind === 'cardio') {
@@ -381,6 +384,7 @@ function logEntryModal({ existing = null, plan = null, session = null, pe = null
   const body = el('div', {},
     el('div', { class: 'field' }, el('label', {}, 'Date'), dateInput),
     cardioForm ? cardioForm.el : fields,
+    repsForm ? el('div', { class: 'field' }, el('label', {}, 'Reps per set'), repsForm.grid) : null,
     el('div', { class: 'field' }, el('label', {}, 'RPE (1–10, optional)'), rpeInput),
     el('div', { class: 'field' }, el('label', {}, 'Notes'), notesInput),
   );
@@ -397,8 +401,9 @@ function logEntryModal({ existing = null, plan = null, session = null, pe = null
         };
         const actual = {};
         if (kind === 'reps') {
-          actual.sets = val('sets');
-          actual.reps = val('reps');
+          const r = repsForm.read();
+          if (r.error) { toast(r.error, 'error'); return false; }
+          Object.assign(actual, r.values);
           if (val('weight') != null) actual.weight = weightFromInput(val('weight'));
         } else if (kind === 'cardio') {
           const r = cardioForm.read();

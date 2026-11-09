@@ -444,3 +444,8 @@ label { display: block; font-size: 0.85rem; color: var(--text-dim); margin-botto
 /* Exercise names that open the exercise's library page. */
 .ex-link { color: var(--accent); text-decoration: none; }
 .ex-link:hover, .ex-link:focus-visible { text-decoration: underline; text-underline-offset: 2px; }
+
+/* Reps per set: one small box per set. */
+.set-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 8px; }
+.set-box { display: flex; flex-direction: column; gap: 2px; margin: 0; font-size: 0.75rem; color: var(--text-dim); }
+.set-box input { text-align: center; }
