@@ -2,9 +2,9 @@
 // safety notes, variants — and per-set RWI history), training Goals
 // (bodyweight, run times, exercise targets), and Gear (js/ui/gear-view.js).
 //
-// RWI (Relative Work Index) normalizes bodyweight work against your goal
-// weight: RWI = (reps, or duration in seconds) × (goal weight / body weight
-// at the time of the set). As you approach your goal weight the ratio → 1.
+// RWI (Relative Work Index) normalizes work against your goal weight:
+// RWI = work × (goal weight / body weight at the time). Work is reps, or
+// km × km/h for distance, or seconds for a hold — see js/rwi.js.
 
 import * as store from '../storage/store.js';
 import { makeGoal, exerciseUsage, remapExercise } from '../models.js';
@@ -21,7 +21,8 @@ import { el, openModal, confirmDialog, toast, emptyState, downloadJson, filePick
 import { loadManifest, loadPreset } from '../presets.js';
 import { editExercise, pickExercise, targetSummary, libraryUpserter, exerciseDef, slug } from './plans-tab.js';
 import { renderGear } from './gear-view.js';
-import { repsPerSet, formatSets } from '../sets.js';
+import { formatSets } from '../sets.js';
+import { rwiWork, weightOn, RWI_BASIS_LABEL } from '../rwi.js';
 
 let root = null;
 let unsub = null;
@@ -509,19 +510,6 @@ function deleteExerciseFlow(ex) {
 
 // ---------- RWI ----------
 
-// Body weight in effect on a given date: the most recent weigh-in on or
-// before it, else the earliest one after.
-function weightOn(date, metrics) {
-  const weighed = metrics.filter((m) => m.weight != null).sort((a, b) => (a.date < b.date ? -1 : 1));
-  if (!weighed.length) return null;
-  let candidate = null;
-  for (const m of weighed) {
-    if (m.date <= date) candidate = m;
-    else break;
-  }
-  return (candidate ?? weighed[0]).weight;
-}
-
 function rwiSection(ex) {
   const wrap = el('div', {});
   wrap.appendChild(el('h3', {}, 'Relative Work Index'));
@@ -534,7 +522,8 @@ function rwiSection(ex) {
 
   if (!goal) {
     wrap.appendChild(el('p', { class: 'muted' },
-      'RWI needs a bodyweight goal: RWI = (reps or seconds per set) × (goal weight ÷ your weight at the time). ',
+      'RWI needs a bodyweight goal: RWI = work × (goal weight ÷ your weight at the time), where work is reps per set, ',
+      'km × km/h for distance, or seconds for a hold. ',
       'Add one under Goals.'));
     wrap.appendChild(el('button', { class: 'btn secondary small', onclick: () => { view = { name: 'goals' }; render(); } }, 'Go to Goals'));
     return wrap;
@@ -548,7 +537,8 @@ function rwiSection(ex) {
   wrap.appendChild(el('p', { class: 'muted' },
     `Goal weight ${formatWeight(goal.targetWeight)} · current ${formatWeight(currentW)} · `,
     `ratio ${(goal.targetWeight / currentW).toFixed(3)}. `,
-    'RWI = set reps (or seconds) × goal ÷ bodyweight on the day.'));
+    'RWI = work × goal ÷ bodyweight on the day. Work is reps per set; for distance, km × km/h ',
+    '(so going further or faster both count); for a hold without distance, seconds.'));
 
   if (!logs.length) {
     wrap.appendChild(el('p', { class: 'muted' }, 'No logged sets for this exercise yet.'));
@@ -557,19 +547,19 @@ function rwiSection(ex) {
   const card = el('div', { class: 'card' });
   for (const log of logs) {
     const w = weightOn(log.date, metrics);
-    // Each set's own reps (or the duration), so a set that came up short
-    // counts for what it was.
-    const reps = repsPerSet(log.actual);
-    const perSet = reps.length ? reps : [log.actual?.durationSec ?? log.actual?.movingSec].filter((x) => x != null);
+    const { basis, perSet } = rwiWork(log.actual);
     let rwiText = '—';
     if (perSet.length && w != null) {
       const ratio = goal.targetWeight / w;
       const each = perSet.map((x) => x * ratio);
       const total = each.reduce((a, b) => a + b, 0);
       const uniform = each.every((x) => x === each[0]);
+      // "/set" only means something for reps; a run is one effort.
+      const per = basis === 'reps' ? '/set' : '';
       rwiText = uniform
-        ? `RWI ${each[0].toFixed(1)}/set${each.length > 1 ? ` · total ${total.toFixed(1)}` : ''}`
+        ? `RWI ${each[0].toFixed(1)}${per}${each.length > 1 ? ` · total ${total.toFixed(1)}` : ''}`
         : `RWI ${each.map((x) => x.toFixed(1)).join(' / ')} · total ${total.toFixed(1)}`;
+      if (basis !== 'reps') rwiText += ` (${RWI_BASIS_LABEL[basis]})`;
     }
     card.appendChild(el('div', { class: 'list-row' },
       el('div', { class: 'row-main' },

@@ -34,9 +34,10 @@ was carried over into this repo, so `git log` goes back to the first version.)*
   (hidden from pickers, existing references intact) instead. Plus **Goals**:
   bodyweight targets, run-time goals (1 mile / 5k / 10k / custom), and
   exercise goals, each with live progress against your logs.
-  RWI (Relative Work Index) = (reps or seconds per set) × (goal weight ÷
-  body weight on the day), normalizing bodyweight work as your weight moves
-  toward its goal.
+  RWI (Relative Work Index) = work × (goal weight ÷ body weight on the day),
+  normalizing work as your weight moves toward its goal. Work is reps per
+  set; for distance, km × km/h (further or faster both score higher); for a
+  hold without distance, seconds.
 - **Logs** — today's planned session with inline logging, a one-tap morning
   weigh-in on the Today view, ad-hoc entries, filterable history, body metrics
   (weight, body fat %, resting HR, waist — extensible via `BODY_METRICS` in
