@@ -519,8 +519,11 @@ function logRow(log, lib, planById, gear = []) {
         `${formatDate(log.date)} · ${actualSummary(log.actual)}${log.rpe ? ` · RPE ${log.rpe}` : ''}`),
       extras && el('div', { class: 'row-sub' }, extras),
       log.notes && el('div', { class: 'row-sub' }, log.notes),
+      // Below the text, not beside it: a long plan name in a no-wrap pill
+      // beside the text squeezed the text column to one character wide.
+      el('div', { class: 'row-plan' },
+        el('span', { class: `pill wrap ${plan ? 'accent' : ''}` }, plan ? plan.name : 'ad-hoc')),
     ),
-    el('span', { class: `pill ${plan ? 'accent' : ''}` }, plan ? plan.name : 'ad-hoc'),
   );
 }
 

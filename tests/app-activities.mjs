@@ -153,6 +153,36 @@ await page.waitForSelector('.toast:has-text("Activity deleted")');
 step('a browser-owned import is really removed from its shard', (await imported()).length === 0);
 step('no hidden overlay needed for an import', (await overlay()).length === 1);
 
+// ---- a log's plan name goes under the text and wraps (not beside it) ----
+const LONG_PLAN = 'Couch to 10K — 26-week conservative build with extra recovery weeks';
+await page.evaluate(([date, planName]) => {
+  localStorage.setItem('ft.data.data/plans.json', JSON.stringify([{ id: 'p-long', name: planName, weeks: [] }]));
+  localStorage.setItem('ft.data.data/logs.json', JSON.stringify([{
+    id: 'l-long', date, exerciseId: 'nope', planId: 'p-long', actual: { sets: 1, reps: 10 },
+  }]));
+}, [SYNC_DAY, LONG_PLAN]);
+await page.reload();
+await page.click('.segmented button:has-text("History")');
+await page.waitForSelector(`.list-row:has-text("${LONG_PLAN}")`);
+const planLayout = await page.evaluate((name) => {
+  const row = [...document.querySelectorAll('.list-row')].find((r) => r.textContent.includes(name));
+  const main = row.querySelector('.row-main');
+  const pill = row.querySelector('.pill.accent');
+  const sub = main.querySelector('.row-sub');
+  return {
+    inMain: main.contains(pill),
+    below: pill.getBoundingClientRect().top >= sub.getBoundingClientRect().bottom - 1,
+    mainWidth: main.getBoundingClientRect().width,
+    rowWidth: row.getBoundingClientRect().width,
+    pillWraps: pill.getBoundingClientRect().height > parseFloat(getComputedStyle(pill).lineHeight) * 1.5,
+    pillFits: pill.getBoundingClientRect().right <= row.getBoundingClientRect().right + 1,
+    doc: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+  };
+}, LONG_PLAN);
+step('plan name sits below the log text', planLayout.inMain && planLayout.below);
+step('log text keeps the full row width', planLayout.mainWidth >= planLayout.rowWidth - 1,
+  `${planLayout.mainWidth} of ${planLayout.rowWidth}px`);
+step('a long plan name wraps inside the row', planLayout.pillWraps && planLayout.pillFits && planLayout.doc <= 0);
 
 const real = errors.filter((e) => !/tile|openstreetmap|net::/i.test(e));
 step('no page errors', real.length === 0, real.join(' | '));

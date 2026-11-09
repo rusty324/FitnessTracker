@@ -224,6 +224,9 @@ label { display: block; font-size: 0.85rem; color: var(--text-dim); margin-botto
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
+/* A pill holding free text (e.g. a plan name) that may be long. */
+.pill.wrap { white-space: normal; overflow-wrap: anywhere; max-width: 100%; }
+.row-plan { margin-top: 4px; }
 .pill.accent { background: color-mix(in srgb, var(--accent) 15%, transparent); color: var(--accent); }
 .pill.ok { background: color-mix(in srgb, var(--ok) 15%, transparent); color: var(--ok); }
 .pill.warn { background: color-mix(in srgb, var(--warn) 18%, transparent); color: var(--warn); }
