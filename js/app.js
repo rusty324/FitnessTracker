@@ -7,6 +7,7 @@ import {
 import { initTabbar } from './ui/tabbar.js';
 import { el, openModal, toast, downloadJson } from './ui/components.js';
 import { loadPreset } from './presets.js';
+import { syncFromPresets } from './preset-sync.js';
 
 const badge = document.getElementById('sync-badge');
 
@@ -244,6 +245,11 @@ store.onChange((e) => {
 });
 store.init();
 renderBadge();
+
+// Bring the exercise library up to date with the bundled packs (fills empty
+// fields; migrates the old Push-Up ladder so plan variant levels mean what
+// the plan says) — before Logs needs variant names.
+syncFromPresets();
 
 const tabbar = initTabbar({
   tabs: TABS,

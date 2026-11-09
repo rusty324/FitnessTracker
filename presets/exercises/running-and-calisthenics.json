@@ -8,6 +8,7 @@
       "category": "mobility",
       "modality": "mobility",
       "measurementType": "reps",
+      "loadModel": "reps",
       "perSide": true,
       "primaryTargets": [
         "ankle joint",
@@ -32,6 +33,7 @@
       "category": "strength",
       "modality": "bodyweight",
       "measurementType": "reps",
+      "loadModel": "reps",
       "perSide": true,
       "equipment": [
         "mat optional"
@@ -78,6 +80,7 @@
       "category": "strength",
       "modality": "bodyweight",
       "measurementType": "reps",
+      "loadModel": "reps",
       "equipment": [
         "optional: step for extended range",
         "wall or rail for balance"
@@ -128,6 +131,7 @@
       "category": "strength",
       "modality": "bodyweight",
       "measurementType": "reps",
+      "loadModel": "reps",
       "perSide": true,
       "equipment": [
         "mat optional",
@@ -173,6 +177,7 @@
       "category": "cardio",
       "modality": "run",
       "measurementType": "duration",
+      "loadModel": "cardio",
       "equipment": [
         "running shoes",
         "watch or app"
@@ -204,6 +209,7 @@
       "category": "cardio",
       "modality": "walk",
       "measurementType": "duration",
+      "loadModel": "cardio",
       "primaryTargets": [
         "cardiovascular system"
       ],
@@ -223,6 +229,7 @@
       "category": "skill",
       "modality": "bodyweight",
       "measurementType": "duration",
+      "loadModel": "duration",
       "equipment": [
         "pull-up bar or rings"
       ],
@@ -288,6 +295,7 @@
       "category": "strength",
       "modality": "other",
       "measurementType": "duration",
+      "loadModel": "duration",
       "equipment": [
         "mat optional"
       ],
@@ -340,6 +348,7 @@
       "category": "mobility",
       "modality": "stretch",
       "measurementType": "duration",
+      "loadModel": "duration",
       "perSide": true,
       "equipment": [
         "mat or cushion for the knee"
@@ -366,6 +375,7 @@
       "category": "skill",
       "modality": "bodyweight",
       "measurementType": "reps",
+      "loadModel": "reps",
       "equipment": [
         "wall",
         "optional: folded mat or yoga blocks to extend range",
@@ -444,6 +454,7 @@
       "category": "strength",
       "modality": "bodyweight",
       "measurementType": "reps",
+      "loadModel": "reps",
       "equipment": [
         "pull-up bar",
         "optional: ab straps to remove grip as the limiter"
@@ -509,6 +520,7 @@
       "category": "skill",
       "modality": "bodyweight",
       "measurementType": "duration",
+      "loadModel": "duration",
       "perSide": true,
       "equipment": [
         "vertical pole — flagpole, playground post, or a squat rack upright"
@@ -570,6 +582,7 @@
       "category": "skill",
       "modality": "bodyweight",
       "measurementType": "duration",
+      "loadModel": "duration",
       "equipment": [
         "parallettes, floor, dip bars, or rings"
       ],
@@ -630,6 +643,7 @@
       "category": "mobility",
       "modality": "mobility",
       "measurementType": "reps",
+      "loadModel": "reps",
       "perSide": true,
       "equipment": [
         "wall or rail for balance"
@@ -657,6 +671,7 @@
       "category": "strength",
       "modality": "bodyweight",
       "measurementType": "reps",
+      "loadModel": "reps",
       "equipment": [
         "partner or anchored pad to pin the ankles",
         "optional: a nordic curl bench"
@@ -716,6 +731,7 @@
       "category": "strength",
       "modality": "bodyweight",
       "measurementType": "reps",
+      "loadModel": "bw_e1rm",
       "equipment": [
         "dip bars, parallettes, sturdy chairs, or rings"
       ],
@@ -743,27 +759,32 @@
         {
           "level": 1,
           "name": "Bench/Chair Dip (Feet on Floor)",
-          "description": "Hands behind on a bench or chair, feet on the floor, knees bent, lowering and raising the body."
+          "description": "Hands behind on a bench or chair, feet on the floor, knees bent, lowering and raising the body.",
+          "bodyweightFraction": 0.45
         },
         {
           "level": 2,
           "name": "Bench Dip (Feet Elevated)",
-          "description": "Feet elevated on another bench or box, legs straight, a longer and harder lever than level 1."
+          "description": "Feet elevated on another bench or box, legs straight, a longer and harder lever than level 1.",
+          "bodyweightFraction": 0.65
         },
         {
           "level": 3,
           "name": "Support Hold + Negative Dip",
-          "description": "Full support hold on bars or rings, then a slow controlled lowering into the bottom position."
+          "description": "Full support hold on bars or rings, then a slow controlled lowering into the bottom position.",
+          "bodyweightFraction": null
         },
         {
           "level": 4,
           "name": "Full Parallel Bar Dip",
-          "description": "Full range dip on bars or rings from full lockout to the bottom and back."
+          "description": "Full range dip on bars or rings from full lockout to the bottom and back.",
+          "bodyweightFraction": 1.0
         },
         {
           "level": 5,
           "name": "Weighted or Ring Dip",
-          "description": "Added external load (belt or vest) or performed on rings for the instability demand."
+          "description": "Added external load (belt or vest) or performed on rings for the instability demand.",
+          "bodyweightFraction": 1.0
         }
       ],
       "progressionRule": "Progress reps within a level first. Move up a level once the target reps/sets are hit with full range and no shoulder pinching for two straight sessions, then reset reps to the bottom of the range.",
@@ -775,6 +796,7 @@
       "category": "strength",
       "modality": "bodyweight",
       "measurementType": "reps",
+      "loadModel": "bw_e1rm",
       "equipment": [
         "pull-up bar or rings",
         "optional: resistance band for assistance"
@@ -804,37 +826,44 @@
         {
           "level": 1,
           "name": "Inverted Row (Feet Planted, High Bar)",
-          "description": "Bar at roughly chest/waist height, feet on the floor with knees bent, body diagonal; pull the chest to the bar."
+          "description": "Bar at roughly chest/waist height, feet on the floor with knees bent, body diagonal; pull the chest to the bar.",
+          "bodyweightFraction": 0.4
         },
         {
           "level": 2,
           "name": "Inverted Row (Feet Elevated / Rings)",
-          "description": "Feet extended straight on a bench or held out with rings, body closer to horizontal for a longer lever."
+          "description": "Feet extended straight on a bench or held out with rings, body closer to horizontal for a longer lever.",
+          "bodyweightFraction": 0.6
         },
         {
           "level": 3,
           "name": "Scapular Pull-Up + Negative Pull-Up",
-          "description": "Active hang scapular depression reps, followed by a slow 3-5 second controlled lowering from the top (chin-over-bar) position."
+          "description": "Active hang scapular depression reps, followed by a slow 3-5 second controlled lowering from the top (chin-over-bar) position.",
+          "bodyweightFraction": null
         },
         {
           "level": 4,
           "name": "Band-Assisted Pull-Up",
-          "description": "A light-to-moderate resistance band looped under the feet or knees removes a portion of bodyweight through the full pull."
+          "description": "A light-to-moderate resistance band looped under the feet or knees removes a portion of bodyweight through the full pull.",
+          "bodyweightFraction": null
         },
         {
           "level": 5,
           "name": "Full Pull-Up",
-          "description": "Dead hang to chin clearing the bar, strict, no kip."
+          "description": "Dead hang to chin clearing the bar, strict, no kip.",
+          "bodyweightFraction": 1.0
         },
         {
           "level": 6,
           "name": "Chest-to-Bar Pull-Up",
-          "description": "A higher, more explosive pull bringing the upper chest/sternum toward the bar."
+          "description": "A higher, more explosive pull bringing the upper chest/sternum toward the bar.",
+          "bodyweightFraction": 1.0
         },
         {
           "level": 7,
           "name": "Muscle-Up (Transition)",
-          "description": "The chest-to-bar pull continues into a false-grip transition over the bar or rings, finishing in a supported dip lockout above it."
+          "description": "The chest-to-bar pull continues into a false-grip transition over the bar or rings, finishing in a supported dip lockout above it.",
+          "bodyweightFraction": 1.0
         }
       ],
       "progressionRule": "Progress reps within a level first. Move up a level once the level's target reps/sets are hit strictly for two straight sessions, then reset reps to the bottom of the range.",
@@ -846,6 +875,7 @@
       "category": "strength",
       "modality": "bodyweight",
       "measurementType": "reps",
+      "loadModel": "bw_e1rm",
       "equipment": [
         "optional: low support object for one-arm assistance"
       ],
@@ -873,38 +903,69 @@
       "variants": [
         {
           "level": 1,
-          "name": "Knee Push-Up",
-          "description": "Knees down, hips extended so the torso and thighs form a straight line, hands slightly wider than shoulders."
+          "name": "Wall Push-Up",
+          "description": "Hands on a wall at shoulder height, feet back so the body leans in a straight line; the most upright, lightest version.",
+          "bodyweightFraction": 0.3
         },
         {
           "level": 2,
-          "name": "Standard Push-Up",
-          "description": "Full plank on hands and toes, hands roughly shoulder-width or slightly outside."
+          "name": "High Incline Push-Up",
+          "description": "Hands on a counter or high bench (roughly waist height), body rigid from head to heels.",
+          "bodyweightFraction": 0.4
         },
         {
           "level": 3,
-          "name": "Diamond (Triceps) Push-Up",
-          "description": "Hands together under the chest, index fingers and thumbs touching, elbows staying tucked close to the ribs."
+          "name": "Low Incline Push-Up",
+          "description": "Hands on a low bench, step or sturdy chair seat (knee height or lower), body rigid from head to heels.",
+          "bodyweightFraction": 0.48
         },
         {
           "level": 4,
-          "name": "Archer Push-Up",
-          "description": "Hands placed wide; shift most of the weight onto one arm while the other stays extended out to the side barely loaded, alternating sides each rep."
+          "name": "Knee Push-Up",
+          "description": "Knees down, hips extended so the torso and thighs form a straight line, hands slightly wider than shoulders.",
+          "bodyweightFraction": 0.52
         },
         {
           "level": 5,
-          "name": "Typewriter Push-Up",
-          "description": "From the archer bottom position, slide across while staying low, shifting weight from one extended-arm side to the other, before pressing back up."
+          "name": "Standard Push-Up",
+          "description": "Full plank on hands and toes, hands roughly shoulder-width or slightly outside.",
+          "bodyweightFraction": 0.64
         },
         {
           "level": 6,
-          "name": "One-Arm Push-Up (Assisted)",
-          "description": "One hand on the floor doing the work; the other hand rests lightly on a low support (block or low step) or feet spread wide for a stable tripod base."
+          "name": "Feet-Elevated Push-Up",
+          "description": "Feet on a bench or step behind you, hands on the floor; the higher the feet, the more load on the hands.",
+          "bodyweightFraction": 0.74
         },
         {
           "level": 7,
+          "name": "Diamond (Triceps) Push-Up",
+          "description": "Hands together under the chest, index fingers and thumbs touching, elbows staying tucked close to the ribs.",
+          "bodyweightFraction": 0.74
+        },
+        {
+          "level": 8,
+          "name": "Archer Push-Up",
+          "description": "Hands placed wide; shift most of the weight onto one arm while the other stays extended out to the side barely loaded, alternating sides each rep.",
+          "bodyweightFraction": 0.85
+        },
+        {
+          "level": 9,
+          "name": "Typewriter Push-Up",
+          "description": "From the archer bottom position, slide across while staying low, shifting weight from one extended-arm side to the other, before pressing back up.",
+          "bodyweightFraction": 0.85
+        },
+        {
+          "level": 10,
+          "name": "One-Arm Push-Up (Assisted)",
+          "description": "One hand on the floor doing the work; the other hand rests lightly on a low support (block or low step) or feet spread wide for a stable tripod base.",
+          "bodyweightFraction": 0.9
+        },
+        {
+          "level": 11,
           "name": "One-Arm Push-Up (Full)",
-          "description": "Single arm, feet together, free arm held behind the back or out to the side for counter-rotation control."
+          "description": "Single arm, feet together, free arm held behind the back or out to the side for counter-rotation control.",
+          "bodyweightFraction": 1.0
         }
       ],
       "progressionRule": "Progress reps within a level first. Move up a level once the level's target reps/sets are hit with full range and a rigid torso for two straight sessions, then reset reps to the bottom of the range.",
@@ -916,6 +977,7 @@
       "category": "cardio",
       "modality": "run",
       "measurementType": "duration",
+      "loadModel": "cardio",
       "equipment": [
         "running shoes",
         "interval timer (watch or app)"
@@ -947,6 +1009,7 @@
       "category": "skill",
       "modality": "bodyweight",
       "measurementType": "duration",
+      "loadModel": "duration",
       "perSide": true,
       "equipment": [
         "pull-up bar, rings, or parallettes"
@@ -1013,6 +1076,7 @@
       "category": "strength",
       "modality": "bodyweight",
       "measurementType": "reps",
+      "loadModel": "reps",
       "perSide": true,
       "equipment": [
         "mat optional"
@@ -1059,6 +1123,7 @@
       "category": "strength",
       "modality": "bodyweight",
       "measurementType": "reps",
+      "loadModel": "bw_e1rm",
       "equipment": [
         "optional: box or bench for pistol assistance",
         "optional: rail or TRX for balance"
@@ -1088,32 +1153,38 @@
         {
           "level": 1,
           "name": "Quarter Squat",
-          "description": "Descend to roughly 30 degrees of knee bend, both legs."
+          "description": "Descend to roughly 30 degrees of knee bend, both legs.",
+          "bodyweightFraction": 0.85
         },
         {
           "level": 2,
           "name": "Half Squat",
-          "description": "Descend until the thighs are at roughly 45 degrees, both legs."
+          "description": "Descend until the thighs are at roughly 45 degrees, both legs.",
+          "bodyweightFraction": 0.85
         },
         {
           "level": 3,
           "name": "Parallel Bodyweight Squat",
-          "description": "Full-depth squat, thighs at or just below parallel, both legs."
+          "description": "Full-depth squat, thighs at or just below parallel, both legs.",
+          "bodyweightFraction": 0.85
         },
         {
           "level": 4,
           "name": "Bulgarian Split Squat (Rear-Foot-Elevated)",
-          "description": "Rear foot elevated on a bench, front leg doing most of the work through a full range, each leg."
+          "description": "Rear foot elevated on a bench, front leg doing most of the work through a full range, each leg.",
+          "bodyweightFraction": 0.9
         },
         {
           "level": 5,
           "name": "Assisted Pistol Squat",
-          "description": "One leg, holding a rail or TRX (or descending onto a box to limit range), opposite leg extended forward, each leg."
+          "description": "One leg, holding a rail or TRX (or descending onto a box to limit range), opposite leg extended forward, each leg.",
+          "bodyweightFraction": 1.0
         },
         {
           "level": 6,
           "name": "Pistol Squat (Full)",
-          "description": "Full single-leg squat to depth with no support, opposite leg extended forward, arms out for counterbalance, each leg."
+          "description": "Full single-leg squat to depth with no support, opposite leg extended forward, arms out for counterbalance, each leg.",
+          "bodyweightFraction": 1.0
         }
       ],
       "progressionRule": "Progress reps within a level first. Move up a level once the level's target reps/sets are hit with full range and no knee cave for two straight sessions, then reset reps to the bottom of the range.",
@@ -1125,6 +1196,7 @@
       "category": "mobility",
       "modality": "stretch",
       "measurementType": "duration",
+      "loadModel": "duration",
       "perSide": true,
       "equipment": [
         "wall"
@@ -1152,6 +1224,7 @@
       "category": "strength",
       "modality": "bodyweight",
       "measurementType": "reps",
+      "loadModel": "reps",
       "equipment": [
         "wall"
       ],
@@ -1202,6 +1275,7 @@
       "category": "other",
       "modality": "other",
       "measurementType": "reps",
+      "loadModel": "reps",
       "primaryTargets": [
         "tibialis anterior"
       ],
@@ -1222,6 +1296,7 @@
       "category": "cardio",
       "modality": "run",
       "measurementType": "duration",
+      "loadModel": "cardio",
       "primaryTargets": [
         "cardiovascular system",
         "calves",

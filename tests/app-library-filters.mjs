@@ -53,7 +53,7 @@ await page.click('.tabbar button[data-tab="library"]');
 // ---------- the one-time fill from the bundled packs ----------
 await page.waitForSelector('.toast:has-text("from the starter packs")');
 step('an older library gets positions filled in from the packs',
-  /Filled in muscles, equipment and positions for \d+ exercises/.test(await page.textContent('.toast')), await page.textContent('.toast'));
+  /Filled in muscles, equipment, positions and load settings for \d+ exercises/.test(await page.textContent('.toast')), await page.textContent('.toast'));
 step('push-up: plank', JSON.stringify((await byName('Push-Up')).positions) === '["plank"]');
 step('dumbbell shoulder press: standing or seated',
   JSON.stringify((await byName('Dumbbell Shoulder Press')).positions) === '["standing","sitting"]');

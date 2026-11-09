@@ -75,6 +75,7 @@
       "category": "cardio",
       "modality": "run",
       "measurementType": "duration",
+      "loadModel": "cardio",
       "primaryTargets": [
         "cardiovascular system",
         "calves",
@@ -97,6 +98,7 @@
       "category": "mobility",
       "modality": "mobility",
       "measurementType": "reps",
+      "loadModel": "reps",
       "perSide": true,
       "primaryTargets": [
         "ankle joint",
@@ -121,6 +123,7 @@
       "category": "other",
       "modality": "other",
       "measurementType": "reps",
+      "loadModel": "reps",
       "primaryTargets": [
         "tibialis anterior"
       ],
@@ -141,6 +144,7 @@
       "category": "mobility",
       "modality": "mobility",
       "measurementType": "reps",
+      "loadModel": "reps",
       "perSide": true,
       "equipment": [
         "wall or rail for balance"
@@ -168,6 +172,7 @@
       "category": "cardio",
       "modality": "run",
       "measurementType": "duration",
+      "loadModel": "cardio",
       "equipment": [
         "running shoes",
         "interval timer (watch or app)"
@@ -199,6 +204,7 @@
       "category": "strength",
       "modality": "bodyweight",
       "measurementType": "reps",
+      "loadModel": "bw_e1rm",
       "equipment": [
         "optional: low support object for one-arm assistance"
       ],
@@ -226,38 +232,69 @@
       "variants": [
         {
           "level": 1,
-          "name": "Knee Push-Up",
-          "description": "Knees down, hips extended so the torso and thighs form a straight line, hands slightly wider than shoulders."
+          "name": "Wall Push-Up",
+          "description": "Hands on a wall at shoulder height, feet back so the body leans in a straight line; the most upright, lightest version.",
+          "bodyweightFraction": 0.3
         },
         {
           "level": 2,
-          "name": "Standard Push-Up",
-          "description": "Full plank on hands and toes, hands roughly shoulder-width or slightly outside."
+          "name": "High Incline Push-Up",
+          "description": "Hands on a counter or high bench (roughly waist height), body rigid from head to heels.",
+          "bodyweightFraction": 0.4
         },
         {
           "level": 3,
-          "name": "Diamond (Triceps) Push-Up",
-          "description": "Hands together under the chest, index fingers and thumbs touching, elbows staying tucked close to the ribs."
+          "name": "Low Incline Push-Up",
+          "description": "Hands on a low bench, step or sturdy chair seat (knee height or lower), body rigid from head to heels.",
+          "bodyweightFraction": 0.48
         },
         {
           "level": 4,
-          "name": "Archer Push-Up",
-          "description": "Hands placed wide; shift most of the weight onto one arm while the other stays extended out to the side barely loaded, alternating sides each rep."
+          "name": "Knee Push-Up",
+          "description": "Knees down, hips extended so the torso and thighs form a straight line, hands slightly wider than shoulders.",
+          "bodyweightFraction": 0.52
         },
         {
           "level": 5,
-          "name": "Typewriter Push-Up",
-          "description": "From the archer bottom position, slide across while staying low, shifting weight from one extended-arm side to the other, before pressing back up."
+          "name": "Standard Push-Up",
+          "description": "Full plank on hands and toes, hands roughly shoulder-width or slightly outside.",
+          "bodyweightFraction": 0.64
         },
         {
           "level": 6,
-          "name": "One-Arm Push-Up (Assisted)",
-          "description": "One hand on the floor doing the work; the other hand rests lightly on a low support (block or low step) or feet spread wide for a stable tripod base."
+          "name": "Feet-Elevated Push-Up",
+          "description": "Feet on a bench or step behind you, hands on the floor; the higher the feet, the more load on the hands.",
+          "bodyweightFraction": 0.74
         },
         {
           "level": 7,
+          "name": "Diamond (Triceps) Push-Up",
+          "description": "Hands together under the chest, index fingers and thumbs touching, elbows staying tucked close to the ribs.",
+          "bodyweightFraction": 0.74
+        },
+        {
+          "level": 8,
+          "name": "Archer Push-Up",
+          "description": "Hands placed wide; shift most of the weight onto one arm while the other stays extended out to the side barely loaded, alternating sides each rep.",
+          "bodyweightFraction": 0.85
+        },
+        {
+          "level": 9,
+          "name": "Typewriter Push-Up",
+          "description": "From the archer bottom position, slide across while staying low, shifting weight from one extended-arm side to the other, before pressing back up.",
+          "bodyweightFraction": 0.85
+        },
+        {
+          "level": 10,
+          "name": "One-Arm Push-Up (Assisted)",
+          "description": "One hand on the floor doing the work; the other hand rests lightly on a low support (block or low step) or feet spread wide for a stable tripod base.",
+          "bodyweightFraction": 0.9
+        },
+        {
+          "level": 11,
           "name": "One-Arm Push-Up (Full)",
-          "description": "Single arm, feet together, free arm held behind the back or out to the side for counter-rotation control."
+          "description": "Single arm, feet together, free arm held behind the back or out to the side for counter-rotation control.",
+          "bodyweightFraction": 1.0
         }
       ],
       "progressionRule": "Progress reps within a level first. Move up a level once the level's target reps/sets are hit with full range and a rigid torso for two straight sessions, then reset reps to the bottom of the range.",
@@ -269,6 +306,7 @@
       "category": "strength",
       "modality": "other",
       "measurementType": "duration",
+      "loadModel": "duration",
       "equipment": [
         "mat optional"
       ],
@@ -321,6 +359,7 @@
       "category": "strength",
       "modality": "bodyweight",
       "measurementType": "reps",
+      "loadModel": "reps",
       "equipment": [
         "optional: step for extended range",
         "wall or rail for balance"
@@ -371,6 +410,7 @@
       "category": "strength",
       "modality": "bodyweight",
       "measurementType": "reps",
+      "loadModel": "reps",
       "equipment": [
         "wall"
       ],
@@ -421,6 +461,7 @@
       "category": "strength",
       "modality": "bodyweight",
       "measurementType": "reps",
+      "loadModel": "reps",
       "perSide": true,
       "equipment": [
         "mat optional",
@@ -466,6 +507,7 @@
       "category": "strength",
       "modality": "bodyweight",
       "measurementType": "reps",
+      "loadModel": "reps",
       "perSide": true,
       "equipment": [
         "mat optional"
@@ -512,6 +554,7 @@
       "category": "cardio",
       "modality": "walk",
       "measurementType": "duration",
+      "loadModel": "cardio",
       "primaryTargets": [
         "cardiovascular system"
       ],
@@ -531,6 +574,7 @@
       "category": "mobility",
       "modality": "stretch",
       "measurementType": "duration",
+      "loadModel": "duration",
       "perSide": true,
       "equipment": [
         "wall"
@@ -558,6 +602,7 @@
       "category": "mobility",
       "modality": "stretch",
       "measurementType": "duration",
+      "loadModel": "duration",
       "perSide": true,
       "equipment": [
         "mat or cushion for the knee"
@@ -584,6 +629,7 @@
       "category": "strength",
       "modality": "bodyweight",
       "measurementType": "reps",
+      "loadModel": "reps",
       "perSide": true,
       "equipment": [
         "mat optional"
@@ -630,6 +676,7 @@
       "category": "cardio",
       "modality": "run",
       "measurementType": "duration",
+      "loadModel": "cardio",
       "equipment": [
         "running shoes",
         "watch or app"

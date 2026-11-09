@@ -71,6 +71,18 @@ files). `datarepo-template/scripts/crypto.js` must stay **byte-identical** to
   filters map them onto muscle groups/weight types at read time
   (`js/exercise-filters.js`, patterns in `js/config.js`). `positions` is a
   list of position ids.
+- **Load metrics** (`js/load.js`, pure): optional exercise `loadModel`
+  (`e1rm | erm_ref | bw_e1rm | reps | duration | cardio`; inferred from
+  modality when absent), `referenceReps` (erm_ref), `bodyweightFraction`
+  (exercise-level, or per `variants[]` entry; `null` = not comparable by
+  load). Logs may carry `actual.variantLevel`; otherwise the level comes from
+  the linked plan item's target. Session value = best set's Brzycki
+  `w·(37−rRef)/(37−r)`, null over the model's rep cap (never extrapolate).
+  Goal-weight scaling is display-only (`ft.loadScale` in localStorage) —
+  never store a scaled number. RWI (`js/rwi.js`) remains the "work" view
+  and the main one for cardio. Variant levels are positional: changing a
+  ladder's order breaks plans and logs that reference levels, so ladder
+  fixes need a migration (`js/preset-sync.js` has the Push-Up one).
 - Old data must keep working: shapes only ever **add** optional fields, and
   readers handle every older shape.
 
@@ -86,6 +98,8 @@ files). `datarepo-template/scripts/crypto.js` must stay **byte-identical** to
 | `js/ui/*-tab.js`, `gear-view.js` | The tabs; `cardio-form.js`, `sets-form.js` are the shared entry forms |
 | `js/ui/tabbar.js` | Hash router `#/<tab>[/<path>]`; tabs may export `route(path)` |
 | `js/cardio.js`, `js/sets.js`, `js/gps.js` | Pure helpers (gear, per-set math, GPX/TCX parsing) |
+| `js/load.js`, `js/rwi.js` | Pure strength-load (Brzycki eRM) and RWI math |
+| `js/preset-sync.js` | Once per load: fill empty library fields from `presets/`, ladder migrations |
 | `ghsync/` | The sync package (own README, CLAUDE.md, tests) |
 | `datarepo-template/` | Files the owner copies into the private data repo |
 | `presets/` | Bundled plans + exercise packs |
@@ -140,9 +154,13 @@ files). `datarepo-template/scripts/crypto.js` must stay **byte-identical** to
    weight **per set** in a table with a bodyweight toggle; iPhone fixes.
 8. Moved to this repo (`rusty324/FitnessTracker`) from a branch of
    `rusty324/webApps`, history preserved.
+9. Desktop layout; RWI counts distance × speed for cardio; load metrics
+   (Brzycki eRM per load model, variant select in the log form, Load index
+   card) and the Push-Up ladder fix (Wall → One-Arm, so plan levels match).
 
 ## Ideas not built yet
 
-Exercise names on the Plans tab as links; per-set timed holds; a Google Drive
+Exercise names on the Plans tab as links; per-set timed holds; editing
+variant ladders (and their fractions) in the UI; RIR logging; a Google Drive
 backup (owner prefers a visible folder via `drive.file`, plaintext); copying
 ghsync 1.2 back to homeInventory.

@@ -54,6 +54,19 @@ export const CATEGORIES = ['cardio', 'strength', 'mobility', 'plyometric', 'skil
 export const MODALITIES = ['run', 'walk', 'bike', 'swim', 'row', 'bodyweight', 'barbell', 'dumbbell', 'machine', 'band', 'stretch', 'mobility', 'other'];
 export const MEASUREMENT_TYPES = ['reps', 'duration', 'distance', 'intervals'];
 
+// Load models (js/load.js): how an exercise's strength is tracked over time.
+// The three below project each set to an estimated rep max with Brzycki,
+// eRM = w·(37 − rRef)/(37 − r), and refuse sets over maxReps rather than
+// extrapolate. rRef is the rep count reported: 1 = est. 1RM.
+export const LOAD_MODELS = {
+  e1rm: { rRef: 1, maxReps: 10 }, // barbell compounds
+  erm_ref: { rRef: 10, maxReps: 15 }, // dumbbell / machine / isolation; exercise.referenceReps overrides rRef
+  bw_e1rm: { rRef: 5, maxReps: 12 }, // bodyweight + weighted bodyweight
+};
+// Every loadModel value: the three above, plus 'reps' (trend reps at a fixed
+// variant), 'duration' (trend hold time) and 'cardio' (RWI, js/rwi.js).
+export const LOAD_MODEL_IDS = ['e1rm', 'erm_ref', 'bw_e1rm', 'reps', 'duration', 'cardio'];
+
 // Body position(s) an exercise is done in (exercise.positions; an exercise
 // can have several, e.g. a shoulder press standing or seated).
 export const POSITIONS = [

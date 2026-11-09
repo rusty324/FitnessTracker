@@ -34,10 +34,18 @@ was carried over into this repo, so `git log` goes back to the first version.)*
   (hidden from pickers, existing references intact) instead. Plus **Goals**:
   bodyweight targets, run-time goals (1 mile / 5k / 10k / custom), and
   exercise goals, each with live progress against your logs.
-  RWI (Relative Work Index) = work × (goal weight ÷ body weight on the day),
-  normalizing work as your weight moves toward its goal. Work is reps per
-  set; for distance, km × km/h (further or faster both score higher); for a
-  hold without distance, seconds.
+  Each exercise page has a **Load index**: the best set of every session
+  projected to an estimated rep max with Brzycki, w·(37 − rRef)/(37 − r) —
+  est. 1RM for barbell lifts, an est. 8- or 10-rep max for dumbbell and
+  machine work, and a bodyweight-adjusted est. 5-rep max for bodyweight
+  exercises (variant's share of body weight on the day + any added weight).
+  Sets over the model's rep cap (10 / 15 / 12) fall back to a reps or
+  hold-time trend at that variant rather than extrapolating. An optional
+  "Scale to goal weight" view restates it at your goal weight (display
+  only). RWI (Relative Work Index) = work × (goal weight ÷ body weight on the
+  day) stays as the work view, and the main one for cardio: work is reps per
+  set; for distance, km × km/h (further or faster both score higher); for
+  run/walk intervals, the running seconds; for a hold, seconds.
 - **Logs** — today's planned session with inline logging, a one-tap morning
   weigh-in on the Today view, ad-hoc entries, filterable history, body metrics
   (weight, body fat %, resting HR, waist — extensible via `BODY_METRICS` in

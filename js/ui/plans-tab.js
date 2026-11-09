@@ -10,9 +10,10 @@ import {
   sanitizeCategory, sanitizeModality, sanitizeMeasurement,
 } from '../models.js';
 import {
-  CATEGORIES, MODALITIES, MEASUREMENT_TYPES, TARGET_KINDS, POSITIONS, MUSCLE_GROUPS,
+  CATEGORIES, MODALITIES, MEASUREMENT_TYPES, TARGET_KINDS, POSITIONS, MUSCLE_GROUPS, LOAD_MODEL_IDS,
 } from '../config.js';
 import { muscleGroupsOf } from '../exercise-filters.js';
+import { loadModelOf } from '../load.js';
 import { todayStr, addDays, toDateStr, parseDateStr, formatDate, formatDuration } from '../dates.js';
 import {
   formatWeight, formatDistance, formatPaceValue, paceUnit,
@@ -594,6 +595,36 @@ export function editExercise(ex, onSaved, prefillName = '') {
     placeholder: 'One per line, e.g.\ndumbbells\noptional: bench', rows: 3, dataset: { name: 'equipment' },
   }, (draft.equipment ?? []).join('\n'));
   const shown = { muscles: musclesInput.value, equipment: equipInput.value };
+  // Load metrics (js/load.js). "Auto" leaves loadModel unset, so it keeps
+  // being inferred from the modality.
+  const LOAD_MODEL_LABELS = {
+    e1rm: 'Est. 1RM (barbell)',
+    erm_ref: 'Est. rep max (dumbbell / machine)',
+    bw_e1rm: 'Bodyweight-adjusted (bodyweight)',
+    reps: 'Reps at a variant',
+    duration: 'Hold time',
+    cardio: 'Cardio (RWI)',
+  };
+  const loadSel = el('select', { dataset: { name: 'loadModel' } },
+    el('option', { value: '', selected: !draft.loadModel }, `Auto (${LOAD_MODEL_LABELS[loadModelOf({ ...draft, loadModel: undefined })]})`),
+    LOAD_MODEL_IDS.map((id) => el('option', { value: id, selected: draft.loadModel === id }, LOAD_MODEL_LABELS[id])));
+  const refRepsInput = el('input', {
+    type: 'number', inputmode: 'numeric', step: 1, min: 1, max: 15,
+    value: draft.referenceReps ?? '', placeholder: 'default 10 (8 for compounds)', dataset: { name: 'referenceReps' },
+  });
+  const refRepsField = el('div', { class: 'field' }, el('label', {}, 'Reference reps'), refRepsInput);
+  const fractionInput = el('input', {
+    type: 'number', inputmode: 'decimal', step: 0.01, min: 0, max: 1.2,
+    value: draft.bodyweightFraction ?? '', placeholder: 'e.g. 0.64', dataset: { name: 'bodyweightFraction' },
+  });
+  const shownLoad = { referenceReps: refRepsInput.value, bodyweightFraction: fractionInput.value };
+  const showRefReps = () => {
+    const model = loadSel.value || loadModelOf({ ...draft, modality: modSel.value, loadModel: undefined });
+    refRepsField.hidden = model !== 'erm_ref';
+  };
+  loadSel.addEventListener('change', showRefReps);
+  modSel.addEventListener('change', showRefReps);
+  showRefReps();
   const positionBoxes = POSITIONS.map((p) => {
     const box = el('input', { type: 'checkbox', value: p.id, checked: (draft.positions ?? []).includes(p.id) });
     return { box, label: el('label', { class: 'check-inline' }, box, ` ${p.label}`) };
@@ -609,6 +640,14 @@ export function editExercise(ex, onSaved, prefillName = '') {
     el('div', { class: 'field' }, el('label', {}, 'Equipment'), equipInput),
     el('div', { class: 'field' }, el('label', {}, 'Position'), el('div', { class: 'check-group' }, positionBoxes.map((x) => x.label))),
     el('div', { class: 'field' }, el('label', {}, 'Description'), descInput),
+    el('div', { class: 'field-row' },
+      el('div', { class: 'field' }, el('label', {}, 'Load model'), loadSel),
+      refRepsField,
+      el('div', { class: 'field' }, el('label', {}, 'Bodyweight fraction'), fractionInput),
+    ),
+    el('div', { class: 'row-sub' },
+      'How strength is tracked on the exercise page. Bodyweight fraction: share of body weight moved, ',
+      'for a bodyweight exercise with no variant ladder (a floor push-up is about 0.64).'),
   ), [
     { label: 'Cancel', class: 'btn secondary', onClick: () => {} },
     {
@@ -616,6 +655,22 @@ export function editExercise(ex, onSaved, prefillName = '') {
       class: 'btn',
       onClick: () => {
         if (!nameInput.value.trim()) { toast('Name required', 'error'); return false; }
+        const refReps = refRepsInput.value.trim() === '' ? null : Number(refRepsInput.value);
+        if (refReps != null && !(Number.isInteger(refReps) && refReps >= 1 && refReps <= 15)) {
+          toast('Reference reps must be a whole number from 1 to 15', 'error');
+          return false;
+        }
+        const fraction = fractionInput.value.trim() === '' ? null : Number(fractionInput.value);
+        if (fraction != null && !(fraction >= 0 && fraction <= 1.2)) {
+          toast('Bodyweight fraction must be between 0 and 1.2', 'error');
+          return false;
+        }
+        // Optional fields: set when given, removed when cleared, and left
+        // exactly as stored when untouched.
+        const setOpt = (k, v) => { if (v == null || v === '') delete draft[k]; else draft[k] = v; };
+        setOpt('loadModel', loadSel.value);
+        if (refRepsInput.value !== shownLoad.referenceReps) setOpt('referenceReps', refReps);
+        if (fractionInput.value !== shownLoad.bodyweightFraction) setOpt('bodyweightFraction', fraction);
         Object.assign(draft, {
           name: nameInput.value.trim(),
           category: catSel.value,
@@ -664,9 +719,12 @@ export function exerciseDef(ex) {
     cues: ex?.cues,
     whyItsHere: ex?.whyItsHere,
     safetyNotes: ex?.safetyNotes,
-    variants: ex?.variants,
+    variants: ex?.variants, // per-variant bodyweightFraction included
     progressionRule: ex?.progressionRule,
     videoSearchTerm: ex?.videoSearchTerm,
+    loadModel: ex?.loadModel,
+    referenceReps: ex?.referenceReps,
+    bodyweightFraction: ex?.bodyweightFraction,
   });
   def.description = ex?.description ?? ''; // required by schema
   return def;
@@ -789,6 +847,25 @@ export function libraryUpserter({ create = true } = {}) {
         if (def[k]?.length && !rec[k]?.length) { rec[k] = def[k]; changed = true; enriched = true; }
       }
       if (def.perSide && !rec.perSide) { rec.perSide = true; changed = true; enriched = true; }
+      // Load-metric settings (js/load.js).
+      for (const k of ['loadModel', 'referenceReps', 'bodyweightFraction']) {
+        if (def[k] != null && rec[k] == null) { rec[k] = def[k]; changed = true; enriched = true; }
+      }
+      // Per-variant body-weight fractions, for a ladder the record already
+      // has: only where the variant at that level has the same name (a
+      // different name means a different movement), and only where the
+      // record has no fraction yet — null included, which is a choice.
+      if (rec.variants?.length && def.variants?.length) {
+        for (const v of rec.variants) {
+          if ('bodyweightFraction' in v) continue;
+          const d = def.variants.find((x) => x.level === v.level);
+          if (d && 'bodyweightFraction' in d && (d.name ?? '').toLowerCase() === (v.name ?? '').toLowerCase()) {
+            v.bodyweightFraction = d.bodyweightFraction;
+            changed = true;
+            enriched = true;
+          }
+        }
+      }
       // Importing a plan that uses an archived exercise puts it back in play.
       if (rec.archived && create) { rec.archived = false; changed = true; enriched = true; }
       if (enriched && !wasNew) stats.enriched++;

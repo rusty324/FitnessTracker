@@ -20,6 +20,7 @@ import { el, openModal, confirmDialog, toast, emptyState, filePicker, exerciseLi
 import { cardioFields, cardioExtras } from './cardio-form.js';
 import { setsForm } from './sets-form.js';
 import { formatSets } from '../sets.js';
+import { variantLevelFor } from '../load.js';
 import { pickExercise, targetSummary } from './plans-tab.js';
 
 let root = null;
@@ -373,6 +374,26 @@ function logEntryModal({ existing = null, plan = null, session = null, pe = null
     fields.append(field('Duration (min)', num('min', prefillSec ? +(prefillSec / 60).toFixed(1) : '', 1)));
   }
 
+  // Which rung of the exercise's ladder this was (drives the load metrics,
+  // js/load.js). Prefilled from the plan's target, else the level last
+  // logged; an existing entry shows what it resolves to. Left untouched on
+  // an existing entry, nothing new is written.
+  let variantSel = null;
+  let variantShown = '';
+  if (ex?.variants?.length) {
+    const lastLevel = () => store.get('logs')
+      .filter((l) => l.exerciseId === ex.id && l.id !== entry.id && Number.isInteger(l.actual?.variantLevel))
+      .sort((x, y) => (x.date < y.date ? 1 : x.date > y.date ? -1 : 0))[0]?.actual.variantLevel ?? null;
+    const level = existing
+      ? variantLevelFor(existing, store.get('plans'))
+      : (Number.isInteger(t.variantLevel) ? t.variantLevel : lastLevel());
+    variantSel = el('select', { dataset: { name: 'variant' } },
+      el('option', { value: '', selected: level == null }, '— not recorded'),
+      [...ex.variants].sort((x, y) => x.level - y.level).map((v) =>
+        el('option', { value: v.level, selected: v.level === level }, `L${v.level} · ${v.name}`)));
+    variantShown = variantSel.value;
+  }
+
   const rpeInput = num('rpe', entry.rpe, 1);
   rpeInput.setAttribute('min', 1);
   rpeInput.setAttribute('max', 10);
@@ -380,6 +401,7 @@ function logEntryModal({ existing = null, plan = null, session = null, pe = null
 
   const body = el('div', {},
     el('div', { class: 'field' }, el('label', {}, 'Date'), dateInput),
+    variantSel ? el('div', { class: 'field' }, el('label', {}, 'Variant'), variantSel) : null,
     cardioForm ? cardioForm.el : fields,
     repsForm ? el('div', { class: 'field' }, repsForm.table) : null,
     el('div', { class: 'field' }, el('label', {}, 'RPE (1–10, optional)'), rpeInput),
@@ -415,6 +437,15 @@ function logEntryModal({ existing = null, plan = null, session = null, pe = null
           }
         } else if (val('min') != null) {
           actual.durationSec = Math.round(val('min') * 60);
+        }
+        if (variantSel) {
+          if (existing && variantSel.value === variantShown) {
+            if (a.variantLevel != null) actual.variantLevel = a.variantLevel;
+          } else if (variantSel.value !== '') {
+            actual.variantLevel = Number(variantSel.value);
+          }
+        } else if (a.variantLevel != null) {
+          actual.variantLevel = a.variantLevel; // exercise deleted or its ladder removed
         }
         Object.assign(entry, {
           date: dateInput.value || todayStr(),

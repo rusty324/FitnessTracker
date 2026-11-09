@@ -12,17 +12,23 @@ import { RUN_GOAL_PRESETS, MUSCLE_GROUPS, WEIGHT_TYPES, POSITIONS } from '../con
 import {
   matchesFilters, muscleGroupsOf, weightTypesOf, positionsOf, isFiltering, NOT_SET,
 } from '../exercise-filters.js';
-import { todayStr, formatDate, formatDuration } from '../dates.js';
+import { todayStr, formatDate, formatDuration, parseDateStr } from '../dates.js';
 import {
   formatWeight, formatDistance, formatPace, weightUnit, weightToInput, weightFromInput,
   distanceToInput, distanceFromInput, distanceUnit,
 } from '../units.js';
 import { el, openModal, confirmDialog, toast, emptyState, downloadJson, filePicker } from './components.js';
 import { loadManifest, loadPreset } from '../presets.js';
+import { syncFromPresets } from '../preset-sync.js';
 import { editExercise, pickExercise, targetSummary, libraryUpserter, exerciseDef, slug } from './plans-tab.js';
 import { renderGear } from './gear-view.js';
 import { formatSets } from '../sets.js';
 import { rwiWork, weightOn, RWI_BASIS_LABEL } from '../rwi.js';
+import {
+  loadModelOf, modelParams, modelLabel, isLoadModel, sessionLoadValue, setValues,
+  fractionFor, variantLevelFor, plannedTargetOf, bestReps, longestHold,
+} from '../load.js';
+import { lineChart, datePoints } from '../charts.js';
 
 let root = null;
 let unsub = null;
@@ -131,7 +137,8 @@ function renderExerciseList() {
     root.appendChild(emptyState('No exercises yet. They’re also created automatically when importing plans.'));
     return;
   }
-  fillMissingFromPresets();
+  // Fill empty fields (and migrate the Push-Up ladder) from the packs.
+  syncFromPresets();
 
   const byName = (a, b) => a.name.localeCompare(b.name);
   const active = lib.filter((e) => !e.archived).sort(byName);
@@ -203,31 +210,6 @@ function renderExerciseList() {
     }
   }
   update();
-}
-
-// Libraries imported before positions existed have none. Once per page load,
-// fill empty fields of exercises that match a bundled pack or plan by name —
-// the same enrichment an import does, but never adding exercises, never
-// un-archiving, and never overwriting anything you've filled in.
-let presetsFilled = false;
-async function fillMissingFromPresets() {
-  if (presetsFilled) return;
-  presetsFilled = true;
-  if (!store.get('exercises').some((ex) => !ex.positions?.length)) return;
-  try {
-    const manifest = await loadManifest();
-    const up = libraryUpserter({ create: false });
-    for (const file of [...(manifest.exercisePacks ?? []), ...(manifest.plans ?? [])].map((x) => x.file)) {
-      const data = await loadPreset(file);
-      for (const def of Object.values(data.exerciseLibrary ?? {})) if (def?.name) up.resolve(def);
-    }
-    up.commit();
-    if (up.stats.enriched) {
-      toast(`Filled in muscles, equipment and positions for ${up.stats.enriched} exercise${up.stats.enriched === 1 ? '' : 's'} from the starter packs`);
-    }
-  } catch {
-    // Offline, or the presets moved: the filters work with what's there.
-  }
 }
 
 function logCountFor(exerciseId) {
@@ -430,6 +412,8 @@ function renderExerciseDetail(id) {
   }
   if (ex.progressionRule) root.appendChild(el('p', { class: 'muted' }, `Progression: ${ex.progressionRule}`));
 
+  const load = loadSection(ex);
+  if (load) root.appendChild(load);
   root.appendChild(rwiSection(ex));
 }
 
@@ -510,9 +494,149 @@ function deleteExerciseFlow(ex) {
 
 // ---------- RWI ----------
 
+// ---------- Load index (js/load.js) ----------
+
+// "Scale to goal weight" is a per-browser display choice, like units: the
+// stored logs never hold a scaled number.
+const LOAD_SCALE_KEY = 'ft.loadScale';
+function loadScaleOn() {
+  try { return localStorage.getItem(LOAD_SCALE_KEY) === '1'; } catch { return false; }
+}
+function setLoadScale(on) {
+  try {
+    if (on) localStorage.setItem(LOAD_SCALE_KEY, '1');
+    else localStorage.removeItem(LOAD_SCALE_KEY);
+  } catch { /* storage blocked: the toggle just won't stick */ }
+}
+const fmtKg = (kg) => formatWeight(Math.round(kg * 10) / 10);
+const DAY_MS = 86400000;
+
+function loadSection(ex) {
+  const model = loadModelOf(ex);
+  if (model === 'cardio') return null; // RWI below is the main view for cardio
+  const plans = store.get('plans');
+  const metrics = store.get('metrics');
+  const goal = store.get('goals').find((g) => g.type === 'bodyweight' && g.targetWeight != null);
+  const scale = loadScaleOn();
+  const loadBased = isLoadModel(model);
+  const timed = model === 'duration';
+  const params = modelParams(ex);
+
+  const wrap = el('div', { class: 'load-section' },
+    el('h3', {}, loadBased ? 'Load index' : timed ? 'Hold time' : 'Reps'));
+  if (loadBased) wrap.appendChild(el('p', { class: 'muted load-model' }, `${modelLabel(ex)} — the best set of each session.`));
+  const logs = store.get('logs')
+    .filter((l) => l.exerciseId === ex.id)
+    .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+  if (!logs.length) {
+    wrap.appendChild(el('p', { class: 'muted' }, 'No logged sessions yet.'));
+    return wrap;
+  }
+
+  const rows = logs.map((log) => {
+    const level = variantLevelFor(log, plans);
+    const variant = level != null ? (ex.variants ?? []).find((v) => v.level === level) ?? null : null;
+    const bodyKg = weightOn(log.date, metrics);
+    const variantFraction = fractionFor(ex, log, plans);
+    const args = { exercise: ex, log, bodyKgOnDay: bodyKg, variantFraction };
+    const res = loadBased ? sessionLoadValue({ ...args, goalKg: goal?.targetWeight ?? null, scale }) : null;
+    const why = loadBased && !res ? setValues(args).reason : null;
+    return { log, level, variant, res, why, fallback: timed ? longestHold(log) : bestReps(log) };
+  });
+  // Rolling 4-week best, as a second reading in the list.
+  for (const r of rows) {
+    if (!r.res) continue;
+    const t = parseDateStr(r.log.date).getTime();
+    r.best4w = Math.max(...rows
+      .filter((o) => o.res && t - parseDateStr(o.log.date).getTime() < 28 * DAY_MS && o.log.date <= r.log.date)
+      .map((o) => o.res.value));
+  }
+
+  if (loadBased) {
+    const box = el('input', { type: 'checkbox', checked: scale, dataset: { name: 'loadScale' } });
+    box.addEventListener('change', () => { setLoadScale(box.checked); render(); });
+    wrap.appendChild(el('label', { class: 'check-inline', style: 'margin-bottom:8px' }, box, ' Scale to goal weight'));
+    if (scale && rows.some((r) => r.res?.detail.scaleUnavailable)) {
+      wrap.appendChild(el('p', { class: 'muted' }, goal
+        ? 'Some sessions have no weigh-in to scale from, so they show unscaled values.'
+        : 'No bodyweight goal set (Goals), so values are unscaled.'));
+    } else if (scale) {
+      wrap.appendChild(el('p', { class: 'muted' },
+        `Scaled to your goal weight of ${formatWeight(goal.targetWeight)}: this capacity at goal weight, assuming strength-to-weight stays the same.`));
+    }
+  }
+
+  // Chart: the load series when there is one; otherwise the reps/hold trend
+  // at the most recent variant (a different rung isn't the same movement).
+  const withLoad = rows.filter((r) => r.res);
+  let chart;
+  if (withLoad.length) {
+    chart = lineChart({
+      points: datePoints(withLoad.map((r) => ({ date: r.log.date, y: r.res.value })),
+        (p) => weightToInput(Math.round(p.y * 10) / 10)),
+      yLabel: weightUnit(),
+      yFormat: (v) => String(Math.round(v * 10) / 10),
+    });
+  } else {
+    const latest = [...rows].reverse().find((r) => r.fallback != null);
+    const same = rows.filter((r) => r.fallback != null && r.level === latest?.level);
+    chart = lineChart({
+      points: datePoints(same.map((r) => ({ date: r.log.date, y: r.fallback })), (p) => p.y),
+      yLabel: `${timed ? 'Longest hold (s)' : 'Best set (reps)'}${latest?.variant ? ` · ${latest.variant.name}` : ''}`,
+      yFormat: (v) => String(Math.round(v)),
+    });
+  }
+  wrap.appendChild(chart);
+
+  const reasonText = (r) => {
+    const what = timed ? 'hold time' : 'reps';
+    if (r.why === 'overCap') return `Over the ${params.maxReps}-rep cap, so showing ${what}.`;
+    if (r.why === 'noWeight') return `No weight recorded, so showing ${what}.`;
+    if (r.why === 'noBodyweight') return `No weigh-in on or before this date, so showing ${what}.`;
+    if (r.why === 'noFraction') {
+      return r.variant
+        ? `${r.variant.name} isn’t comparable by load, so showing ${what}.`
+        : `No variant recorded (or no bodyweight fraction), so showing ${what}.`;
+    }
+    return null;
+  };
+
+  const card = el('div', { class: 'card' });
+  for (const r of [...rows].reverse().slice(0, 15)) {
+    const date = formatDate(r.log.date, { month: 'short', day: 'numeric', year: 'numeric' });
+    const variantName = r.variant ? ` · ${r.variant.name}` : '';
+    let title;
+    let sub;
+    if (r.res) {
+      const d = r.res.detail;
+      title = `${fmtKg(r.res.value)} · 4-wk best ${fmtKg(r.best4w)}`;
+      const setText = model === 'bw_e1rm'
+        ? `${d.reps} reps at ${fmtKg(d.loadKg)} effective${d.addedKg > 0 ? ` (+${fmtKg(d.addedKg)})` : ''}`
+        : `${d.reps} × ${fmtKg(d.loadKg)}`;
+      sub = `${date} · best set ${setText}${variantName}${d.scaled ? ' · scaled to goal' : ''}`;
+    } else {
+      title = r.fallback == null ? '—'
+        : timed ? `Longest hold: ${formatDuration(r.fallback)}${variantName}`
+          : `Best set: ${r.fallback} reps${variantName}`;
+      sub = date;
+    }
+    const why = reasonText(r);
+    card.appendChild(el('div', { class: 'list-row' },
+      el('div', { class: 'row-main' },
+        el('div', { class: 'row-title' }, title),
+        el('div', { class: 'row-sub' }, sub),
+        why && el('div', { class: 'row-sub' }, why),
+      ),
+    ));
+  }
+  wrap.appendChild(card);
+  return wrap;
+}
+
 function rwiSection(ex) {
   const wrap = el('div', {});
-  wrap.appendChild(el('h3', {}, 'Relative Work Index'));
+  wrap.appendChild(el('h3', {}, isLoadModel(loadModelOf(ex)) ? 'Relative Work Index (work)' : 'Relative Work Index'));
+  const plans = store.get('plans');
 
   const goal = store.get('goals').find((g) => g.type === 'bodyweight' && g.targetWeight != null);
   const logs = store.get('logs')
@@ -523,7 +647,7 @@ function rwiSection(ex) {
   if (!goal) {
     wrap.appendChild(el('p', { class: 'muted' },
       'RWI needs a bodyweight goal: RWI = work × (goal weight ÷ your weight at the time), where work is reps per set, ',
-      'km × km/h for distance, or seconds for a hold. ',
+      'km × km/h for distance, running seconds for run/walk intervals, or seconds for a hold. ',
       'Add one under Goals.'));
     wrap.appendChild(el('button', { class: 'btn secondary small', onclick: () => { view = { name: 'goals' }; render(); } }, 'Go to Goals'));
     return wrap;
@@ -538,7 +662,7 @@ function rwiSection(ex) {
     `Goal weight ${formatWeight(goal.targetWeight)} · current ${formatWeight(currentW)} · `,
     `ratio ${(goal.targetWeight / currentW).toFixed(3)}. `,
     'RWI = work × goal ÷ bodyweight on the day. Work is reps per set; for distance, km × km/h ',
-    '(so going further or faster both count); for a hold without distance, seconds.'));
+    '(so going further or faster both count); for run/walk intervals, the running seconds; for a hold, seconds.'));
 
   if (!logs.length) {
     wrap.appendChild(el('p', { class: 'muted' }, 'No logged sets for this exercise yet.'));
@@ -547,7 +671,7 @@ function rwiSection(ex) {
   const card = el('div', { class: 'card' });
   for (const log of logs) {
     const w = weightOn(log.date, metrics);
-    const { basis, perSet } = rwiWork(log.actual);
+    const { basis, perSet } = rwiWork(log.actual, plannedTargetOf(log, plans));
     let rwiText = '—';
     if (perSet.length && w != null) {
       const ratio = goal.targetWeight / w;
