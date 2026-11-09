@@ -460,7 +460,16 @@ label { display: block; font-size: 0.85rem; color: var(--text-dim); margin-botto
 .ex-link { color: var(--accent); text-decoration: none; }
 .ex-link:hover, .ex-link:focus-visible { text-decoration: underline; text-underline-offset: 2px; }
 
-/* Reps per set: one small box per set. */
-.set-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 8px; }
-.set-box { display: flex; flex-direction: column; gap: 2px; margin: 0; font-size: 0.75rem; color: var(--text-dim); }
-.set-box input { text-align: center; }
+/* Sets table: reps, weight and a bodyweight toggle per set. */
+.sets-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.sets-table th, .sets-table td { padding: 4px 3px; text-align: left; font-weight: normal; }
+.sets-table thead th { font-size: 0.75rem; color: var(--text-dim); }
+.sets-table tbody th { font-size: 0.8rem; color: var(--text-dim); width: 4.2em; white-space: nowrap; }
+.sets-table th:first-child { width: 4.2em; }
+.sets-table .bw { width: 2.6em; text-align: center; }
+.sets-table input[type="number"] { text-align: center; padding: 8px 4px; }
+.sets-table input[type="checkbox"] { width: 22px; height: 22px; min-height: 0; accent-color: var(--accent); }
+.sets-table input:disabled { background: var(--surface-2); }
+.sets-table .all-sets th, .sets-table .all-sets td { padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+.sets-table .all-sets th { color: var(--text); font-weight: 600; }
+.sets-table .all-sets + tbody tr:first-child th, .sets-table .all-sets + tbody tr:first-child td { padding-top: 8px; }

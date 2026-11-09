@@ -125,8 +125,8 @@ function activitiesWithStatus() {
 export function actualSummary(actual) {
   if (!actual) return '';
   const parts = [];
-  const sets = formatSets(actual);
-  if (sets) parts.push(`${sets}${actual.weight ? ` @ ${formatWeight(actual.weight)}` : ''}`);
+  const sets = formatSets(actual); // includes the weight(s)
+  if (sets) parts.push(sets);
   if (actual.distanceM) parts.push(formatDistance(actual.distanceM));
   if (actual.movingSec) parts.push(formatDuration(actual.movingSec));
   if (actual.distanceM && actual.movingSec) parts.push(formatPace(actual.distanceM, actual.movingSec));
@@ -314,7 +314,7 @@ function inferKind(actual) {
   if (!actual) return null;
   if (actual.distanceM != null || actual.movingSec != null) return 'distance';
   if (actual.durationSec != null) return 'duration';
-  if (actual.sets != null || actual.reps != null || actual.setReps != null || actual.weight != null) return 'reps';
+  if (['sets', 'reps', 'setReps', 'weight', 'setWeights'].some((k) => actual[k] != null)) return 'reps';
   return null;
 }
 
@@ -357,12 +357,9 @@ function logEntryModal({ existing = null, plan = null, session = null, pe = null
   const field = (label, input) => el('div', { class: 'field' }, el('label', {}, label), input);
 
   if (kind === 'reps') {
-    repsForm = setsForm(existing ? a : {}, t);
-    fields.append(
-      field('Sets', repsForm.sets),
-      field('Reps (every set)', repsForm.reps),
-      field(`Weight (${weightUnit()})`, num('weight', weightToInput(a.weight ?? t.weight) ?? '', 0.5)),
-    );
+    // A bodyweight exercise starts as bodyweight-only; untick for a weighted set.
+    repsForm = setsForm(existing ? a : {}, t, { bodyweight: ex?.modality === 'bodyweight' });
+    fields.append(field('Sets', repsForm.sets));
   } else if (kind === 'cardio') {
     // Older cardio logs held minutes only (durationSec); show that as the
     // duration so re-saving keeps it. A new entry starts from the plan target.
@@ -384,7 +381,7 @@ function logEntryModal({ existing = null, plan = null, session = null, pe = null
   const body = el('div', {},
     el('div', { class: 'field' }, el('label', {}, 'Date'), dateInput),
     cardioForm ? cardioForm.el : fields,
-    repsForm ? el('div', { class: 'field' }, el('label', {}, 'Reps per set'), repsForm.grid) : null,
+    repsForm ? el('div', { class: 'field' }, repsForm.table) : null,
     el('div', { class: 'field' }, el('label', {}, 'RPE (1–10, optional)'), rpeInput),
     el('div', { class: 'field' }, el('label', {}, 'Notes'), notesInput),
   );
@@ -404,7 +401,6 @@ function logEntryModal({ existing = null, plan = null, session = null, pe = null
           const r = repsForm.read();
           if (r.error) { toast(r.error, 'error'); return false; }
           Object.assign(actual, r.values);
-          if (val('weight') != null) actual.weight = weightFromInput(val('weight'));
         } else if (kind === 'cardio') {
           const r = cardioForm.read();
           if (r.error) { toast(r.error, 'error'); return false; }
