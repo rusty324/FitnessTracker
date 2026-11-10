@@ -134,6 +134,7 @@ files). `datarepo-template/scripts/crypto.js` must stay **byte-identical** to
 | `js/exercise-io.js`, `js/ui/media.js` | Pure exercise import planning + template; exercise GIFs (link/upload, card, thumb, lightbox) |
 | `js/ui/exercise-filter-bar.js` | Exercise search + muscle/weights/position filters, shared by the Library list and the exercise picker |
 | `js/ui/layout.js` | `isDesktop()` (wide + mouse, the CSS's desktop query); desktop-redesigned views add `wide` to `#view` (1200px, `.two-col` → `.col-main` + `.col-side`) |
+| `js/ui/exercise-desktop.js` | Desktop exercise page: library sidebar, Next time + the rule, top set by session, what the rule said per session (replayed) |
 | `js/ui/tabbar.js` | Hash router `#/<tab>[/<path>]`; tabs may export `route(path)` |
 | `js/cardio.js`, `js/sets.js`, `js/gps.js` | Pure helpers (gear, per-set math, GPX/TCX parsing) |
 | `js/load.js`, `js/rwi.js` | Pure strength-load (Brzycki eRM) and RWI math |

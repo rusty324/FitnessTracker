@@ -134,7 +134,7 @@ function render() {
   if (sub === 'heatmap') sub = 'metrics';
   // Desktop: Today and Metrics use the full 1200px width in two columns;
   // the other views keep the narrower reading column.
-  root.classList.toggle('wide', isDesktop() && (sub === 'today' || sub === 'metrics'));
+  root.classList.toggle('wide', isDesktop() && (sub === 'today' || sub === 'metrics' || sub === 'review'));
   ctx?.setTitle?.(segs.find(([id]) => id === sub)?.[1] ?? 'Logs');
   root.appendChild(el('div', { class: 'segmented' },
     segs.map(([id, label]) =>
@@ -1379,6 +1379,26 @@ function prText(pr) {
 }
 
 function renderReview() {
+  // Desktop: the same cards in two columns — what happened on the left;
+  // what's ready, volume, weight and cardio on the right. The card code
+  // appends to `root`, so it's pointed at each column in turn.
+  const page = root;
+  const desktop = isDesktop();
+  let left = page;
+  let right = page;
+  try {
+    renderReviewCards(desktop, () => {
+      if (!desktop) return;
+      left = el('div', { class: 'col-half' });
+      right = el('div', { class: 'col-half' });
+      page.appendChild(el('div', { class: 'two-col review-cols' }, left, right));
+    }, (col) => { root = col === 'left' ? left : right; });
+  } finally {
+    root = page;
+  }
+}
+
+function renderReviewCards(desktop, makeColumns, useColumn) {
   const today = todayStr();
   const start = reviewThisWeek ? weekStartOf(today, weekStartDay()) : lastWeekStart(today);
   if (!reviewThisWeek) markReviewSeen(start);
@@ -1391,6 +1411,8 @@ function renderReview() {
     el('button', { class: 'link-btn', type: 'button', onclick: () => { reviewThisWeek = !reviewThisWeek; render(); } },
       reviewThisWeek ? 'Last week' : 'This week so far')));
 
+  makeColumns();
+  useColumn('left');
   // The one thing.
   root.appendChild(el('div', { class: `card rec-card ${r.recommendation.severity}`, dataset: { rec: r.recommendation.id } },
     el('div', { class: 'rec-kicker' }, reviewThisWeek ? 'One thing so far' : 'One thing for this week'),
@@ -1405,7 +1427,8 @@ function renderReview() {
     s.planned
       ? el('div', { class: 'session-bars' }, s.each.map((x) => el('div', { class: `sbar${x.completed ? ' done' : ''}` },
         el('div', { class: 'sbar-fill' }),
-        el('div', { class: 'sbar-label' }, x.completed ? (x.kind === 'minimum' ? 'Minimum' : 'Full') : x.date > today ? 'Ahead' : 'Not logged'))))
+        el('div', { class: 'sbar-label' }, x.completed ? (x.kind === 'minimum' ? 'Minimum' : 'Full') : x.date > today ? 'Ahead' : 'Not logged'),
+        desktop && el('div', { class: 'sbar-label' }, formatDate(x.date, { weekday: 'short', month: 'short', day: 'numeric' })))))
       : el('div', { class: 'row-sub' }, 'Nothing was planned.')));
 
   // Personal bests: five, the rest folded away.
@@ -1422,6 +1445,18 @@ function renderReview() {
       r.prs.slice(0, 5).map(row));
     if (r.prs.length > 5) card.appendChild(el('details', {}, el('summary', { class: 'link-btn' }, `${r.prs.length - 5} more`), r.prs.slice(5).map(row)));
     root.appendChild(card);
+  }
+
+  useColumn('right');
+  // Desktop: what's ready to progress, with the evidence for each.
+  if (desktop && r.ready.length) {
+    root.appendChild(el('div', { class: 'card', dataset: { card: 'ready' } },
+      el('div', { class: 'review-head' }, el('span', { class: 'row-sub' }, 'Ready to progress')),
+      r.ready.map(({ exercise, suggestion }) => el('div', { class: 'list-row' },
+        el('div', { class: 'row-main' },
+          el('div', { class: 'row-title' }, exercise.name),
+          el('div', { class: 'row-sub' }, suggestion.reason)),
+        el('span', { class: 'ready-try' }, `${arrowOf(suggestion)} ${suggestionTitle(suggestion, exercise)}`)))));
   }
 
   // Weight trend.

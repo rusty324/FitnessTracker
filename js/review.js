@@ -177,6 +177,7 @@ export function weeklyReview({
 
   // Exercises whose next planned session is ready to progress.
   const suggestionsReady = [];
+  const ready = []; // [{ exercise, suggestion }] — the same, with the detail
   for (const ex of exercises) {
     const planned = nextPlannedFor(ex.id, plans, today, schedule);
     if (!planned) continue;
@@ -184,7 +185,10 @@ export function weeklyReview({
       exercise: ex, plannedTarget: planned.item.target, history: sessionsOf(ex.id, logs, plans),
       weekIsDeload: !!planned.week?.isDeload, today, units, painHold: painHoldFor(ex.id, sessionsRecords, plans),
     });
-    if (s && (s.kind === 'add' || s.kind === 'advance')) suggestionsReady.push(ex.name);
+    if (s && (s.kind === 'add' || s.kind === 'advance')) {
+      suggestionsReady.push(ex.name);
+      ready.push({ exercise: ex, suggestion: s });
+    }
   }
 
   // Exactly one recommendation; the first rule that matches wins.
@@ -220,6 +224,7 @@ export function weeklyReview({
     cardio,
     weight,
     suggestionsReady,
+    ready,
     recommendation,
   };
 }

@@ -23,6 +23,8 @@ import { syncFromPresets } from '../preset-sync.js';
 import { filterBar, emptyFilters, describeExercise, labelOf } from './exercise-filter-bar.js';
 import { extractExerciseDefs, planExerciseImport, applyExerciseImport, exerciseTemplate } from '../exercise-io.js';
 import { gifImage, hasGif } from './media.js';
+import { isDesktop } from './layout.js';
+import { librarySidebar, nextTimeCard, progressSection } from './exercise-desktop.js';
 import { editExercise, pickExercise, targetSummary, libraryUpserter, exerciseDef, slug } from './plans-tab.js';
 import { renderGear } from './gear-view.js';
 import { formatSets } from '../sets.js';
@@ -329,7 +331,23 @@ function importExercisesModal() {
 function renderExerciseDetail(id) {
   const ex = store.get('exercises').find((e) => e.id === id);
   if (!ex) { showList(); return; }
+  if (!isDesktop()) { renderExerciseBody(ex, false); return; }
+  // Desktop: the library as a sidebar, the exercise beside it (1200px).
+  const page = root;
+  page.classList.add('wide');
+  const main = el('div', { class: 'col-main' });
+  page.appendChild(el('div', { class: 'two-col' },
+    el('aside', { class: 'col-lib', 'aria-label': 'Exercises' }, librarySidebar(ex, (exId) => showExercise(exId))),
+    main));
+  root = main;
+  try {
+    renderExerciseBody(ex, true);
+  } finally {
+    root = page;
+  }
+}
 
+function renderExerciseBody(ex, desktop) {
   root.appendChild(el('div', { class: 'list-row' },
     el('div', { class: 'row-main' },
       // Reached from a link (e.g. a planned exercise on the Logs page):
@@ -353,7 +371,15 @@ function renderExerciseDetail(id) {
     ),
   ));
 
-  root.appendChild(el('h2', {}, ex.name));
+  root.appendChild(el('h2', { class: desktop ? 'page-h1' : '' }, ex.name));
+  if (desktop && describeExercise(ex)) root.appendChild(el('div', { class: 'row-sub', style: 'margin:-6px 0 10px;font-size:0.95rem' }, describeExercise(ex)));
+  // Desktop: Next time (with the rule), the top set by session, and what
+  // the rule said after each recent session — right under the heading.
+  if (desktop) {
+    const card = nextTimeCard(ex);
+    if (card) root.appendChild(card);
+    for (const part of progressSection(ex) ?? []) root.appendChild(part);
+  }
   root.appendChild(el('div', { style: 'margin-bottom:10px' },
     el('span', { class: 'pill accent' }, ex.category), ' ',
     el('span', { class: 'pill' }, ex.modality), ' ',
@@ -399,7 +425,7 @@ function renderExerciseDetail(id) {
   }
   if (ex.progressionRule) root.appendChild(el('p', { class: 'muted' }, `Progression: ${ex.progressionRule}`));
 
-  const next = nextTimeSection(ex);
+  const next = desktop ? null : nextTimeSection(ex);
   if (next) root.appendChild(next);
   const load = loadSection(ex);
   if (load) root.appendChild(load);
