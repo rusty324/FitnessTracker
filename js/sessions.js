@@ -2,8 +2,11 @@
 // Today, the weekly dots, the review, and overdue detection:
 //   - you tapped "Finish session" (a data/sessions.json record of kind
 //     'full' or 'minimum' for that date and session), or
-//   - every non-optional exercise in it has a linked log or a confirmed
-//     synced activity — the same per-exercise test adherence has always used.
+//   - at least one exercise in it has a linked log or a confirmed synced
+//     activity. Deliberately lenient: before Finish existed, sessions were
+//     logged piecemeal (stretches often not at all), and a strict "every
+//     exercise" rule flagged sessions you did as still open — where Slide
+//     plan would then have pushed the whole plan back.
 // Pure.
 
 export const sessionRecordId = (date, plannedSessionId) => `${date}:${plannedSessionId ?? 'adhoc'}`;
@@ -28,11 +31,13 @@ export function sessionStatus({ session, date, records = [], doneIds, repeat = f
     : records.find((r) => r.plannedSessionId === session.id && !r.repeat && finished(r))
       ?? records.find((r) => r.id === sessionRecordId(date, session.id) && !r.repeat);
   if (repeat) doneIds = doneItemIds(logs.filter((l) => l.date === date), []); // a synced run links to the original, not the repeat
-  const items = (session.blocks ?? []).flatMap((b) => b.items ?? []).filter((it) => !it.optional);
+  const all = (session.blocks ?? []).flatMap((b) => b.items ?? []);
+  const items = all.filter((it) => !it.optional);
   const done = items.filter((it) => doneIds.has(it.id)).length;
+  const anyLogged = all.some((it) => doneIds.has(it.id));
   const isFinished = !!rec && finished(rec);
   return {
-    completed: isFinished || (items.length > 0 && done === items.length),
+    completed: isFinished || anyLogged,
     kind: isFinished ? rec.kind : null,
     done,
     planned: items.length,

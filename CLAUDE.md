@@ -95,7 +95,8 @@ files). `datarepo-template/scripts/crypto.js` must stay **byte-identical** to
   {level:'none'|'niggle'|'pain', regions?}}` written by "Finish session" and
   the pain question after it (`js/pain.js`: same-region niggles twice running
   = pain; the plan's `injuryRule` is shown verbatim, never paraphrased). A planned session is **completed** when it has such a record *or*
-  every non-optional item has a linked log / confirmed match
+  at least one of its items has a linked log / confirmed match (lenient on
+  purpose: old sessions were logged piecemeal)
   (`js/sessions.js` — the only definition; reuse it).
 - **Gym-floor drafts**: ticking a set writes `localStorage`
   `ft.draft.<date>.<sessionId|adhoc>`, never the repo; drafts become logs when an

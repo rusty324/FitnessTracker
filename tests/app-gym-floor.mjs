@@ -44,6 +44,7 @@ const pure = await page.evaluate(async () => {
     heavyFirst: checkSet({ weightKg: 600, reps: 1 })?.message,
     allLogged: S.sessionStatus({ session, date: 'd', doneIds: new Set(['i1', 'i2']) }).completed,
     partLogged: S.sessionStatus({ session, date: 'd', doneIds: new Set(['i1']) }).completed,
+    nothingLogged: S.sessionStatus({ session, date: 'd', doneIds: new Set() }).completed,
     finished: S.sessionStatus({ session, date: 'd', doneIds: new Set(), records: [{ id: 'd:s1', kind: 'minimum' }] }),
   };
 });
@@ -55,7 +56,8 @@ step('checkSet: over 3× the heaviest (with ≥3 prior sets)', /3×/.test(pure.t
 step('checkSet: lb/kg mix-up both ways', /lb and kg/.test(pure.unitMix ?? '') && /lb and kg/.test(pure.unitMixDown ?? ''));
 step('checkSet: NaN and negatives are rejected', pure.nan?.reject === true && pure.negative?.reject === true);
 step('checkSet: 100+ reps or 500 kg with no history warn', /typo/.test(pure.manyReps) && /500 kg/.test(pure.heavyFirst));
-step('completed: every non-optional item logged', pure.allLogged === true && pure.partLogged === false);
+step('completed: any exercise logged counts (lenient on purpose)', pure.allLogged === true && pure.partLogged === true);
+step('…but nothing logged and no Finish is not completed', pure.nothingLogged === false);
 step('completed: a Finish record counts (minimum too)', pure.finished.completed && pure.finished.kind === 'minimum');
 
 // ---------- seed: today's session, last week's numbers ----------

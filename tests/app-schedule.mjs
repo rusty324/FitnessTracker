@@ -141,7 +141,25 @@ const seed = (back) => page.evaluate(async (startBack) => {
 }, back);
 const stored = (k) => page.evaluate((key) => JSON.parse(localStorage.getItem(`ft.data.data/${key}.json`) ?? '[]'), k);
 
-await seed(2); // week 1 session 1 was two days ago and wasn't done
+// A past session with just one exercise logged (how sessions were logged
+// before Finish existed) counts as done: no "still open" card for it.
+await seed(2);
+await page.evaluate(async () => {
+  const m = await import('/js/models.js');
+  const plans = JSON.parse(localStorage.getItem('ft.data.data/plans.json'));
+  const s = plans[0].weeks[0].sessions[0];
+  const item = s.blocks.flatMap((b) => b.items).find((i) => i.target?.kind === 'reps');
+  const p = (n) => String(n).padStart(2, '0');
+  const x = new Date(); x.setDate(x.getDate() - 2);
+  localStorage.setItem('ft.data.data/logs.json', JSON.stringify([{ ...m.makeLogEntry({
+    date: `${x.getFullYear()}-${p(x.getMonth() + 1)}-${p(x.getDate())}`, exerciseId: item.exerciseId,
+    planId: plans[0].id, plannedExerciseId: item.id, actual: { sets: 1, reps: 10 } }), id: 'partial' }]));
+});
+await page.reload();
+await page.waitForSelector('.week-dots');
+step('a past session with one exercise logged is not “still open”', !(await page.isVisible('.overdue-card')));
+
+await seed(2); // week 1 session 1 was two days ago and nothing was logged
 await page.reload();
 await page.waitForSelector('.overdue-card');
 step('Today: an overdue session gets the open-session card', /is still open/.test(await page.textContent('.overdue-title')));
