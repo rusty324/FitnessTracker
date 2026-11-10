@@ -204,6 +204,11 @@ step('Finish records the session as full', sessions.length === 1 && sessions[0].
   && /:sess-1$/.test(sessions[0].id), JSON.stringify(sessions));
 step('…writes the ticked row set', (await logs()).some((l) => l.plannedExerciseId === 'pi-row' && l.actual.sets === 1));
 step('…and clears the draft', (await draft()) === null);
+// The optional pain question follows; closing it saves nothing.
+await page.waitForSelector('.modal-title:has-text("Any pain today?")');
+await page.click('[data-action="pain-close"]');
+step('closing the pain question unanswered stores nothing',
+  !(await page.evaluate(() => JSON.parse(localStorage.getItem('ft.data.data/sessions.json'))[0].pain)));
 step('the session shows as done', await page.isVisible('.session-head .pill:has-text("done")') && !(await page.isVisible('[data-action="finish"]')));
 
 // ---------- Undo instead of confirm ----------

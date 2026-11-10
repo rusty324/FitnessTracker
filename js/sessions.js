@@ -6,9 +6,6 @@
 //     synced activity — the same per-exercise test adherence has always used.
 // Pure.
 
-import { addDays } from './dates.js';
-import { allSessions, sessionItems } from './models.js';
-
 export const sessionRecordId = (date, plannedSessionId) => `${date}:${plannedSessionId ?? 'adhoc'}`;
 
 // Planned item ids that have a linked log or a confirmed activity match.
@@ -19,53 +16,25 @@ export function doneItemIds(logs = [], matches = []) {
   return done;
 }
 
+// A repeat occurrence (js/schedule.js) shares the session's plan items, so
+// it counts only what happened on its own date: logs dated that day, and a
+// Finish record for that date. A normal occurrence takes any Finish record
+// for the session (it may be finished on another day than planned).
 // -> { completed, kind: 'full' | 'minimum' | null, done, planned }
-export function sessionStatus({ session, date, records = [], doneIds }) {
-  const rec = records.find((r) => r.id === sessionRecordId(date, session.id));
+export function sessionStatus({ session, date, records = [], doneIds, repeat = false, logs = [] }) {
+  const finished = (r) => r.kind === 'full' || r.kind === 'minimum';
+  const rec = repeat
+    ? records.find((r) => r.id === sessionRecordId(date, session.id) && finished(r))
+    : records.find((r) => r.plannedSessionId === session.id && !r.repeat && finished(r))
+      ?? records.find((r) => r.id === sessionRecordId(date, session.id) && !r.repeat);
+  if (repeat) doneIds = doneItemIds(logs.filter((l) => l.date === date), []); // a synced run links to the original, not the repeat
   const items = (session.blocks ?? []).flatMap((b) => b.items ?? []).filter((it) => !it.optional);
   const done = items.filter((it) => doneIds.has(it.id)).length;
-  const finished = rec?.kind === 'full' || rec?.kind === 'minimum';
+  const isFinished = !!rec && finished(rec);
   return {
-    completed: finished || (items.length > 0 && done === items.length),
-    kind: finished ? rec.kind : null,
+    completed: isFinished || (items.length > 0 && done === items.length),
+    kind: isFinished ? rec.kind : null,
     done,
     planned: items.length,
   };
-}
-
-// ---------- the schedule ----------
-
-
-// A planned session's calendar date: its plan's start + dayOffset.
-export const sessionDate = (plan, dayOffset) => addDays(plan.startDate, dayOffset);
-
-// Every planned session of the active plans dated within [from, to].
-// -> [{ plan, week, session, date }]
-export function plannedBetween(plans, from, to) {
-  const out = [];
-  for (const plan of plans.filter((p) => p.status === 'active')) {
-    for (const { session, week, dayOffset } of allSessions(plan)) {
-      const date = sessionDate(plan, dayOffset);
-      if (date >= from && date <= to) out.push({ plan, week, session, date });
-    }
-  }
-  return out.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
-}
-
-// The plan item an exercise is next prescribed in (on or after `today`, in
-// an active plan), else its most recent one. -> { item, week, plan, date } | null
-export function nextPlannedFor(exerciseId, plans, today) {
-  let next = null;
-  let prev = null;
-  for (const plan of plans.filter((p) => p.status === 'active')) {
-    for (const { session, week, dayOffset } of allSessions(plan)) {
-      const date = sessionDate(plan, dayOffset);
-      for (const { item } of sessionItems(session)) {
-        if (item.exerciseId !== exerciseId) continue;
-        const hit = { item, week, plan, date };
-        if (date >= today) { if (!next || date < next.date) next = hit; } else if (!prev || date > prev.date) prev = hit;
-      }
-    }
-  }
-  return next ?? prev;
 }

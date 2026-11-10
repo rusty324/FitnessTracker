@@ -23,7 +23,7 @@ const gh = createStore({
   files: DATA_FILES,
   // Personal data is encrypted when a password is set; plans, the exercise
   // library, and match links stay plaintext so they remain diffable.
-  encrypted: ['logs', 'metrics', 'goals', 'activityEdits', 'gear', 'sessions'],
+  encrypted: ['logs', 'metrics', 'goals', 'activityEdits', 'gear', 'sessions', 'schedule'],
   encryptPath: (path) =>
     path.startsWith(`${ACTIVITY_DIR}/activities-`)
     || path.startsWith(`${IMPORT_DIR}/imported-`)

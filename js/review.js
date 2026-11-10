@@ -11,8 +11,10 @@ import { variantLevelFor, plannedTargetOf } from './load.js';
 import { cardioItems, isCardioExercise } from './cardio.js';
 import { muscleGroupsOf } from './exercise-filters.js';
 import { suggestNext, sessionsOf, rangeOf } from './progression.js';
-import { sessionStatus, doneItemIds, plannedBetween, nextPlannedFor } from './sessions.js';
+import { sessionStatus, doneItemIds } from './sessions.js';
+import { plannedBetween, nextPlannedFor } from './schedule.js';
 import { trendSeries, trendSlope, rateLabel, weightPoints } from './trend.js';
+import { effectivePain, painHoldFor } from './pain.js';
 
 const DOW = { sun: 0, mon: 1 };
 
@@ -26,14 +28,14 @@ export function weekStartOf(date, startDay = 'mon') {
 
 // Planned vs completed sessions in [start, end] (the one completed rule,
 // js/sessions.js), split by how they were finished.
-export function sessionCounts({ start, end, plans, logs, matches, records }) {
+export function sessionCounts({ start, end, plans, logs, matches, records, schedule = [] }) {
   const doneIds = doneItemIds(logs, matches);
-  const planned = plannedBetween(plans, start, end);
+  const planned = plannedBetween(plans, start, end, schedule);
   let completed = 0;
   let full = 0;
   let minimum = 0;
-  const each = planned.map(({ session, date, plan, week }) => {
-    const st = sessionStatus({ session, date, records, doneIds });
+  const each = planned.map(({ session, date, plan, week, repeat }) => {
+    const st = sessionStatus({ session, date, records, doneIds, repeat, logs });
     if (st.completed) {
       completed++;
       if (st.kind === 'minimum') minimum++;
@@ -117,12 +119,12 @@ function cardioPRs({ start, end, items }) {
  */
 export function weeklyReview({
   weekStart, today, plans = [], logs = [], activities = [], metrics = [], goals = [],
-  sessionsRecords = [], matches = [], exercises = [], units = 'metric',
+  sessionsRecords = [], matches = [], exercises = [], units = 'metric', schedule = [],
 }) {
   const start = weekStart;
   const end = addDays(weekStart, 6);
   const asOf = end < today ? end : today;
-  const counts = (s, e) => sessionCounts({ start: s, end: e, plans, logs, matches, records: sessionsRecords });
+  const counts = (s, e) => sessionCounts({ start: s, end: e, plans, logs, matches, records: sessionsRecords, schedule });
 
   const sessions = counts(start, end);
   const prev = counts(addDays(start, -7), addDays(start, -1));
@@ -176,17 +178,18 @@ export function weeklyReview({
   // Exercises whose next planned session is ready to progress.
   const suggestionsReady = [];
   for (const ex of exercises) {
-    const planned = nextPlannedFor(ex.id, plans, today);
+    const planned = nextPlannedFor(ex.id, plans, today, schedule);
     if (!planned) continue;
     const s = suggestNext({
       exercise: ex, plannedTarget: planned.item.target, history: sessionsOf(ex.id, logs, plans),
-      weekIsDeload: !!planned.week?.isDeload, today, units,
+      weekIsDeload: !!planned.week?.isDeload, today, units, painHold: painHoldFor(ex.id, sessionsRecords, plans),
     });
     if (s && (s.kind === 'add' || s.kind === 'advance')) suggestionsReady.push(ex.name);
   }
 
   // Exactly one recommendation; the first rule that matches wins.
-  const painThisWeek = sessionsRecords.some((r) => r.date >= start && r.date <= end && r.pain?.level === 'pain');
+  // Pain after escalation (two same-region niggles in a row count as pain).
+  const painThisWeek = sessionsRecords.some((r) => r.date >= start && r.date <= end && effectivePain(r, sessionsRecords) === 'pain');
   const injuryRule = plans.find((p) => p.status === 'active' && p.progressionPolicy?.injuryRule)?.progressionPolicy.injuryRule;
   const light = (c) => c.planned > 0 && c.completed / c.planned <= 0.5;
   const four = counts(addDays(start, -21), end);

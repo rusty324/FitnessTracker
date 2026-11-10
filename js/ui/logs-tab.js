@@ -23,11 +23,14 @@ import { variantLevelFor } from '../load.js';
 import { setRows, rowsFromActual } from './set-rows.js';
 import { lastPerformance, setsOf, ghostSet } from '../history.js';
 import { suggestionFor, suggestionChip, suggestionTitle, arrowOf, CHANGES_GHOSTS } from './suggestion.js';
-import { draftKey, readDraft, updateDraftItem, removeDraftItem, flushItem, flushDraft, clearDraft } from '../draft.js';
+import { draftKey, readDraft, updateDraftItem, removeDraftItem, flushItem, flushDraft, clearDraft, setDraftMode } from '../draft.js';
 import { sessionRecordId, sessionStatus, doneItemIds } from '../sessions.js';
 import { startRest, skipRest, restSecondsFor, restSettings, setSessionActive } from '../rest-timer.js';
 import { trendSeries, trendSlope, rateLabel, etaToGoal, weightPoints } from '../trend.js';
-import { weeklyReview, weekStartOf } from '../review.js';
+import { weeklyReview, weekStartOf, sessionCounts } from '../review.js';
+import { occurrences, slidePlan, skipSession, repeatWeek } from '../schedule.js';
+import { PAIN_REGIONS, RUN_REGIONS, CLINICIAN_LINE, effectivePain, painTwoWeeksRunning, hasRun, stopLine } from '../pain.js';
+import { minimumSession, estimateMinutes } from '../minimum.js';
 import { pickExercise, targetSummary } from './plans-tab.js';
 
 let root = null;
@@ -75,7 +78,7 @@ function runMatcher() {
   const activities = store.getActivityEntries();
   if (!activities.length) return;
   const matches = store.get('matches');
-  const fresh = findSuggestions(activities, store.get('plans'), matches, store.get('exercises'));
+  const fresh = findSuggestions(activities, store.get('plans'), matches, store.get('exercises'), undefined, store.get('schedule'));
   if (fresh.length) {
     const records = matches.concat(fresh.map((f) => makeMatch({ ...f, status: 'suggested' })));
     store.save('matches', records);
@@ -164,6 +167,10 @@ function renderToday() {
   );
 
   root.appendChild(el('h2', {}, formatDateLong(today)));
+  const dots = weekDots(today);
+  if (dots) root.appendChild(dots);
+  const overdue = overdueCard(today);
+  if (overdue) root.appendChild(overdue);
   const banner = reviewBanner(today);
   if (banner) root.appendChild(banner);
   root.appendChild(weighInCard(today));
@@ -172,13 +179,11 @@ function renderToday() {
   const finishBars = [];
   const doneIds = doneItemIds(logs, store.get('matches'));
   const records = store.get('sessions');
-  for (const plan of activePlans()) {
-    for (const { session, week, dayOffset } of allSessions(plan)) {
-      if (addDays(plan.startDate, dayOffset) !== today) continue;
-      anyPlanned = true;
-      const finish = renderSessionToday({ plan, session, week, today, lib, logs, loggedByPe, doneIds, records });
-      if (finish) finishBars.push(finish);
-    }
+  for (const { plan, session, week, date, skipped, repeat } of occurrences(store.get('plans'), store.get('schedule'))) {
+    if (date !== today || skipped) continue;
+    anyPlanned = true;
+    const finish = renderSessionToday({ plan, session, week, today, lib, logs, loggedByPe, doneIds, records, repeat });
+    if (finish) finishBars.push(finish);
   }
   if (!anyPlanned) {
     root.appendChild(el('div', { class: 'card' },
@@ -187,8 +192,9 @@ function renderToday() {
   }
   root.appendChild(el('button', { class: 'btn', onclick: () => adhocLog() }, '+ Log ad-hoc activity'));
   // Last on the page, under the ad-hoc button (and pinned above the tab bar
-  // while the session scrolls).
-  for (const bar of finishBars) root.appendChild(bar);
+  // while the session scrolls) — once any overdue session is dealt with, so
+  // it never covers that card's choices.
+  if (!overdue) for (const bar of finishBars) root.appendChild(bar);
 }
 
 // One-tap daily weigh-in. Prefills the last known weight; merges into
@@ -315,11 +321,16 @@ function priorSets(exerciseId, date, logs) {
   return logs.filter((l) => l.exerciseId === exerciseId && l.date < date).flatMap(setsOf);
 }
 
-function renderSessionToday({ plan, session, week, today, lib, logs, loggedByPe, doneIds, records }) {
+function renderSessionToday({ plan, session, week, today, lib, logs, loggedByPe, doneIds, records, repeat = false }) {
   const key = draftKey(today, session.id);
-  const status = sessionStatus({ session, date: today, records, doneIds });
+  const status = sessionStatus({ session, date: today, records, doneIds, repeat, logs });
   const draft = readDraft(key);
-  const entries = sessionItems(session).map(({ block, item }) => {
+  // Full or minimum (js/minimum.js): the minimum is a computed view; the
+  // stored plan never changes. A finished session shows how it was done.
+  const minimum = minimumSession(session);
+  const mode = status.kind ?? draft.mode ?? 'full';
+  const shown = mode === 'minimum' ? minimum : session;
+  const entries = sessionItems(shown).map(({ block, item }) => {
     const ex = lib.get(item.exerciseId);
     const reps = isRepsItem(item, ex);
     const log = loggedByPe.get(item.id) ?? null;
@@ -327,7 +338,7 @@ function renderSessionToday({ plan, session, week, today, lib, logs, loggedByPe,
     const finished = !!log && !(d?.rows?.some((r) => !r.done));
     return { block, item, ex, reps, log, finished };
   });
-  const rec = records.find((r) => r.id === sessionRecordId(today, session.id));
+  const rec = status.kind ? { kind: status.kind } : null;
   // Open the first unfinished exercise — unless the session is finished.
   if (!entries.some((e) => e.item.id === expandedItem)) {
     expandedItem = rec ? null : entries.find((e) => e.reps && !e.finished)?.item.id ?? null;
@@ -337,55 +348,196 @@ function renderSessionToday({ plan, session, week, today, lib, logs, loggedByPe,
     el('div', { class: 'row-main' },
       el('div', { class: 'session-title' }, session.label || plan.name),
       el('div', { class: 'row-sub' },
-        `${plan.name} · week ${week.index}${week.isDeload ? ' (deload)' : ''}`
+        `${plan.name} · week ${week.index}${repeat ? ' (repeat)' : ''}${week.isDeload ? ' (deload)' : ''}`
         + `${session.estimatedDurationMin ? ` · ~${session.estimatedDurationMin} min` : ''}`),
       session.note && el('div', { class: 'row-sub' }, session.note),
     ),
     status.completed && el('span', { class: 'pill ok' }, status.kind === 'minimum' ? 'done · minimum' : 'done'),
   ));
+  if (!status.kind && entries.length) {
+    const pick = (m) => () => { setDraftMode(key, m); expandedItem = null; render(); };
+    root.appendChild(el('div', { class: 'segmented session-mode', role: 'group', 'aria-label': 'Session version' },
+      el('button', { class: mode === 'full' ? 'active' : '', type: 'button', dataset: { mode: 'full' }, onclick: pick('full') }, 'Full session'),
+      el('button', { class: mode === 'minimum' ? 'active' : '', type: 'button', dataset: { mode: 'minimum' }, onclick: pick('minimum') },
+        `Minimum · ~${estimateMinutes(session, minimum)} min`)));
+    if (mode === 'minimum') {
+      root.appendChild(el('p', { class: 'muted min-note' },
+        'Counts as a completed session. It won’t trigger weight or level increases.'));
+    }
+  }
   if (!entries.length) root.appendChild(el('p', { class: 'muted' }, 'Session has no exercises.'));
 
   let lastBlock = null;
   for (const e of entries) {
     if (e.block !== lastBlock && ((session.blocks?.length ?? 0) > 1 || e.block.name || e.block.rounds)) {
       root.appendChild(el('div', { class: 'block-label' },
-        (e.block.name || blockLabel(e.block.type)) + (e.block.rounds ? ` — ${e.block.rounds} rounds` : '')));
+        (e.block.name || blockLabel(e.block.type)) + (e.block.rounds ? ` — ${e.block.rounds} rounds` : ''),
+        mode === 'minimum' && el('span', { class: 'block-note' }, e.block.unchanged ? ' · unchanged' : ' · half the sets')));
       if (e.block.note) root.appendChild(el('div', { class: 'row-sub', style: 'margin:-4px 2px 8px' }, e.block.note));
     }
     lastBlock = e.block;
-    root.appendChild(exerciseCard({ plan, session, week, today, key, logs, entries, ...e }));
+    root.appendChild(exerciseCard({ plan, session, week, today, key, logs, entries, minimumMode: mode === 'minimum', ...e }));
   }
 
   // Returned, not appended: Today puts it at the very bottom.
   if (!rec && entries.length) {
     return el('div', { class: 'finish-bar' },
-      el('button', { class: 'btn block large', dataset: { action: 'finish' }, onclick: () => finishSession(plan, session, today, 'full') },
-        finishLabel(session, plan)));
+      el('button', { class: 'btn block large', dataset: { action: 'finish' }, onclick: () => finishSession(plan, session, today, mode, repeat) },
+        mode === 'minimum' ? finishLabel(session, plan).replace('Finish', 'Finish minimum') : finishLabel(session, plan)));
   }
   return null;
 }
 
 // One session a day is the norm; with two, each Finish says which.
 function finishLabel(session, plan) {
-  const todays = activePlans().flatMap((p) => allSessions(p)
-    .filter(({ dayOffset }) => addDays(p.startDate, dayOffset) === todayStr()));
+  const todays = occurrences(store.get('plans'), store.get('schedule'))
+    .filter((o) => o.date === todayStr() && !o.skipped);
   return todays.length > 1 ? `Finish ${session.label || plan.name}` : 'Finish session';
 }
 
-function finishSession(plan, session, date, kind) {
+function finishSession(plan, session, date, kind, repeat = false) {
   const key = draftKey(date, session.id);
   flushDraft(key);
   clearDraft(key);
+  if (kind === 'minimum') {
+    // Logs entered through the full form too: stamp them, in one save.
+    const ids = new Set(sessionItems(session).map(({ item }) => item.id));
+    const all = store.get('logs');
+    if (all.some((l) => l.date === date && ids.has(l.plannedExerciseId) && l.mode !== 'minimum')) {
+      store.save('logs', all.map((l) => (l.date === date && ids.has(l.plannedExerciseId) ? { ...l, mode: 'minimum' } : l)));
+    }
+  }
   store.upsert('sessions', {
     id: sessionRecordId(date, session.id), date, plannedSessionId: session.id, planId: plan.id, kind,
+    ...(repeat ? { repeat: true } : {}),
   });
   setSessionActive(false);
   skipRest();
   expandedItem = null;
   toast('Session finished — nice work');
+  painPrompt({ plan, session, date });
 }
 
-function exerciseCard({ plan, session, week, today, key, logs, entries, block, item, ex, reps, log, finished }) {
+// ---------- Overdue sessions (js/schedule.js) ----------
+//
+// A planned session is overdue when its date has passed, it isn't completed
+// and it wasn't skipped. Today offers the earliest one: slide the plan (it
+// and every later session move by the same N days — spacing kept, the plan
+// ends later), skip it, or not now (for this visit). Your logs are never
+// touched, and there's no guilt copy.
+
+let notNow = null; // `${date}|${key}` dismissed for this visit only
+
+function overdueCard(today) {
+  const plans = store.get('plans');
+  const schedule = store.get('schedule');
+  const records = store.get('sessions');
+  const logs = store.get('logs');
+  const doneIds = doneItemIds(logs, store.get('matches'));
+  const isDone = (o) => sessionStatus({ session: o.session, date: o.date, records, doneIds, repeat: o.repeat, logs }).completed;
+  const o = occurrences(plans, schedule)
+    .find((x) => !x.skipped && !x.repeat && x.date < today && !isDone(x) && notNow !== `${today}|${x.key}`);
+  if (!o) return null;
+  const n = diffDays(o.date, today);
+  const wd = (d, long = false) => formatDate(d, { weekday: long ? 'long' : 'short' });
+  const what = hasRun(o.session, exById()) ? 'run' : 'session';
+  const moving = occurrences([o.plan], schedule, { activeOnly: false })
+    .filter((x) => !x.repeat && !x.skipped && x.date >= o.date && !isDone(x));
+  // Labels often name their week already ("Week 1 · Session 2 — Run/Walk").
+  const label = (x) => (/week/i.test(x.session.label ?? '') ? x.session.label : `Week ${x.week.index} · ${x.session.label || 'Session'}`);
+  return el('div', { class: 'card overdue-card', dataset: { overdue: o.key } },
+    el('div', { class: 'overdue-title' }, `${wd(o.date, true)}’s ${what} is still open`),
+    el('div', { class: 'row-sub' }, [label(o), o.session.estimatedDurationMin ? `about ${o.session.estimatedDurationMin} min` : null].filter(Boolean).join(' · ')),
+    el('p', { class: 'overdue-text' }, 'Slide the plan to start it today, or skip it. Your logs and weights are untouched either way.'),
+    el('div', { class: 'slide-preview' },
+      el('div', { class: 'row-sub', style: 'font-weight:650' }, `If you slide ${n} day${n === 1 ? '' : 's'}`),
+      moving.slice(0, 3).map((x) => el('div', { class: 'list-row' },
+        el('div', { class: 'row-main' }, label(x)),
+        el('div', {}, el('span', { class: 'muted' }, `${wd(x.date)} → `), el('strong', {}, wd(addDays(x.date, n)))))),
+      moving.length > 3 && el('div', { class: 'row-sub', style: 'margin-top:6px' },
+        `…and every later session moves ${n} day${n === 1 ? '' : 's'} too. Spacing stays the same.`)),
+    el('button', { class: 'btn block large', dataset: { action: 'slide' }, onclick: () => {
+      store.save('schedule', slidePlan({ plan: o.plan, fromDate: o.date, days: n, schedule, isDone }));
+      toast(`Plan slid ${n} day${n === 1 ? '' : 's'}`);
+    } }, 'Slide plan'),
+    el('button', { class: 'btn block ghost', style: 'margin-top:8px', dataset: { action: 'skip' }, onclick: () => {
+      store.save('schedule', skipSession({ plan: o.plan, session: o.session, schedule }));
+      toast('Skipped');
+    } }, 'Skip it'),
+    el('button', { class: 'link-btn block-link', dataset: { action: 'not-now' }, onclick: () => { notNow = `${today}|${o.key}`; render(); } }, 'Not now'),
+  );
+}
+
+// ---------- Pain flag (js/pain.js) ----------
+//
+// One optional question after a session. Picking an answer saves it on the
+// session's record (data/sessions.json, encrypted); closing without one
+// saves nothing. The plan's injury rule is shown word for word.
+
+function painPrompt({ plan, session, date }) {
+  const recId = sessionRecordId(date, session.id);
+  const rule = plan.progressionPolicy?.injuryRule ?? null;
+  const ran = hasRun(session, exById());
+  let level = null;
+  const regions = new Set();
+  const body = el('div', { class: 'pain-sheet' });
+  let modal = null;
+
+  const save = () => {
+    const rec = store.get('sessions').find((r) => r.id === recId);
+    if (!rec) return null;
+    const next = { ...rec, pain: level === 'none' ? { level: 'none' } : { level, regions: [...regions] } };
+    store.upsert('sessions', next);
+    return next;
+  };
+
+  function draw() {
+    const records = store.get('sessions');
+    const rec = records.find((r) => r.id === recId);
+    const eff = rec?.pain ? effectivePain(rec, records) : null;
+    const runPain = eff === 'pain' && ran && [...regions].some((r) => RUN_REGIONS.includes(r));
+    const stop = runPain && painTwoWeeksRunning(records, date, (d) => weekStartOf(d, weekStartDay()));
+    body.replaceChildren(...[
+      el('p', { class: 'muted', style: 'margin:-8px 0 12px' }, 'Optional. Skipping saves nothing.'),
+      el('div', { class: 'pain-levels' }, [['none', 'None'], ['niggle', 'Niggle'], ['pain', 'Pain']].map(([v, text]) =>
+        el('button', { class: `pain-level${level === v ? ' on' : ''}`, type: 'button', dataset: { level: v }, onclick: () => {
+          level = v;
+          if (v === 'none') { regions.clear(); save(); modal.close(); toast('Noted'); return; }
+          save();
+          draw();
+        } }, text))),
+      level && level !== 'none' && el('div', { class: 'row-sub', style: 'margin:14px 0 8px' }, 'Where?'),
+      level && level !== 'none' && el('div', { class: 'pain-regions' }, PAIN_REGIONS.map(([v, text]) =>
+        el('button', { class: `chip${regions.has(v) ? ' on' : ''}`, type: 'button', dataset: { region: v }, onclick: () => {
+          if (regions.has(v)) regions.delete(v); else regions.add(v);
+          save();
+          draw();
+        } }, text))),
+      level === 'niggle' && eff === 'pain' && el('p', { class: 'pain-note' }, 'Same area as last session, so this counts as pain.'),
+      runPain && rule && el('div', { class: 'rule-box' },
+        el('div', { class: 'rule-kicker' }, 'Your plan’s injury rule'),
+        el('div', {}, stop ? stopLine(rule) : rule)),
+      runPain && rule && !stop && el('button', { class: 'btn block large', dataset: { action: 'repeat-week' }, onclick: () => {
+        const weekIndex = plan.weeks.find((w) => w.sessions.some((x) => x.id === session.id))?.index;
+        const records2 = store.get('sessions');
+        const doneIds = doneItemIds(store.get('logs'), store.get('matches'));
+        const isDone = (o) => sessionStatus({ session: o.session, date: o.date, records: records2, doneIds, repeat: o.repeat, logs: store.get('logs') }).completed;
+        store.save('schedule', repeatWeek({ plan, weekIndex, schedule: store.get('schedule'), isDone }));
+        modal.close();
+        toast(`Week ${weekIndex} repeats; later weeks move back 7 days`);
+      } }, 'Repeat this week'),
+      el('button', { class: 'link-btn block-link', type: 'button', dataset: { action: 'pain-close' }, onclick: () => modal.close() },
+        level ? 'Done' : 'Not now'),
+      eff === 'pain' && el('p', { class: 'muted', style: 'margin:10px 0 0;font-size:0.85rem' },
+        'Next time, this session’s exercises won’t suggest an increase.'),
+      el('p', { class: 'muted', style: 'margin:6px 0 0;font-size:0.85rem' }, CLINICIAN_LINE),
+    ].filter(Boolean));
+  }
+  draw();
+  modal = openModal('Any pain today?', body, []);
+}
+
+function exerciseCard({ plan, session, week, today, key, logs, entries, block, item, ex, reps, log, finished, minimumMode = false }) {
   const t = item.target ?? {};
   const plans = store.get('plans');
   const draftItem = readDraft(key).items[item.id];
@@ -393,7 +545,7 @@ function exerciseCard({ plan, session, week, today, key, logs, entries, block, i
   // logs before today, never stored. ✕ hides it for this visit.
   const sug = reps ? suggestionFor({
     exercise: ex, target: t, weekIsDeload: !!week?.isDeload,
-    logs: logs.filter((l) => l.date < today), plans, today,
+    logs: logs.filter((l) => l.date < today), plans, today, records: store.get('sessions'),
   }) : null;
   const active = sug && !dismissedSug.has(item.id);
   // A suggested move up/down the ladder is the level you log at — unless
@@ -407,7 +559,12 @@ function exerciseCard({ plan, session, week, today, key, logs, entries, block, i
     ex ? exerciseLink(ex) : '?',
     vName ? el('span', { class: 'ex-variant' }, ` · ${vName}`) : null,
     item.optional ? el('span', { class: 'pill', style: 'margin-left:6px' }, 'optional') : null);
-  const targetText = `${targetSummary(t)}`;
+  // In a minimum session, what changed: "2 × 10 · was 3 × 10"; warm-up and
+  // cool-down say they're unchanged.
+  const targetText = !minimumMode ? targetSummary(t)
+    : block.unchanged ? `${targetSummary(t)} · unchanged`
+      : item.was && targetSummary(item.was) !== targetSummary(t) ? `${targetSummary(t)} · was ${targetSummary(item.was)}`
+        : targetSummary(t);
 
   // Timed / cardio work: the full log form.
   if (!reps) {
@@ -925,7 +1082,7 @@ function decideMatch(entry, status) {
 // Manual picker for ambiguous/unmatched entries: shows nearby candidates.
 function manualLink(entry) {
   const lib = exById();
-  const candidates = findCandidates(entry, activePlans(), lib, 7); // wide window for manual review
+  const candidates = findCandidates(entry, activePlans(), lib, 7, store.get('schedule')); // wide window for manual review
   const list = el('div', {});
   let modal;
   if (!candidates.length) {
@@ -933,7 +1090,7 @@ function manualLink(entry) {
       'No planned exercises of a matching type within a week of this activity.'));
   }
   for (const c of candidates.slice(0, 12)) {
-    const date = addDays(c.plan.startDate, c.session.dayOffset);
+    const date = c.date;
     list.appendChild(el('div', { class: 'list-row tappable', onclick: () => {
       modal.close();
       const matches = store.get('matches').slice();
@@ -966,25 +1123,29 @@ function renderMetrics() {
   const metrics = [...store.get('metrics')].sort((a, b) => (a.date < b.date ? -1 : 1));
   renderWeightTrend(metrics);
 
-  // Adherence over the selected window.
+  // Sessions as counts, not a percentage to fall short of: the last 8
+  // weeks (through this one), by the one completed rule.
+  const end = addDays(weekStartOf(todayStr(), weekStartDay()), 6);
+  const eight = sessionCounts({
+    start: addDays(end, -55), end: todayStr(), plans: store.get('plans'), logs: store.get('logs'),
+    matches: store.get('matches'), records: store.get('sessions'), schedule: store.get('schedule'),
+  });
   const { done, planned } = adherence(adherenceDays);
-  const pct = planned ? Math.round((done / planned) * 100) : null;
   root.appendChild(el('div', { class: 'stat-row' },
-    el('div', { class: 'stat-tile' },
-      el('div', { class: 'stat-value' }, pct == null ? '—' : `${pct}%`),
-      el('div', { class: 'stat-label' }, `adherence · ${done}/${planned} planned`),
+    el('div', { class: 'stat-tile', dataset: { stat: 'sessions8' } },
+      el('div', { class: 'stat-label' }, 'Last 8 weeks'),
+      el('div', { class: 'stat-value' }, `${eight.completed} of ${eight.planned}`),
+      el('div', { class: 'stat-label' }, 'sessions'),
     ),
     el('div', { class: 'stat-tile' },
-      el('div', { class: 'stat-value' }, String(logCount(adherenceDays))),
-      el('div', { class: 'stat-label' }, `activities · last ${adherenceDays}d`),
+      el('div', { class: 'stat-label' }, 'Last 30 days'),
+      el('div', { class: 'stat-value' }, String(logCount(30))),
+      el('div', { class: 'stat-label' }, 'activities logged'),
     ),
   ));
-  root.appendChild(el('div', { class: 'segmented' },
-    [7, 30, 90].map((d) => el('button', {
-      class: adherenceDays === d ? 'active' : '',
-      onclick: () => { adherenceDays = d; render(); },
-    }, `${d} days`)),
-  ));
+  if (planned) {
+    root.appendChild(el('p', { class: 'muted footnote' }, `Planned exercises logged, last 30 days: ${done} of ${planned}.`));
+  }
 
   // Other body metrics stay raw (weight has its trend section above), shown
   // once they have enough data to draw.
@@ -1040,6 +1201,21 @@ function renderMetrics() {
   root.appendChild(heatmapSection());
 }
 
+// Today's header: a dot per planned session this week — filled when done,
+// ringed for today — and "2 of 3 this week". Weekly counts only: no streaks.
+function weekDots(today) {
+  const start = weekStartOf(today, weekStartDay());
+  const c = sessionCounts({
+    start, end: addDays(start, 6), plans: store.get('plans'), logs: store.get('logs'),
+    matches: store.get('matches'), records: store.get('sessions'), schedule: store.get('schedule'),
+  });
+  if (!c.planned) return null;
+  return el('div', { class: 'week-dots', 'aria-label': `${c.completed} of ${c.planned} sessions this week` },
+    el('span', { class: 'wdots', 'aria-hidden': 'true' },
+      c.each.map((x) => el('span', { class: `wdot${x.completed ? ' done' : x.date === today ? ' current' : ''}` }))),
+    el('span', { class: 'wdots-text' }, `${c.completed} of ${c.planned} this week`));
+}
+
 // ---------- Weekly review (js/review.js) ----------
 
 const weekStartDay = () => {
@@ -1053,7 +1229,7 @@ function reviewData(weekStart, today) {
     weekStart, today,
     plans: store.get('plans'), logs: store.get('logs'), activities: store.getActivityEntries(),
     metrics: store.get('metrics'), goals: store.get('goals'), sessionsRecords: store.get('sessions'),
-    matches: store.get('matches'), exercises: store.get('exercises'),
+    matches: store.get('matches'), exercises: store.get('exercises'), schedule: store.get('schedule'),
     units: weightUnit() === 'lb' ? 'imperial' : 'metric',
   });
 }
@@ -1273,15 +1449,12 @@ function adherence(days) {
   const confirmedPe = new Set(store.get('matches').filter((m) => m.status === 'confirmed' && m.plannedExerciseId).map((m) => m.plannedExerciseId));
   let planned = 0;
   let done = 0;
-  for (const plan of activePlans()) {
-    for (const { session, dayOffset } of allSessions(plan)) {
-      const d = addDays(plan.startDate, dayOffset);
-      if (d < from || d > to) continue;
-      for (const { item } of sessionItems(session)) {
-        if (item.optional) continue; // skipping optional work isn't non-adherence
-        planned++;
-        if (loggedPe.has(item.id) || confirmedPe.has(item.id)) done++;
-      }
+  for (const { session, date: d, skipped, repeat } of occurrences(store.get('plans'), store.get('schedule'))) {
+    if (skipped || repeat || d < from || d > to) continue;
+    for (const { item } of sessionItems(session)) {
+      if (item.optional) continue; // skipping optional work isn't non-adherence
+      planned++;
+      if (loggedPe.has(item.id) || confirmedPe.has(item.id)) done++;
     }
   }
   return { done, planned };

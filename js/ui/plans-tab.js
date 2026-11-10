@@ -14,6 +14,7 @@ import {
 } from '../config.js';
 import { muscleGroupsOf } from '../exercise-filters.js';
 import { loadModelOf } from '../load.js';
+import { effectiveSessionDate, isSkipped, occurrences, sessionKey } from '../schedule.js';
 import { todayStr, addDays, toDateStr, parseDateStr, formatDate, formatDuration } from '../dates.js';
 import {
   formatWeight, formatDistance, formatPaceValue, paceUnit,
@@ -212,7 +213,10 @@ function renderPlanDetail(planId) {
 
 function sessionCard(plan, week, session, exercises) {
   const dayOffset = session.dayOffset ?? (week.index - 1) * 7 + (session.dayInWeek ?? 0);
-  const date = addDays(plan.startDate, dayOffset);
+  const schedule = store.get('schedule');
+  const date = effectiveSessionDate(plan, session, schedule, dayOffset);
+  const moved = schedule.some((r) => r.id === sessionKey(plan.id, session.id) && r.kind === 'move');
+  const skipped = isSkipped(plan, session, schedule);
   const items = sessionItems(session);
   const exNames = items.map(({ item }) => exercises.get(item.exerciseId)?.shortName || exercises.get(item.exerciseId)?.name || '?').join(', ');
   return el('div', { class: 'card' },
@@ -221,6 +225,7 @@ function sessionCard(plan, week, session, exercises) {
         el('div', { class: 'row-title' }, session.label || 'Session'),
         el('div', { class: 'row-sub' },
           `${formatDate(date, { weekday: 'short', month: 'short', day: 'numeric' })}`
+          + `${skipped ? ' · skipped' : moved ? ' · moved' : ''}`
           + `${session.sessionType ? ` · ${session.sessionType}` : ''}`
           + `${session.estimatedDurationMin ? ` · ~${session.estimatedDurationMin} min` : ''}`),
         exNames && el('div', { class: 'row-sub' }, exNames),
@@ -238,7 +243,12 @@ function editSession(plan, session) {
   if (!draft.blocks.length) draft.blocks.push(makeBlock({ type: 'main' }));
 
   const labelInput = el('input', { value: draft.label, placeholder: 'e.g. Week 1 · Day 2, Tempo run' });
-  const dateInput = el('input', { type: 'date', value: addDays(plan.startDate, draft.dayOffset ?? 0) });
+  // The date shown is when the session happens (js/schedule.js). For a
+  // session the plan slid, changing it updates that move rather than the plan.
+  const schedule = store.get('schedule');
+  const moveRec = session ? schedule.find((r) => r.id === sessionKey(plan.id, session.id) && r.kind === 'move') : null;
+  const shownDate = session ? effectiveSessionDate(plan, session, schedule) : effectiveSessionDate(plan, draft, []);
+  const dateInput = el('input', { type: 'date', value: shownDate });
   const blocksEl = el('div', {});
 
   function renderBlocks() {
@@ -310,8 +320,9 @@ function editSession(plan, session) {
       class: 'btn',
       onClick: () => {
         draft.label = labelInput.value.trim();
-        if (dateInput.value) {
-          draft.dayOffset = Math.round((parseDateStr(dateInput.value) - parseDateStr(plan.startDate)) / 86400000);
+        if (dateInput.value && dateInput.value !== shownDate) {
+          if (moveRec) store.upsert('schedule', { ...moveRec, date: dateInput.value });
+          else draft.dayOffset = Math.round((parseDateStr(dateInput.value) - parseDateStr(plan.startDate)) / 86400000);
         }
         placeSession(plan, draft);
         store.upsert('plans', plan);
@@ -1065,12 +1076,9 @@ function renderCalendar() {
   }
   const plans = store.get('plans').filter((p) => p.status === 'active');
   const byDate = new Map();
-  for (const p of plans) {
-    for (const { session, dayOffset, week } of allSessions(p)) {
-      const d = addDays(p.startDate, dayOffset);
-      if (!byDate.has(d)) byDate.set(d, []);
-      byDate.get(d).push({ plan: p, session, week });
-    }
+  for (const { plan: p, session, week, date: d, skipped, repeat } of occurrences(plans, store.get('schedule'))) {
+    if (!byDate.has(d)) byDate.set(d, []);
+    byDate.get(d).push({ plan: p, session, week, skipped, repeat });
   }
 
   const monthName = calMonth.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
@@ -1095,13 +1103,13 @@ function renderCalendar() {
     const cell = el('div', {
       class: `cal-cell${d.getMonth() !== calMonth.getMonth() ? ' other-month' : ''}${ds === today ? ' today' : ''}`,
     }, el('span', { class: 'cal-day-num' }, d.getDate()));
-    for (const { plan, session, week } of byDate.get(ds) ?? []) {
+    for (const { plan, session, week, skipped, repeat } of byDate.get(ds) ?? []) {
       // Phones get a compact "W1 S2" (a seventh of 390px fits nothing more);
       // wider screens the full label. Both carry the full text for tooltips
       // and screen readers.
       const n = (week?.sessions ?? []).indexOf(session) + 1;
-      const full = `${plan.name}: ${session.label || plan.name}`;
-      cell.appendChild(el('span', { class: 'cal-dot', title: full, 'aria-label': full },
+      const full = `${plan.name}: ${session.label || plan.name}${skipped ? ' (skipped)' : repeat ? ' (repeat)' : ''}`;
+      cell.appendChild(el('span', { class: `cal-dot${skipped ? ' cal-skipped' : ''}${repeat ? ' cal-repeat' : ''}`, title: full, 'aria-label': full },
         el('span', { class: 'cal-full', 'aria-hidden': 'true' }, session.label || plan.name),
         el('span', { class: 'cal-short', 'aria-hidden': 'true' }, week ? `W${week.index}${n ? ` S${n}` : ''}` : '•')));
     }

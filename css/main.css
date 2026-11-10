@@ -766,3 +766,37 @@ body.resting { --dock: 76px; }
   background: color-mix(in srgb, var(--warn) 15%, var(--surface-2)); color: var(--warn); font-size: 1.1rem;
 }
 .review-weight { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.cal-dot.cal-skipped { text-decoration: line-through; opacity: 0.55; }
+.cal-dot.cal-repeat { border: 1px dashed var(--accent); }
+
+/* ---------- Phase D: weekly dots, session version ---------- */
+.week-dots { display: flex; align-items: center; gap: 10px; margin: -6px 2px 14px; color: var(--text-dim); font-size: 0.95rem; }
+.wdots { display: inline-flex; gap: 5px; }
+.wdot { width: 11px; height: 11px; border-radius: 50%; border: 2px solid var(--border); }
+.wdot.done { background: var(--accent); border-color: var(--accent); }
+.wdot.current { border-color: var(--accent); }
+.session-mode { margin: 0 0 10px; }
+.min-note { margin: -4px 2px 10px; font-size: 0.85rem; }
+.block-note { text-transform: none; letter-spacing: 0; font-weight: 500; }
+
+/* ---------- Overdue card, pain sheet ---------- */
+.overdue-title { font-size: 1.35rem; font-weight: 750; line-height: 1.25; margin-bottom: 2px; }
+.overdue-text { margin: 12px 0; }
+.slide-preview { background: var(--surface-2); border-radius: 12px; padding: 10px 14px; margin-bottom: 14px; }
+.slide-preview .list-row { padding: 8px 0; }
+.block-link { display: block; width: 100%; text-align: center; margin-top: 6px; color: var(--text-dim); }
+.pain-levels { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.pain-level {
+  min-height: 52px; border-radius: 12px; border: 1px solid var(--border); background: var(--surface-2);
+  color: var(--text); font: inherit; font-weight: 650; cursor: pointer;
+}
+.pain-level.on { border-color: var(--warn); background: color-mix(in srgb, var(--warn) 18%, var(--surface)); color: var(--warn); }
+.pain-regions { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  min-height: var(--tap); padding: 0 16px; border-radius: 999px; border: 1px solid var(--border);
+  background: var(--surface-2); color: var(--text); font: inherit; font-weight: 600; cursor: pointer;
+}
+.chip.on { border-color: var(--warn); background: color-mix(in srgb, var(--warn) 18%, var(--surface)); color: var(--warn); }
+.pain-note { color: var(--warn); font-size: 0.9rem; margin: 10px 0 0; }
+.rule-box { background: var(--surface-2); border-radius: 12px; padding: 12px 14px; margin: 16px 0 12px; line-height: 1.45; }
+.rule-kicker { font-size: 0.75rem; font-weight: 750; letter-spacing: 0.06em; text-transform: uppercase; color: var(--warn); margin-bottom: 6px; }

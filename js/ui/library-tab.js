@@ -30,7 +30,7 @@ import {
 } from '../load.js';
 import { lineChart, datePoints } from '../charts.js';
 import { suggestionFor, suggestionChip } from './suggestion.js';
-import { nextPlannedFor } from '../sessions.js';
+import { nextPlannedFor } from '../schedule.js';
 
 let root = null;
 let unsub = null;
@@ -510,7 +510,7 @@ function deleteExerciseFlow(ex) {
 
 function nextTimeSection(ex) {
   const today = todayStr();
-  const planned = nextPlannedFor(ex.id, store.get('plans'), today);
+  const planned = nextPlannedFor(ex.id, store.get('plans'), today, store.get('schedule'));
   const sug = suggestionFor({
     exercise: ex,
     target: planned?.item.target ?? null,
@@ -518,6 +518,7 @@ function nextTimeSection(ex) {
     logs: store.get('logs'),
     plans: store.get('plans'),
     today,
+    records: store.get('sessions'),
   });
   if (!sug) return null;
   return el('div', { class: 'card next-time' },

@@ -43,6 +43,9 @@ export const DATA_FILES = {
   // One record per (date, planned session) the user finished — full or
   // minimum — and later skips and pain flags. Health data: encrypted.
   sessions: 'data/sessions.json',
+  // When sessions actually happen: moves, skips and repeat weeks layered
+  // over the plans (js/schedule.js). The plans themselves never change.
+  schedule: 'data/schedule.json',
 };
 // Synced activities, split by writer so the two can never conflict:
 //   ACTIVITY_DIR — written only by the Polar sync workflow (Actions)
@@ -253,3 +256,7 @@ export const RATE_WARN_PCT = 1.0;
 
 // Weekly review (js/review.js): a weight PR needs at least this many reps.
 export const PR_MIN_REPS = 5;
+
+// The minimum session (js/minimum.js): a derived, half-volume version of a
+// planned session for busy or flat days. Warm-up and cool-down stay whole.
+export const MIN_SESSION = { factor: 0.5 };

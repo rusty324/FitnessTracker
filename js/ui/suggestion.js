@@ -5,6 +5,7 @@ import { formatWeight, weightUnit } from '../units.js';
 import { el } from './components.js';
 import { suggestNext, sessionsOf } from '../progression.js';
 import { targetSummary } from './plans-tab.js';
+import { painHoldFor } from '../pain.js';
 
 // Kinds that change what you'd do: their values replace the ghosts.
 export const CHANGES_GHOSTS = ['add', 'drop', 'return', 'advance', 'regress'];
@@ -58,9 +59,11 @@ export function suggestionChip(s, ex, { target = null, onDismiss = null } = {}) 
 
 // The suggestion for an exercise from store data. logs: everything before
 // the day it's for.
-export function suggestionFor({ exercise, target, weekIsDeload = false, logs, plans, today }) {
+// records: data/sessions.json, for the pain hold.
+export function suggestionFor({ exercise, target, weekIsDeload = false, logs, plans, today, records = [] }) {
   if (!exercise) return null;
   return suggestNext({
+    painHold: painHoldFor(exercise.id, records, plans),
     exercise,
     plannedTarget: target,
     history: sessionsOf(exercise.id, logs, plans),

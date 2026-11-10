@@ -83,9 +83,18 @@ files). `datarepo-template/scripts/crypto.js` must stay **byte-identical** to
   and the main one for cardio. Variant levels are positional: changing a
   ladder's order breaks plans and logs that reference levels, so ladder
   fixes need a migration (`js/preset-sync.js` has the Push-Up one).
+- **Session dates come only from `js/schedule.js`** (`effectiveSessionDate`,
+  `occurrences`, `plannedBetween`, `nextPlannedFor`). Never compute
+  `addDays(plan.startDate, dayOffset)` elsewhere — `tests/app-schedule.mjs`
+  scans for it. `data/schedule.json` (encrypted) is a ghsync collection of
+  `{id:'<planId>:<sessionId>', kind:'move'|'skip', planId, sessionId, date}`
+  and `{id:'repeat:…', kind:'repeat', …, date}`: slides, skips and repeated
+  weeks layered over plans, which are never edited for them.
 - **Sessions** (`data/sessions.json`, encrypted): `{id:'<date>:<plannedSessionId>',
-  date, plannedSessionId, planId, kind:'full'|'minimum'}` written by "Finish
-  session". A planned session is **completed** when it has such a record *or*
+  date, plannedSessionId, planId, kind:'full'|'minimum', repeat?, pain?:
+  {level:'none'|'niggle'|'pain', regions?}}` written by "Finish session" and
+  the pain question after it (`js/pain.js`: same-region niggles twice running
+  = pain; the plan's `injuryRule` is shown verbatim, never paraphrased). A planned session is **completed** when it has such a record *or*
   every non-optional item has a linked log / confirmed match
   (`js/sessions.js` — the only definition; reuse it).
 - **Gym-floor drafts**: ticking a set writes `localStorage`
@@ -112,6 +121,7 @@ files). `datarepo-template/scripts/crypto.js` must stay **byte-identical** to
 | `js/history.js`, `js/sanity.js`, `js/sessions.js` | Pure: last performance / ghosts, inline set warnings, the one "completed session" rule |
 | `js/progression.js`, `js/ui/suggestion.js` | Pure next-time suggestions (double / variant progression, `PROGRESSION` in config) and their chip / Next time card |
 | `js/trend.js`, `js/review.js` | Pure weight trend (time-aware EMA; rate/ETA from OLS on raw weights) and the weekly review (sessions, PRs, volume, one recommendation) |
+| `js/schedule.js`, `js/minimum.js`, `js/pain.js` | Pure: the one session-date function + slide/skip/repeat; the derived minimum session; pain escalation and rules |
 | `js/draft.js`, `js/rest-timer.js` | Gym-floor drafts (localStorage, flushed to logs) and the rest timer / wake lock |
 | `js/ui/tabbar.js` | Hash router `#/<tab>[/<path>]`; tabs may export `route(path)` |
 | `js/cardio.js`, `js/sets.js`, `js/gps.js` | Pure helpers (gear, per-set math, GPX/TCX parsing) |
@@ -181,7 +191,11 @@ files). `datarepo-template/scripts/crypto.js` must stay **byte-identical** to
     Phase B progression suggestions (chip on Today with suggested ghosts,
     Next time card; derived at read time, never stored), then Phase C weight
     trend (trend is the headline; raw weigh-ins are muted dots with neutral
-    deltas — never red/green) and the weekly Review sub-tab + Today banner.
+    deltas — never red/green) and the weekly Review sub-tab + Today banner,
+    then Phase D: one session-date function with slide/skip for overdue
+    sessions, the derived minimum session (counts as completed, never
+    progresses), pain flags with the plan's injury rule and repeat-week,
+    and weekly dots ("2 of 3 this week") instead of an adherence %.
 
 ## Ideas not built yet
 

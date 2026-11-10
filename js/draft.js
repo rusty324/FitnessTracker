@@ -28,10 +28,17 @@ export function clearDraft(key) {
   try { localStorage.removeItem(key); } catch { /* ignore */ }
 }
 
+// 'full' | 'minimum': which version of the session is being done.
+export function setDraftMode(key, mode) {
+  const draft = readDraft(key);
+  draft.mode = mode;
+  writeDraft(key, draft);
+}
+
 export function removeDraftItem(key, itemKey) {
   const draft = readDraft(key);
   delete draft.items[itemKey];
-  if (Object.keys(draft.items).length) writeDraft(key, draft);
+  if (Object.keys(draft.items).length || draft.mode) writeDraft(key, draft);
   else clearDraft(key);
 }
 
@@ -52,9 +59,11 @@ export function flushItem(key, itemKey) {
   const actual = actualFromRows(item.rows, { showWeight: item.showWeight });
   if (item.variantLevel != null) actual.variantLevel = item.variantLevel;
   const existing = item.logId ? store.get('logs').find((l) => l.id === item.logId) : null;
-  if (existing && JSON.stringify(existing.actual) === JSON.stringify(actual)) return existing.id;
+  // A minimum session's logs say so, and never qualify a progression.
+  const mode = draft.mode === 'minimum' ? { mode: 'minimum' } : {};
+  if (existing && JSON.stringify(existing.actual) === JSON.stringify(actual) && existing.mode === mode.mode) return existing.id;
   const log = existing
-    ? { ...existing, actual }
+    ? { ...existing, actual, ...mode }
     : {
         ...makeLogEntry({
           date,
@@ -63,6 +72,7 @@ export function flushItem(key, itemKey) {
           exerciseId: item.exerciseId,
           actual,
         }),
+        ...mode,
         // The log form reserves its entry's id up front, so a flush here and
         // its own Save later write the same log, never two.
         ...(item.logId ? { id: item.logId } : {}),

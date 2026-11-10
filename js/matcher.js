@@ -4,19 +4,20 @@
 // after a sync has already happened.
 
 import { sportMapping, MATCH_WINDOW_DAYS } from './config.js';
-import { addDays, diffDays } from './dates.js';
-import { allSessions, sessionItems } from './models.js';
+import { diffDays } from './dates.js';
+import { sessionItems } from './models.js';
+import { occurrences } from './schedule.js';
 
 // Returns [{activityId, planId, sessionId, plannedExerciseId, score}] of NEW
 // suggestions — activities that already have a match record (suggested/
 // confirmed/rejected) are skipped, so user decisions are terminal.
-export function findSuggestions(activityEntries, plans, matches, exercises, windowDays = MATCH_WINDOW_DAYS) {
+export function findSuggestions(activityEntries, plans, matches, exercises, windowDays = MATCH_WINDOW_DAYS, schedule = []) {
   const handled = new Set(matches.map((m) => m.activityId));
   const exById = new Map(exercises.map((e) => [e.id, e]));
   const out = [];
   for (const entry of activityEntries) {
     if (handled.has(entry.id)) continue;
-    const candidates = findCandidates(entry, plans, exById, windowDays);
+    const candidates = findCandidates(entry, plans, exById, windowDays, schedule);
     const best = pickWinner(candidates);
     if (best) {
       out.push({
@@ -42,30 +43,29 @@ function activityMatches(ex, mapping) {
 
 // All plausible planned block items for one activity (used both by the
 // auto-matcher and by the manual "link to plan" picker).
-export function findCandidates(entry, plans, exById, windowDays = MATCH_WINDOW_DAYS) {
+// schedule: data/schedule.json — a moved session matches on its new date.
+export function findCandidates(entry, plans, exById, windowDays = MATCH_WINDOW_DAYS, schedule = []) {
   const mapping = sportMapping(entry.type);
   const candidates = [];
-  for (const plan of plans) {
-    if (plan.status !== 'active') continue;
-    for (const { week, session, dayOffset } of allSessions(plan)) {
-      const sessionDate = addDays(plan.startDate, dayOffset);
-      const dayDiff = Math.abs(diffDays(sessionDate, entry.date));
-      if (dayDiff > windowDays) continue;
-      for (const { item } of sessionItems(session)) {
-        const ex = exById.get(item.exerciseId);
-        if (!ex || !activityMatches(ex, mapping)) continue;
-        candidates.push({
-          planId: plan.id,
-          sessionId: session.id,
-          plannedExerciseId: item.id,
-          plan,
-          week,
-          session,
-          plannedExercise: item,
-          exercise: ex,
-          score: score(entry, item, dayDiff),
-        });
-      }
+  for (const { plan, week, session, date: sessionDate, skipped, repeat } of occurrences(plans, schedule)) {
+    if (skipped || repeat) continue;
+    const dayDiff = Math.abs(diffDays(sessionDate, entry.date));
+    if (dayDiff > windowDays) continue;
+    for (const { item } of sessionItems(session)) {
+      const ex = exById.get(item.exerciseId);
+      if (!ex || !activityMatches(ex, mapping)) continue;
+      candidates.push({
+        planId: plan.id,
+        sessionId: session.id,
+        plannedExerciseId: item.id,
+        plan,
+        week,
+        session,
+        date: sessionDate,
+        plannedExercise: item,
+        exercise: ex,
+        score: score(entry, item, dayDiff),
+      });
     }
   }
   return candidates.sort((a, b) => b.score - a.score);
