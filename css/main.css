@@ -38,6 +38,17 @@
 
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
+/* With viewport-fit=cover the page runs under the iPhone's status bar; a
+   strip in the page colour keeps scrolled content from colliding with the
+   clock. */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: env(safe-area-inset-top);
+  background: var(--bg);
+  z-index: 40;
+}
 body {
   background: var(--bg);
   color: var(--text);
@@ -341,11 +352,15 @@ label { display: block; font-size: 0.85rem; color: var(--text-dim); margin-botto
 }
 .settings-section[open] > summary::after { transform: rotate(90deg); }
 .settings-section > summary:hover { background: var(--surface-2); }
-.settings-section > summary .sec-name { font-weight: 600; }
+.settings-section > summary .sec-name { font-weight: 600; flex-shrink: 0; }
+/* A data-repo path is one long unbroken string: let it wrap inside the box. */
 .settings-section > summary .sec-state {
   color: var(--text-dim);
   font-size: 0.82rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
+.settings-body { overflow-wrap: anywhere; }
 .settings-body {
   padding: 0 14px 14px;
   border-top: 1px solid var(--border);
@@ -409,7 +424,9 @@ label { display: block; font-size: 0.85rem; color: var(--text-dim); margin-botto
 }
 .cal-grid {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  /* minmax(0, …): a plain 1fr won't shrink below its content, so a long
+     unbroken session label widened its column and pushed the page sideways. */
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 3px;
 }
 .cal-dow {
@@ -420,6 +437,8 @@ label { display: block; font-size: 0.85rem; color: var(--text-dim); margin-botto
   text-transform: uppercase;
 }
 .cal-cell {
+  min-width: 0;
+  overflow: hidden;
   min-height: 52px;
   background: var(--surface);
   border: 1px solid var(--border);
@@ -428,6 +447,12 @@ label { display: block; font-size: 0.85rem; color: var(--text-dim); margin-botto
   font-size: 0.75rem;
 }
 .cal-cell.other-month { opacity: 0.35; }
+.cal-short { display: none; }
+@media (max-width: 600px) {
+  .cal-full { display: none; }
+  .cal-short { display: inline; }
+  .cal-dot { text-overflow: clip; padding: 1px 2px; text-align: center; }
+}
 .cal-cell.today { border-color: var(--accent); border-width: 2px; }
 .cal-day-num { color: var(--text-dim); }
 .cal-dot {
@@ -622,7 +647,7 @@ label { display: block; font-size: 0.85rem; color: var(--text-dim); margin-botto
 }
 .set-check.done { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
 .set-warn { color: var(--warn); font-size: 0.82rem; margin: -4px 0 8px 24px; }
-.set-footer { display: flex; flex-wrap: wrap; gap: 4px 10px; margin-top: 2px; }
+.set-footer-inner { display: flex; flex-wrap: wrap; gap: 4px 10px; margin-top: 2px; }
 
 /* Finish session: in thumb reach, above the tab bar and the rest timer. */
 .finish-bar {

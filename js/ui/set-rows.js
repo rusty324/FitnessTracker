@@ -49,6 +49,11 @@ export function weightStep(exercise) {
 const roundTo = (v, step) => Math.round(Math.round(v / step) * step * 1000) / 1000;
 
 export const isBodyweightExercise = (ex) => ex?.modality === 'bodyweight';
+// Exercises whose sets carry a load by default. Everything else — bodyweight,
+// mobility, stretches, bands, 'other' — hides the weight column until
+// "+ Add weight" (or a last session with added weight) shows it.
+const LOADED_MODALITIES = ['barbell', 'dumbbell', 'machine', 'kettlebell'];
+export const isLoadedExercise = (ex) => LOADED_MODALITIES.includes(ex?.modality);
 
 // ---------- pure: rows <-> stored shape ----------
 
@@ -91,9 +96,8 @@ export function setRows({
   exercise, target = {}, perf = null, rows: startRows = null, showWeight: startShow = null,
   history = [], includeTyped = false, onCheck, onChange,
 }) {
-  const bodyweight = isBodyweightExercise(exercise);
   const lastHadWeight = (perf?.sets ?? []).some((s) => s.weightKg > 0);
-  let showWeight = startShow ?? (!bodyweight || lastHadWeight
+  let showWeight = startShow ?? (isLoadedExercise(exercise) || lastHadWeight
     || (startRows ?? []).some((r) => r.kg > 0));
   const planned = Math.min(MAX_SETS, target.sets ?? perf?.sets?.length ?? 1);
   let rows = (startRows?.length ? startRows : Array.from({ length: Math.max(1, planned) }, () => ({})))
@@ -120,13 +124,12 @@ export function setRows({
   const changed = () => onChange?.(state());
 
   function renderHead() {
-    head.innerHTML = '';
-    head.append(
+    head.replaceChildren(...[
       el('span', { class: 'set-n' }, 'Set'),
-      showWeight ? el('span', { class: 'set-col' }, `Weight (${weightUnit()})`) : null,
+      showWeight && el('span', { class: 'set-col' }, `Weight (${weightUnit()})`),
       el('span', { class: 'set-col' }, 'Reps'),
       el('span', { class: 'set-check-h' }),
-    );
+    ].filter(Boolean)); // append(null) would print "null"
     wrap.classList.toggle('no-weight', !showWeight);
   }
 
@@ -244,14 +247,16 @@ export function setRows({
 
   function renderFooter() {
     footer.innerHTML = '';
-    footer.append(
+    // Through el(), which skips false/null children: Node.append() would
+    // print them as the text "false" / "null".
+    footer.replaceChildren(el('div', { class: 'set-footer-inner' },
       rows.length < MAX_SETS && el('button', { class: 'link-btn', type: 'button', onclick: addSet }, '+ Add set'),
       rows.length > 1 && el('button', { class: 'link-btn', type: 'button', onclick: removeSet }, '− Remove set'),
-      bodyweight && !showWeight && el('button', {
+      !showWeight && el('button', {
         class: 'link-btn', type: 'button',
         onclick: () => { showWeight = true; render(); changed(); },
       }, '+ Add weight'),
-    );
+    ));
   }
 
   function addSet() {

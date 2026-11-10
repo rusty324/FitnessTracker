@@ -1095,9 +1095,15 @@ function renderCalendar() {
     const cell = el('div', {
       class: `cal-cell${d.getMonth() !== calMonth.getMonth() ? ' other-month' : ''}${ds === today ? ' today' : ''}`,
     }, el('span', { class: 'cal-day-num' }, d.getDate()));
-    for (const { plan, session } of byDate.get(ds) ?? []) {
-      cell.appendChild(el('span', { class: 'cal-dot', title: `${plan.name}: ${session.label}` },
-        session.label || plan.name));
+    for (const { plan, session, week } of byDate.get(ds) ?? []) {
+      // Phones get a compact "W1 S2" (a seventh of 390px fits nothing more);
+      // wider screens the full label. Both carry the full text for tooltips
+      // and screen readers.
+      const n = (week?.sessions ?? []).indexOf(session) + 1;
+      const full = `${plan.name}: ${session.label || plan.name}`;
+      cell.appendChild(el('span', { class: 'cal-dot', title: full, 'aria-label': full },
+        el('span', { class: 'cal-full', 'aria-hidden': 'true' }, session.label || plan.name),
+        el('span', { class: 'cal-short', 'aria-hidden': 'true' }, week ? `W${week.index}${n ? ` S${n}` : ''}` : '•')));
     }
     grid.appendChild(cell);
   }

@@ -157,13 +157,15 @@ function renderToday() {
   root.appendChild(weighInCard(today));
 
   let anyPlanned = false;
+  const finishBars = [];
   const doneIds = doneItemIds(logs, store.get('matches'));
   const records = store.get('sessions');
   for (const plan of activePlans()) {
     for (const { session, week, dayOffset } of allSessions(plan)) {
       if (addDays(plan.startDate, dayOffset) !== today) continue;
       anyPlanned = true;
-      renderSessionToday({ plan, session, week, today, lib, logs, loggedByPe, doneIds, records });
+      const finish = renderSessionToday({ plan, session, week, today, lib, logs, loggedByPe, doneIds, records });
+      if (finish) finishBars.push(finish);
     }
   }
   if (!anyPlanned) {
@@ -172,6 +174,9 @@ function renderToday() {
     ));
   }
   root.appendChild(el('button', { class: 'btn', onclick: () => adhocLog() }, '+ Log ad-hoc activity'));
+  // Last on the page, under the ad-hoc button (and pinned above the tab bar
+  // while the session scrolls).
+  for (const bar of finishBars) root.appendChild(bar);
 }
 
 // One-tap daily weigh-in. Prefills the last known weight; merges into
@@ -336,10 +341,20 @@ function renderSessionToday({ plan, session, week, today, lib, logs, loggedByPe,
     root.appendChild(exerciseCard({ plan, session, today, key, logs, entries, ...e }));
   }
 
+  // Returned, not appended: Today puts it at the very bottom.
   if (!rec && entries.length) {
-    root.appendChild(el('div', { class: 'finish-bar' },
-      el('button', { class: 'btn block large', dataset: { action: 'finish' }, onclick: () => finishSession(plan, session, today, 'full') }, 'Finish session')));
+    return el('div', { class: 'finish-bar' },
+      el('button', { class: 'btn block large', dataset: { action: 'finish' }, onclick: () => finishSession(plan, session, today, 'full') },
+        finishLabel(session, plan)));
   }
+  return null;
+}
+
+// One session a day is the norm; with two, each Finish says which.
+function finishLabel(session, plan) {
+  const todays = activePlans().flatMap((p) => allSessions(p)
+    .filter(({ dayOffset }) => addDays(p.startDate, dayOffset) === todayStr()));
+  return todays.length > 1 ? `Finish ${session.label || plan.name}` : 'Finish session';
 }
 
 function finishSession(plan, session, date, kind) {
