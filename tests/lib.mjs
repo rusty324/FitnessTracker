@@ -25,7 +25,7 @@ export function reporter() {
       if (!ok) failed = true;
     },
     done(browser) {
-      return browser.close().then(() => process.exit(failed ? 1 : 0));
+      return Promise.resolve(browser?.close()).then(() => process.exit(failed ? 1 : 0));
     },
   };
 }

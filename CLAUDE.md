@@ -144,13 +144,17 @@ files). `datarepo-template/scripts/crypto.js` must stay **byte-identical** to
 | `datarepo-template/` | Files the owner copies into the private data repo |
 | `presets/` | Bundled plans + exercise packs |
 | `tests/` | Playwright suites + runner |
+| `.github/workflows/tests.yml` | CI: runs `tests/run.mjs` on pushes to main |
 
 ## Working here
 
 - **Run tests before every push:** `node tests/run.mjs` (starts its own static
   server, runs this repo's suites and ghsync's; needs `playwright` resolvable —
-  e.g. symlink the global install into `node_modules/`). ~300 checks, all
-  should be green. Subset: `node tests/run.mjs app-sets`.
+  e.g. symlink the global install into `node_modules/`). ~690 checks, all
+  should be green. Subset: `node tests/run.mjs app-sets`. The same run happens
+  on every push to `main` in GitHub Actions (`.github/workflows/tests.yml`) —
+  an alarm, not a gate: Pages deploys regardless. Keep its Playwright pin in
+  step with the one the tests are run with here.
 - **Add a test with every change.** Suites drive the real pages in Chromium;
   `tests/lib.mjs` has `stubGithub()` for a fake GitHub API. Prefer asserting
   stored data and visible behaviour; for UI, also check phone width (390px).

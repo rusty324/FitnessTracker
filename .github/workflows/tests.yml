@@ -1,0 +1,35 @@
+# Runs the whole test suite on every push to main (and by hand from the
+# Actions tab). It doesn't gate anything — main still deploys to Pages on
+# push — it's an alarm: a red ✗ on the commit and an email when a push
+# broke the tests. Kept free of a package.json on purpose (no dependencies
+# in the app); Playwright is installed only here.
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# A newer push makes an older run moot.
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install Playwright and Chromium
+        run: |
+          npm install --no-save --no-package-lock playwright@1.63.0
+          npx playwright install --with-deps chromium
+      - name: Run tests
+        run: node tests/run.mjs
