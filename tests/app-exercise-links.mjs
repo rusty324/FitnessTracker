@@ -57,7 +57,7 @@ step('ids are encoded in the link', (await page.getAttribute('a.ex-link:has-text
 await plankLink.click();
 await page.waitForSelector('button:has-text("‹ Back")');
 step('it opens the exercise in the Fitness Library',
-  (await activeTab()) === 'Fitness Library' && (await detailTitle()) === 'Front Plank', `${await activeTab()} / ${await detailTitle()}`);
+  (await activeTab()) === 'Library' && (await detailTitle()) === 'Front Plank', `${await activeTab()} / ${await detailTitle()}`);
 step('with its description', /Hold a straight line from head to heels/.test(await page.textContent('#view')));
 step('the address names the exercise', (await hash()) === '#/library/exercise/ex-plank');
 await page.click('button:has-text("‹ Back")');

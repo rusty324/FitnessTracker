@@ -19,6 +19,9 @@ async function measure(page) {
       contentLeft: view.getBoundingClientRect().left + pad,
       contentRight: view.getBoundingClientRect().right - pad,
       gear: r('#settings-btn'),
+      vh: window.innerHeight,
+      toastBottom: parseFloat(getComputedStyle(document.querySelector('.toast-root')).bottom),
+      viewPadBottom: parseFloat(getComputedStyle(view).paddingBottom),
       seg: r('.segmented'),
       tap: getComputedStyle(document.documentElement).getPropertyValue('--tap').trim(),
       doc: document.documentElement.scrollWidth - document.documentElement.clientWidth,
@@ -63,13 +66,16 @@ step('960px: nothing collides', m.tabbar.left > m.title.right && m.tabbar.right 
 // ---- phone: unchanged ----
 page = await open({ width: 390, height: 820 }, { hasTouch: true, isMobile: true });
 m = await measure(page);
-step('phone: tabs stay below the header', m.tabbar.top >= m.header.bottom - 1);
+step('phone: tabs are a bottom bar', Math.abs(m.tabbar.bottom - m.vh) <= 1 && m.tabbar.top > m.vh / 2, `${m.tabbar.top}-${m.tabbar.bottom} of ${m.vh}`);
+step('phone: tab buttons are thumb-sized', m.tabbar.height >= 44);
+step('phone: toasts sit above the bar', m.toastBottom >= m.tabbar.height, `${m.toastBottom} vs ${m.tabbar.height}`);
+step('phone: the page can scroll clear of the bar', m.viewPadBottom >= m.tabbar.height, `${m.viewPadBottom}`);
 step('phone: sub-tabs span the width', m.seg.width >= (m.contentRight - m.contentLeft) - 1);
 step('phone: touch-sized controls', m.tap === '44px', m.tap);
 
 // A wide touch-only tablet keeps the phone layout too.
 page = await open({ width: 1180, height: 820 }, { hasTouch: true, isMobile: true });
 m = await measure(page);
-step('touch tablet: phone layout kept', m.tabbar.top >= m.header.bottom - 1 && m.tap === '44px');
+step('touch tablet: phone layout kept', Math.abs(m.tabbar.bottom - m.vh) <= 1 && m.tap === '44px');
 
 await done(browser);

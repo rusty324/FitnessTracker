@@ -14,7 +14,18 @@ await page.waitForSelector('.tabbar button');
 await page.evaluate(() => localStorage.setItem('ft.welcomed', '1'));
 
 const tabs = await page.evaluate(() => [...document.querySelectorAll('.tabbar button')].map((b) => b.textContent));
-step('three tabs, Fitness Library right of Logs', tabs.join(',') === 'Plans,Logs,Fitness Library', tabs.join(','));
+step('three tabs, Library right of Logs', tabs.join(',') === 'Plans,Logs,Library', tabs.join(','));
+step('each tab has an icon', await page.evaluate(() => [...document.querySelectorAll('.tabbar button')].every((b) => b.querySelector('svg.tab-icon'))));
+step('the header titles the page', (await page.textContent('#page-title')) === 'Today');
+await page.click('.segmented button:has-text("Metrics")');
+step('…and follows the Logs sub-view', (await page.textContent('#page-title')) === 'Metrics');
+step('Logs has Today / History / Metrics (the heatmap is inside Metrics)',
+  (await page.$$eval('.segmented:first-of-type button', (bs) => bs.map((b) => b.textContent))).join() === 'Today,History,Metrics');
+await page.click('.tabbar button[data-tab="plans"]');
+await page.waitForFunction(() => document.getElementById('page-title').textContent === 'Plans');
+step('other tabs title themselves', true);
+await page.click('.tabbar button[data-tab="logs"]');
+await page.click('.segmented button:has-text("Today")');
 step('opens on Logs → Today', (await page.locator('.segmented button.active').textContent()) === 'Today');
 step('no data repo means local-only', (await page.textContent('#sync-badge')) === 'local only');
 

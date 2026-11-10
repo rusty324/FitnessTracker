@@ -131,7 +131,8 @@ step('the file picker has no accept filter (iOS greys those out)',
   (await page.getAttribute('.modal input[type="file"]', 'accept')) === null);
 await page.setInputFiles('.modal input[type="file"]', [zipPath]);
 await page.click('.modal-actions button:has-text("Import")');
-await page.waitForSelector('.toast.error');
+// Wait for this file's own error: an earlier error toast may still be up.
+await page.waitForSelector('.modal :text("zip archive")');
 step('a .zip explains what to do instead', /uncompress it first/i.test(await page.textContent('.modal')));
 await page.setInputFiles('.modal input[type="file"]', [gpxPath]);
 await page.click('.modal-actions button:has-text("Import")');
@@ -139,8 +140,11 @@ await page.waitForSelector('.toast:has-text("Imported 1")');
 step('the import lands in the browser-owned directory', (await imported()).length === 1);
 await page.waitForSelector('.list-row:has-text("_imported")');
 
-// ---- an imported route reaches the heatmap ----
-await page.click('.segmented button:has-text("Heatmap")');
+// ---- an imported route reaches the heatmap (bottom of Metrics) ----
+await page.click('.segmented button:has-text("Metrics")');
+step('Metrics has no Heatmap sub-tab any more', !(await page.isVisible('.segmented button:has-text("Heatmap")')));
+step('the map waits until it is scrolled to', !(await page.$('.leaflet-container')));
+await page.locator('.heatmap-section').scrollIntoViewIfNeeded();
 await page.waitForSelector('.leaflet-container', { timeout: 15000 });
 step('the imported route renders on the heatmap', true);
 await page.click('.segmented button:has-text("History")');

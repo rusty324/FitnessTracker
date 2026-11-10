@@ -251,12 +251,20 @@ renderBadge();
 // the plan says) — before Logs needs variant names.
 syncFromPresets();
 
+// The header shows where you are ("Today", "Metrics", "Plans"…) rather than
+// the app's name: the phone's bottom bar already says which tab.
+const pageTitle = document.getElementById('page-title');
+function setTitle(text) {
+  pageTitle.textContent = text;
+}
+
 const tabbar = initTabbar({
   tabs: TABS,
   defaultTab: DEFAULT_TAB,
   navEl: document.getElementById('tabbar'),
   viewEl: document.getElementById('view'),
-  ctx: { store, openSettings },
+  ctx: { store, openSettings, setTitle },
+  onTabChange: (tab) => setTitle(tab.label),
 });
 
 // First-run nudge: no token and nothing cached yet.

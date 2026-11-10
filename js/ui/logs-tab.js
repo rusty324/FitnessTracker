@@ -77,8 +77,11 @@ function render() {
     ['today', 'Today'],
     ['history', 'History'],
     ['metrics', 'Metrics'],
-    ['heatmap', 'Heatmap'],
   ];
+  // Heatmap used to be a fourth sub-tab; it now lives at the bottom of
+  // Metrics, so an old remembered 'heatmap' lands there.
+  if (sub === 'heatmap') sub = 'metrics';
+  ctx?.setTitle?.(segs.find(([id]) => id === sub)?.[1] ?? 'Logs');
   root.appendChild(el('div', { class: 'segmented' },
     segs.map(([id, label]) =>
       el('button', { class: sub === id ? 'active' : '', onclick: () => { sub = id; render(); } }, label)),
@@ -96,8 +99,7 @@ function render() {
   }
   if (sub === 'today') renderToday();
   else if (sub === 'history') renderHistory();
-  else if (sub === 'metrics') renderMetrics();
-  else renderHeatmap();
+  else renderMetrics();
 }
 
 // ---------- helpers ----------
@@ -830,6 +832,7 @@ function renderMetrics() {
     }
     root.appendChild(card);
   }
+  root.appendChild(heatmapSection());
 }
 
 function runningActivities() {
@@ -940,9 +943,29 @@ function metricSummary(entry) {
 
 // ---------- Heatmap ----------
 
-async function renderHeatmap() {
-  const container = el('div', { class: 'heatmap-container' }, el('p', { class: 'muted', style: 'padding:16px' }, 'Loading map…'));
-  root.appendChild(container);
+// A section at the bottom of Metrics. Leaflet and the routes load only when
+// the section scrolls near the screen, so opening Metrics stays quick.
+function heatmapSection() {
+  const container = el('div', { class: 'heatmap-container' }, el('p', { class: 'muted', style: 'padding:16px' }, 'Map loads when you scroll here…'));
+  const section = el('div', { class: 'heatmap-section' }, el('h3', {}, 'Routes heatmap'), container);
+  let started = false;
+  const start = () => {
+    if (started || !container.isConnected) return;
+    started = true;
+    observer?.disconnect();
+    renderHeatmap(container);
+  };
+  const observer = 'IntersectionObserver' in window
+    ? new IntersectionObserver((es) => { if (es.some((e) => e.isIntersecting)) start(); }, { rootMargin: '300px' })
+    : null;
+  if (observer) observer.observe(container);
+  else setTimeout(start, 0);
+  return section;
+}
+
+async function renderHeatmap(container) {
+  container.innerHTML = '';
+  container.appendChild(el('p', { class: 'muted', style: 'padding:16px' }, 'Loading map…'));
   const entries = store.getActivityEntries().filter((e) => e.gpsPolyline);
   if (!entries.length) {
     container.innerHTML = '';

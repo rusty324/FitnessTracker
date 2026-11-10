@@ -1,10 +1,11 @@
 // Central app configuration. Adding a tab = add an entry to TABS and create
 // a module exporting mount(el, ctx) / unmount().
 
+// icon: a key of TAB_ICONS in js/ui/tabbar.js (shown in the phone's bottom bar).
 export const TABS = [
-  { id: 'plans', label: 'Plans', module: new URL('./ui/plans-tab.js', import.meta.url).href },
-  { id: 'logs', label: 'Logs', module: new URL('./ui/logs-tab.js', import.meta.url).href },
-  { id: 'library', label: 'Fitness Library', module: new URL('./ui/library-tab.js', import.meta.url).href },
+  { id: 'plans', label: 'Plans', icon: 'calendar', module: new URL('./ui/plans-tab.js', import.meta.url).href },
+  { id: 'logs', label: 'Logs', icon: 'pulse', module: new URL('./ui/logs-tab.js', import.meta.url).href },
+  { id: 'library', label: 'Library', icon: 'dumbbell', module: new URL('./ui/library-tab.js', import.meta.url).href },
 ];
 
 export const DEFAULT_TAB = 'logs';

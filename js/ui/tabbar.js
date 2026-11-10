@@ -4,14 +4,30 @@
 // is true when the hash changed in this page — so there's somewhere to go
 // back to — and false on the initial load.
 
-export function initTabbar({ tabs, defaultTab, navEl, viewEl, ctx }) {
+// Static, trusted markup (never user data), so innerHTML is fine here.
+const TAB_ICONS = {
+  calendar: '<rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/>',
+  pulse: '<path d="M3 12h4l2.5-6 5 12 2.5-6h4"/>',
+  dumbbell: '<path d="M6.5 7v10M17.5 7v10M3.5 9.5v5M20.5 9.5v5M6.5 12h11"/>',
+};
+
+// onTabChange(tab): called before a tab mounts (the app sets the page title
+// from it; a tab with sub-views then refines it through ctx.setTitle).
+export function initTabbar({ tabs, defaultTab, navEl, viewEl, ctx, onTabChange }) {
   const loaded = new Map(); // tabId -> module
   let active = null; // { id, module }
 
   for (const tab of tabs) {
     const btn = document.createElement('button');
-    btn.textContent = tab.label;
     btn.dataset.tab = tab.id;
+    if (TAB_ICONS[tab.icon]) {
+      btn.insertAdjacentHTML('beforeend',
+        `<svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${TAB_ICONS[tab.icon]}</svg>`);
+    }
+    const label = document.createElement('span');
+    label.className = 'tab-label';
+    label.textContent = tab.label;
+    btn.appendChild(label);
     btn.addEventListener('click', () => {
       location.hash = `#/${tab.id}`;
     });
@@ -35,6 +51,7 @@ export function initTabbar({ tabs, defaultTab, navEl, viewEl, ctx }) {
       loaded.set(tab.id, mod);
     }
     active = { id: tab.id, module: mod };
+    onTabChange?.(tab);
     await mod.mount(viewEl, ctx);
     mod.route?.(path, { navigated });
   }

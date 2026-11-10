@@ -1,30 +1,37 @@
-/* ---------- Design tokens ---------- */
+/* ---------- Design tokens ----------
+   Teal on a deep slate in the dark (the gym-floor default), with a light
+   theme for daytime. Text on --accent uses --accent-text; both pairs keep
+   WCAG AA contrast. */
 :root {
-  --bg: #f5f6f8;
+  --bg: #f4f6f6;
   --surface: #ffffff;
-  --surface-2: #eef0f3;
-  --text: #1a2027;
-  --text-dim: #5c6672;
-  --border: #d8dde3;
-  --accent: #2f6fed;
+  --surface-2: #e9eeee;
+  --text: #13201f;
+  --text-dim: #55625f;
+  --border: #d3dcdb;
+  --accent: #0b7a68;
   --accent-text: #ffffff;
-  --danger: #d64545;
-  --ok: #2e9e5b;
-  --warn: #c98a1b;
-  --radius: 10px;
+  --danger: #c43d3d;
+  --ok: #1d8a5a;
+  --warn: #9a6100;
+  --radius: 14px;
   --tap: 44px; /* minimum touch target */
+  --tabbar-h: 64px; /* phone bottom bar, excluding the safe area */
   font-size: 16px;
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #101418;
-    --surface: #1a2027;
-    --surface-2: #232b34;
-    --text: #e8ecf1;
-    --text-dim: #94a0ad;
-    --border: #313b46;
-    --accent: #5b8def;
-    --accent-text: #0d1320;
+    --bg: #0f1416;
+    --surface: #182024;
+    --surface-2: #212a2f;
+    --text: #edf2f2;
+    --text-dim: #93a2a6;
+    --border: #2a353a;
+    --accent: #3cc4ab;
+    --accent-text: #06201b;
+    --danger: #ef6f66;
+    --ok: #3cc4ab;
+    --warn: #eaa64a;
   }
 }
 
@@ -36,22 +43,22 @@ body {
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   line-height: 1.45;
   min-height: 100dvh;
-  padding-bottom: env(safe-area-inset-bottom);
+  -webkit-font-smoothing: antialiased;
 }
 
-/* ---------- Header ---------- */
+/* ---------- Header ----------
+   On a phone: the page's title, large, with sync status and settings beside
+   it. It scrolls away with the page; the bottom bar stays. */
 .app-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 16px;
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
-  position: sticky;
-  top: 0;
-  z-index: 20;
+  gap: 12px;
+  max-width: 760px;
+  margin: 0 auto;
+  padding: calc(14px + env(safe-area-inset-top)) 16px 2px;
 }
-.app-title { font-size: 1.1rem; margin: 0; font-weight: 650; }
+.app-title { font-size: 1.85rem; line-height: 1.15; margin: 0; font-weight: 750; letter-spacing: -0.01em; min-width: 0; overflow-wrap: anywhere; }
 .header-actions { display: flex; align-items: center; gap: 8px; }
 .icon-btn {
   background: none;
@@ -61,12 +68,12 @@ body {
   cursor: pointer;
   min-width: var(--tap);
   min-height: var(--tap);
-  border-radius: var(--radius);
+  border-radius: 999px;
 }
 .icon-btn:hover { background: var(--surface-2); }
 .sync-badge {
-  font-size: 0.75rem;
-  padding: 3px 10px;
+  font-size: 0.78rem;
+  padding: 4px 11px;
   border-radius: 999px;
   background: var(--surface-2);
   color: var(--text-dim);
@@ -74,55 +81,64 @@ body {
 }
 .sync-badge.pending { background: color-mix(in srgb, var(--warn) 18%, transparent); color: var(--warn); }
 .sync-badge.error { background: color-mix(in srgb, var(--danger) 18%, transparent); color: var(--danger); }
-.sync-badge.ok { background: color-mix(in srgb, var(--ok) 18%, transparent); color: var(--ok); }
+.sync-badge.ok { background: transparent; color: var(--text-dim); }
+.sync-badge.ok::before { content: ''; display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--ok); margin-right: 6px; vertical-align: 1px; }
 /* Clickable when there's an error to show (see openSyncDetails in app.js). */
 .sync-badge[role="button"] { cursor: pointer; text-decoration: underline dotted; text-underline-offset: 2px; }
 .sync-badge[role="button"]:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
 
-/* ---------- Tab bar ---------- */
+/* ---------- Tab bar ----------
+   Phone: a bottom bar in thumb reach, icon over label, clear of the home
+   indicator. Desktop moves it into the header (see the end of this file). */
 .tabbar {
   display: flex;
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 30;
   background: var(--surface);
-  border-bottom: 1px solid var(--border);
-  position: sticky;
-  top: 57px;
-  z-index: 19;
+  border-top: 1px solid var(--border);
+  padding-bottom: env(safe-area-inset-bottom);
 }
 .tabbar button {
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  height: var(--tabbar-h);
   background: none;
   border: none;
-  border-bottom: 3px solid transparent;
-  padding: 12px 8px;
-  font-size: 0.95rem;
-  font-weight: 550;
+  font-size: 0.78rem;
+  font-weight: 600;
   color: var(--text-dim);
   cursor: pointer;
-  min-height: var(--tap);
 }
-.tabbar button.active {
-  color: var(--accent);
-  border-bottom-color: var(--accent);
-}
+.tabbar .tab-icon { width: 24px; height: 24px; }
+.tabbar button.active { color: var(--accent); }
 
 /* ---------- Main view ---------- */
 .view {
   max-width: 760px;
   margin: 0 auto;
-  padding: 16px 12px 80px;
+  /* Room for the bottom bar (and anything docked above it) so the last
+     card can scroll clear of it. */
+  padding: 12px 16px calc(var(--tabbar-h) + 32px + env(safe-area-inset-bottom));
 }
 
 /* ---------- Common elements ---------- */
-h2 { font-size: 1.15rem; margin: 8px 0 12px; }
-h3 { font-size: 1rem; margin: 8px 0 8px; }
+h2 { font-size: 1.3rem; margin: 10px 0 12px; font-weight: 700; }
+h3 { font-size: 1.02rem; margin: 8px 0 8px; font-weight: 650; }
 button.btn {
   background: var(--accent);
   color: var(--accent-text);
   border: none;
-  border-radius: var(--radius);
-  padding: 10px 16px;
+  border-radius: 12px;
+  padding: 10px 18px;
   font-size: 0.95rem;
-  font-weight: 600;
+  font-weight: 650;
   cursor: pointer;
   min-height: var(--tap);
 }
@@ -130,6 +146,9 @@ button.btn.secondary {
   background: var(--surface-2);
   color: var(--text);
 }
+button.btn.ghost { background: none; border: 1px solid var(--border); color: var(--text); }
+button.btn.block { display: block; width: 100%; }
+button.btn.large { min-height: 52px; font-size: 1.05rem; }
 button.btn.danger { background: var(--danger); color: #fff; }
 button.btn.small { min-height: 34px; padding: 5px 12px; font-size: 0.85rem; }
 button:disabled { opacity: 0.5; cursor: default; }
@@ -138,7 +157,7 @@ input, select, textarea {
   background: var(--surface);
   color: var(--text);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: 10px;
   padding: 10px 12px;
   font-size: 1rem;
   font-family: inherit;
@@ -172,7 +191,7 @@ label { display: block; font-size: 0.85rem; color: var(--text-dim); margin-botto
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 14px;
+  padding: 16px;
   margin-bottom: 12px;
 }
 .tappable { cursor: pointer; }
@@ -237,27 +256,28 @@ label { display: block; font-size: 0.85rem; color: var(--text-dim); margin-botto
   display: flex;
   background: var(--surface-2);
   border-radius: var(--radius);
-  padding: 3px;
+  padding: 4px;
   margin-bottom: 16px;
   overflow-x: auto;
+  border: 1px solid var(--border);
 }
 .segmented button {
   flex: 1;
   border: none;
   background: none;
   padding: 8px 10px;
-  border-radius: calc(var(--radius) - 3px);
-  font-size: 0.88rem;
-  font-weight: 550;
+  border-radius: calc(var(--radius) - 4px);
+  font-size: 0.92rem;
+  font-weight: 600;
   color: var(--text-dim);
   cursor: pointer;
   white-space: nowrap;
-  min-height: 38px;
+  min-height: 40px;
 }
 .segmented button.active {
   background: var(--surface);
   color: var(--text);
-  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.18);
 }
 
 /* ---------- Modal ---------- */
@@ -337,7 +357,8 @@ label { display: block; font-size: 0.85rem; color: var(--text-dim); margin-botto
 /* ---------- Toasts ---------- */
 .toast-root {
   position: fixed;
-  bottom: calc(16px + env(safe-area-inset-bottom));
+  /* Above the bottom tab bar. */
+  bottom: calc(var(--tabbar-h) + 12px + env(safe-area-inset-bottom));
   left: 50%;
   transform: translateX(-50%);
   z-index: 100;
@@ -416,8 +437,9 @@ label { display: block; font-size: 0.85rem; color: var(--text-dim); margin-botto
 }
 
 /* ---------- Heatmap ---------- */
+.heatmap-section { margin-top: 20px; }
 .heatmap-container {
-  height: 65dvh;
+  height: 55dvh;
   border-radius: var(--radius);
   border: 1px solid var(--border);
   overflow: hidden;
@@ -487,31 +509,45 @@ label { display: block; font-size: 0.85rem; color: var(--text-dim); margin-botto
 @media (min-width: 960px) and (hover: hover) and (pointer: fine) {
   :root { --tap: 36px; }
 
+  /* A full-width bar again, its contents aligned with the content column. */
   .app-header {
+    max-width: none;
     height: 57px;
     padding-block: 0;
-    /* Line the title and actions up with the content column's edges. */
     padding-inline: max(16px, calc(50% - 368px));
-  }
-  .tabbar {
-    position: fixed;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
     top: 0;
+    z-index: 20;
+  }
+  .app-title { font-size: 1.15rem; font-weight: 700; }
+  .tabbar {
+    top: 0;
+    bottom: auto;
     left: 50%;
+    right: auto;
     transform: translateX(-50%);
     height: 56px;
+    padding: 0;
     z-index: 21; /* over the sticky header it sits in */
     background: none;
     border: none;
   }
   .tabbar button {
     flex: none;
+    flex-direction: row;
+    height: 100%;
     padding: 0 16px;
-    min-height: 0;
     font-size: 0.92rem;
+    border-bottom: 3px solid transparent;
   }
+  .tabbar button.active { border-bottom-color: var(--accent); }
+  .tabbar .tab-icon { display: none; }
   .tabbar button:hover:not(.active) { color: var(--text); }
+  .toast-root { bottom: 20px; }
 
-  .view { padding-top: 20px; }
+  .view { padding: 20px 12px 80px; }
 
   .segmented { width: fit-content; max-width: 100%; }
   .segmented button { flex: none; padding: 5px 18px; min-height: 32px; }
