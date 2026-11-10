@@ -8,6 +8,9 @@ import { initTabbar } from './ui/tabbar.js';
 import { el, openModal, toast, downloadJson } from './ui/components.js';
 import { loadPreset } from './presets.js';
 import { syncFromPresets } from './preset-sync.js';
+import { installDraftFlush } from './draft.js';
+import { installRestTimer, restSettings, setRestSetting } from './rest-timer.js';
+import { todayStr } from './dates.js';
 
 const badge = document.getElementById('sync-badge');
 
@@ -98,6 +101,23 @@ function activitySyncSection() {
         'You can also import GPX/TCX files directly from Logs → History, with no API at all.'),
       syncBtn,
       blocker ? el('p', { class: 'muted', style: 'margin:6px 0 0' }, blocker) : null,
+    ),
+  };
+}
+
+function workoutSection() {
+  const box = (key, label, on) => el('label', { class: 'check-inline', style: 'margin-bottom:8px' },
+    el('input', { type: 'checkbox', checked: on, dataset: { setting: key }, onchange: (e) => setRestSetting(key, e.target.checked) }),
+    ` ${label}`);
+  return {
+    state: restSettings.auto ? 'rest timer on' : 'rest timer off',
+    body: el('div', {},
+      box('ft.restAuto', 'Start the rest timer when I tick a set', restSettings.auto),
+      box('ft.restSound', 'Play a short tone when rest is over', restSettings.sound),
+      box('ft.keepAwake', 'Keep the screen on during a session', restSettings.keepAwake),
+      el('p', { class: 'muted' },
+        'A web app can’t alert you on a locked iPhone screen: the timer is right when you come back, and the tone ',
+        'plays only while the app is open. Keeping the screen on during a session is the workaround.'),
     ),
   };
 }
@@ -197,6 +217,7 @@ function openSettings({ openSection = null } = {}) {
     { id: 'activitysync', name: 'Activity sync', ...activitySyncSection() },
     privacySpec,
     { id: 'units', name: 'Units', ...unitsSection() },
+    { id: 'workout', name: 'Workout', ...workoutSection() },
     { id: 'templates', name: 'Plan templates', ...templatesSection() },
   ];
   const sections = new Map();
@@ -250,6 +271,10 @@ renderBadge();
 // fields; migrates the old Push-Up ladder so plan variant levels mean what
 // the plan says) — before Logs needs variant names.
 syncFromPresets();
+// Gym-floor drafts left from an earlier visit are written out now, and every
+// draft is written when the page is hidden (js/draft.js).
+installDraftFlush(todayStr);
+installRestTimer();
 
 // The header shows where you are ("Today", "Metrics", "Plans"…) rather than
 // the app's name: the phone's bottom bar already says which tab.

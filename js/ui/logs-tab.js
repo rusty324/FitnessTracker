@@ -16,11 +16,15 @@ import {
 } from '../units.js';
 import { lineChart, datePoints } from '../charts.js';
 import { isCardioExercise, hasCardioData, sportOf, defaultGear } from '../cardio.js';
-import { el, openModal, confirmDialog, toast, emptyState, filePicker, exerciseLink } from './components.js';
+import { el, openModal, confirmDialog, toast, undoToast, emptyState, filePicker, exerciseLink } from './components.js';
 import { cardioFields, cardioExtras } from './cardio-form.js';
-import { setsForm } from './sets-form.js';
 import { formatSets } from '../sets.js';
 import { variantLevelFor } from '../load.js';
+import { setRows, rowsFromActual } from './set-rows.js';
+import { lastPerformance, setsOf } from '../history.js';
+import { draftKey, readDraft, updateDraftItem, removeDraftItem, flushItem, flushDraft, clearDraft } from '../draft.js';
+import { sessionRecordId, sessionStatus, doneItemIds } from '../sessions.js';
+import { startRest, skipRest, restSecondsFor, restSettings, setSessionActive } from '../rest-timer.js';
 import { pickExercise, targetSummary } from './plans-tab.js';
 
 let root = null;
@@ -29,6 +33,7 @@ let unsub = null;
 let sub = 'today'; // 'today' | 'history' | 'metrics' | 'heatmap'
 let histFilter = { from: addDays(todayStr(), -30), to: todayStr(), planId: '' };
 let adherenceDays = 30;
+let expandedItem = null; // the planned item open on Today (set rows shown)
 let heatmapMod = null;
 
 export function mount(elRoot, appCtx) {
@@ -152,29 +157,13 @@ function renderToday() {
   root.appendChild(weighInCard(today));
 
   let anyPlanned = false;
+  const doneIds = doneItemIds(logs, store.get('matches'));
+  const records = store.get('sessions');
   for (const plan of activePlans()) {
     for (const { session, week, dayOffset } of allSessions(plan)) {
       if (addDays(plan.startDate, dayOffset) !== today) continue;
       anyPlanned = true;
-      const card = el('div', { class: 'card' },
-        el('div', { class: 'row-title' }, session.label || plan.name),
-        el('div', { class: 'row-sub' },
-          `${plan.name} · week ${week.index}${week.isDeload ? ' (deload)' : ''}`
-          + `${session.estimatedDurationMin ? ` · ~${session.estimatedDurationMin} min` : ''}`),
-        session.note && el('div', { class: 'row-sub' }, session.note),
-      );
-      for (const block of session.blocks ?? []) {
-        if ((session.blocks?.length ?? 0) > 1 || block.name || block.rounds) {
-          card.appendChild(el('div', { class: 'row-sub', style: 'margin-top:8px;font-weight:600' },
-            (block.name || blockLabel(block.type)) + (block.rounds ? ` — ${block.rounds} rounds` : '')));
-          if (block.note) card.appendChild(el('div', { class: 'row-sub' }, block.note));
-        }
-        for (const item of block.items ?? []) {
-          card.appendChild(plannedRow(plan, session, item, lib.get(item.exerciseId), loggedByPe.get(item.id)));
-        }
-      }
-      if (!sessionItems(session).length) card.appendChild(el('p', { class: 'muted' }, 'Session has no exercises.'));
-      root.appendChild(card);
+      renderSessionToday({ plan, session, week, today, lib, logs, loggedByPe, doneIds, records });
     }
   }
   if (!anyPlanned) {
@@ -287,27 +276,165 @@ function blockLabel(type) {
   return { warmup: 'Warm-up', main: 'Main', strength: 'Strength', accessory: 'Accessory', cooldown: 'Cool-down' }[type] ?? 'Block';
 }
 
-function plannedRow(plan, session, pe, ex, existing) {
-  const row = el('div', { class: 'list-row' });
-  const main = el('div', { class: 'row-main' },
-    el('div', { class: 'row-title' }, ex ? exerciseLink(ex) : '?',
-      pe.optional ? el('span', { class: 'pill', style: 'margin-left:6px' }, 'optional') : ''),
-    el('div', { class: 'row-sub' }, `Target: ${targetSummary(pe.target)}`),
-    pe.note && el('div', { class: 'row-sub' }, pe.note),
-  );
-  if (existing) {
-    main.appendChild(el('div', { class: 'row-sub' },
-      el('span', { class: 'pill ok' }, 'done'), ' ', actualSummary(existing.actual),
-      existing.rpe ? ` · RPE ${existing.rpe}` : ''));
-    row.append(main, el('div', { class: 'row-actions' },
-      el('button', { class: 'btn small secondary', onclick: () => logEntryModal({ existing, plan, pe, ex }) }, 'Edit'),
-    ));
-  } else {
-    row.append(main, el('div', { class: 'row-actions' },
-      el('button', { class: 'btn small', onclick: () => logEntryModal({ plan, session, pe, ex }) }, 'Log'),
-    ));
+// ---------- Today: a planned session on the gym floor ----------
+//
+// Each exercise is a card. Rep-based ones expand into set rows (one open at
+// a time; the first unfinished one by default): ✓ a set and it goes to the
+// session's draft (js/draft.js), the rest timer starts, and when every set
+// is ticked the exercise is written as a log and the next one opens.
+// Timed and cardio work keeps the full log form. "Finish session" writes
+// whatever is ticked and records the session as done (js/sessions.js).
+
+const isRepsItem = (item, ex) => !isCardioExercise(ex)
+  && (item.target?.kind ? item.target.kind === 'reps' : (ex?.measurementType ?? 'reps') === 'reps');
+
+const variantName = (ex, level) => (level != null ? ex?.variants?.find((v) => v.level === level)?.name : null);
+
+// Every prior set of an exercise (before `date`), for sanity checks.
+function priorSets(exerciseId, date, logs) {
+  return logs.filter((l) => l.exerciseId === exerciseId && l.date < date).flatMap(setsOf);
+}
+
+function renderSessionToday({ plan, session, week, today, lib, logs, loggedByPe, doneIds, records }) {
+  const key = draftKey(today, session.id);
+  const status = sessionStatus({ session, date: today, records, doneIds });
+  const draft = readDraft(key);
+  const entries = sessionItems(session).map(({ block, item }) => {
+    const ex = lib.get(item.exerciseId);
+    const reps = isRepsItem(item, ex);
+    const log = loggedByPe.get(item.id) ?? null;
+    const d = draft.items[item.id];
+    const finished = !!log && !(d?.rows?.some((r) => !r.done));
+    return { block, item, ex, reps, log, finished };
+  });
+  const rec = records.find((r) => r.id === sessionRecordId(today, session.id));
+  // Open the first unfinished exercise — unless the session is finished.
+  if (!entries.some((e) => e.item.id === expandedItem)) {
+    expandedItem = rec ? null : entries.find((e) => e.reps && !e.finished)?.item.id ?? null;
   }
-  return row;
+
+  root.appendChild(el('div', { class: 'session-head' },
+    el('div', { class: 'row-main' },
+      el('div', { class: 'session-title' }, session.label || plan.name),
+      el('div', { class: 'row-sub' },
+        `${plan.name} · week ${week.index}${week.isDeload ? ' (deload)' : ''}`
+        + `${session.estimatedDurationMin ? ` · ~${session.estimatedDurationMin} min` : ''}`),
+      session.note && el('div', { class: 'row-sub' }, session.note),
+    ),
+    status.completed && el('span', { class: 'pill ok' }, status.kind === 'minimum' ? 'done · minimum' : 'done'),
+  ));
+  if (!entries.length) root.appendChild(el('p', { class: 'muted' }, 'Session has no exercises.'));
+
+  let lastBlock = null;
+  for (const e of entries) {
+    if (e.block !== lastBlock && ((session.blocks?.length ?? 0) > 1 || e.block.name || e.block.rounds)) {
+      root.appendChild(el('div', { class: 'block-label' },
+        (e.block.name || blockLabel(e.block.type)) + (e.block.rounds ? ` — ${e.block.rounds} rounds` : '')));
+      if (e.block.note) root.appendChild(el('div', { class: 'row-sub', style: 'margin:-4px 2px 8px' }, e.block.note));
+    }
+    lastBlock = e.block;
+    root.appendChild(exerciseCard({ plan, session, today, key, logs, entries, ...e }));
+  }
+
+  if (!rec && entries.length) {
+    root.appendChild(el('div', { class: 'finish-bar' },
+      el('button', { class: 'btn block large', dataset: { action: 'finish' }, onclick: () => finishSession(plan, session, today, 'full') }, 'Finish session')));
+  }
+}
+
+function finishSession(plan, session, date, kind) {
+  const key = draftKey(date, session.id);
+  flushDraft(key);
+  clearDraft(key);
+  store.upsert('sessions', {
+    id: sessionRecordId(date, session.id), date, plannedSessionId: session.id, planId: plan.id, kind,
+  });
+  setSessionActive(false);
+  skipRest();
+  expandedItem = null;
+  toast('Session finished — nice work');
+}
+
+function exerciseCard({ plan, session, today, key, logs, entries, block, item, ex, reps, log, finished }) {
+  const t = item.target ?? {};
+  const vName = variantName(ex, t.variantLevel);
+  const title = el('div', { class: 'ex-title' },
+    ex ? exerciseLink(ex) : '?',
+    vName ? el('span', { class: 'ex-variant' }, ` · ${vName}`) : null,
+    item.optional ? el('span', { class: 'pill', style: 'margin-left:6px' }, 'optional') : null);
+  const targetText = `${targetSummary(t)}`;
+
+  // Timed / cardio work: the full log form.
+  if (!reps) {
+    return el('div', { class: `card ex-card tappable${log ? ' is-finished' : ''}`, dataset: { item: item.id },
+      onclick: () => logEntryModal(log ? { existing: log, plan, pe: item, ex } : { plan, session, pe: item, ex }) },
+    el('div', { class: 'ex-head' },
+      el('div', { class: 'row-main' }, title,
+        el('div', { class: 'row-sub' }, log ? `✓ ${actualSummary(log.actual)}` : targetText)),
+      el('span', { class: 'chev' }, log ? 'Edit' : 'Log ›')));
+  }
+
+  const open = expandedItem === item.id;
+  if (!open) {
+    return el('div', { class: `card ex-card tappable${finished ? ' is-finished' : ''}`, dataset: { item: item.id },
+      onclick: () => { expandedItem = item.id; render(); } },
+    el('div', { class: 'ex-head' },
+      el('div', { class: 'row-main' }, title,
+        el('div', { class: 'row-sub' }, log ? `✓ ${actualSummary(log.actual)}` : targetText)),
+      el('span', { class: 'chev', 'aria-hidden': 'true' }, '›')));
+  }
+
+  const draftItem = readDraft(key).items[item.id];
+  const perf = lastPerformance({
+    exerciseId: item.exerciseId, variantLevel: t.variantLevel ?? null, logs, beforeDate: today,
+    exercise: ex, plans: store.get('plans'),
+  });
+  const base = {
+    exerciseId: item.exerciseId, planId: plan.id, plannedExerciseId: item.id,
+    variantLevel: t.variantLevel ?? null, logId: draftItem?.logId ?? log?.id ?? null,
+  };
+  const rowsUi = setRows({
+    exercise: ex,
+    target: t,
+    perf,
+    rows: draftItem?.rows ?? (log ? rowsFromActual(log.actual) : null),
+    showWeight: draftItem?.showWeight ?? null,
+    history: priorSets(item.exerciseId, today, logs),
+    onChange: (st) => updateDraftItem(key, item.id, { ...base, ...st }),
+    onCheck: () => {
+      setSessionActive(true);
+      if (restSettings.auto) startRest(restSecondsFor(ex, t));
+      if (rowsUi.allDone()) {
+        // Exercise complete: write it, and open the next unfinished one.
+        const next = entries.find((e) => e.reps && !e.finished && e.item.id !== item.id);
+        expandedItem = next?.item.id ?? null;
+        flushItem(key, item.id);
+        render();
+      }
+    },
+  });
+
+  const last = perf
+    ? `Last time (${formatDate(perf.date, { month: 'short', day: 'numeric' })}): ${perf.sets.map((s) => s.reps).join(' / ')}`
+      + (perf.sets.some((s) => s.weightKg > 0) ? ` @ ${formatWeight(Math.max(...perf.sets.map((s) => s.weightKg ?? 0)))}` : '')
+    : null;
+  return el('div', { class: 'card ex-card is-open', dataset: { item: item.id } },
+    el('div', { class: 'ex-head' },
+      el('div', { class: 'row-main' }, title,
+        el('div', { class: 'row-sub' }, targetText + (t.restSec ? '' : ''))),
+      el('button', {
+        class: 'link-btn', type: 'button',
+        onclick: () => {
+          // RPE, notes, variant: the full form, on the log as ticked so far.
+          const id = flushItem(key, item.id);
+          const existing = id ? store.get('logs').find((l) => l.id === id) : log;
+          logEntryModal(existing ? { existing, plan, pe: item, ex } : { plan, session, pe: item, ex });
+        },
+      }, 'Details')),
+    last && el('div', { class: 'row-sub last-time' }, last),
+    item.note && el('div', { class: 'row-sub' }, item.note),
+    rowsUi.el,
+  );
 }
 
 // Which form an already-recorded entry needs, read from the data itself.
@@ -359,10 +486,30 @@ function logEntryModal({ existing = null, plan = null, session = null, pe = null
     el('input', { type: 'number', inputmode: 'decimal', step, value: value ?? '', dataset: { name } });
   const field = (label, input) => el('div', { class: 'field' }, el('label', {}, label), input);
 
+  let dropDraft = null;
   if (kind === 'reps') {
-    // A bodyweight exercise starts as bodyweight-only; untick for a weighted set.
-    repsForm = setsForm(existing ? a : {}, t, { bodyweight: ex?.modality === 'bodyweight' });
-    fields.append(field('Sets', repsForm.sets));
+    // Unsaved sets of a new entry are kept as a draft (flushed as this same
+    // entry if the app is closed mid-way); Save or Cancel drops the draft.
+    const adhocKey = existing ? null : draftKey(entry.date, 'adhoc');
+    const drafted = adhocKey ? readDraft(adhocKey).items[entry.id] : null;
+    repsForm = setRows({
+      exercise: ex,
+      target: existing ? {} : t,
+      perf: ex ? lastPerformance({
+        exerciseId: ex.id, variantLevel: a.variantLevel ?? t.variantLevel ?? null,
+        logs: store.get('logs').filter((l) => l.id !== entry.id), beforeDate: entry.date, exercise: ex, plans: store.get('plans'),
+      }) : null,
+      rows: drafted?.rows ?? (existing ? rowsFromActual(a) : null),
+      showWeight: drafted?.showWeight ?? (existing && ex?.modality === 'bodyweight' ? rowsFromActual(a).some((r) => r.kg > 0) : null),
+      history: ex ? priorSets(ex.id, entry.date, store.get('logs').filter((l) => l.id !== entry.id)) : [],
+      includeTyped: true,
+      onChange: (st) => adhocKey && updateDraftItem(adhocKey, entry.id, {
+        exerciseId: entry.exerciseId, planId: entry.planId, plannedExerciseId: entry.plannedExerciseId,
+        variantLevel: null, logId: entry.id, ...st,
+      }),
+      onCheck: () => { if (restSettings.auto) startRest(restSecondsFor(ex, t)); },
+    });
+    dropDraft = () => adhocKey && removeDraftItem(adhocKey, entry.id);
   } else if (kind === 'cardio') {
     // Older cardio logs held minutes only (durationSec); show that as the
     // duration so re-saving keeps it. A new entry starts from the plan target.
@@ -404,14 +551,14 @@ function logEntryModal({ existing = null, plan = null, session = null, pe = null
   const body = el('div', {},
     el('div', { class: 'field' }, el('label', {}, 'Date'), dateInput),
     variantSel ? el('div', { class: 'field' }, el('label', {}, 'Variant'), variantSel) : null,
-    cardioForm ? cardioForm.el : fields,
-    repsForm ? el('div', { class: 'field' }, repsForm.table) : null,
+    cardioForm ? cardioForm.el : repsForm ? null : fields,
+    repsForm ? el('div', { class: 'field' }, repsForm.el) : null,
     el('div', { class: 'field' }, el('label', {}, 'RPE (1–10, optional)'), rpeInput),
     el('div', { class: 'field' }, el('label', {}, 'Notes'), notesInput),
   );
 
   const actions = [
-    { label: 'Cancel', class: 'btn secondary', onClick: () => {} },
+    { label: 'Cancel', class: 'btn secondary', onClick: () => { dropDraft?.(); } },
     {
       label: 'Save',
       class: 'btn',
@@ -456,6 +603,7 @@ function logEntryModal({ existing = null, plan = null, session = null, pe = null
           notes: notesInput.value.trim(),
         });
         store.upsert('logs', entry);
+        dropDraft?.();
         toast('Logged');
       },
     },
@@ -464,9 +612,10 @@ function logEntryModal({ existing = null, plan = null, session = null, pe = null
     actions.unshift({
       label: 'Delete',
       class: 'btn danger',
-      onClick: async () => {
-        if (!(await confirmDialog('Delete this log entry?'))) return false;
-        store.remove('logs', entry.id);
+      // No "are you sure": it goes, with a few seconds to Undo.
+      onClick: () => {
+        const pending = store.removeLater('logs', entry.id);
+        undoToast('Log entry deleted', { onUndo: pending.undo, onCommit: pending.commit });
       },
     });
   }

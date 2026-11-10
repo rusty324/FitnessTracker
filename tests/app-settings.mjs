@@ -30,7 +30,7 @@ await page.evaluate(() => localStorage.setItem('ft.welcomed', '1'));
 await openSettings();
 step('checklist shows three unfinished steps', (await marks()) === '○○○', await marks());
 const order = (await sections()).map((s) => s.id).join(',');
-step('six sections in setup order', order === 'datarepo,token,activitysync,privacy,units,templates', order);
+step('seven sections in setup order', order === 'datarepo,token,activitysync,privacy,units,workout,templates', order);
 step('only the first unfinished section is open',
   (await sections()).filter((s) => s.open).map((s) => s.id).join(',') === 'datarepo');
 step('badge starts local-only', (await page.textContent('#sync-badge')) === 'local only');

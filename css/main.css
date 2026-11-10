@@ -17,6 +17,7 @@
   --radius: 14px;
   --tap: 44px; /* minimum touch target */
   --tabbar-h: 64px; /* phone bottom bar, excluding the safe area */
+  --dock: 0px; /* height of whatever is docked above the tab bar (rest timer) */
   font-size: 16px;
 }
 @media (prefers-color-scheme: dark) {
@@ -125,7 +126,7 @@ body {
   margin: 0 auto;
   /* Room for the bottom bar (and anything docked above it) so the last
      card can scroll clear of it. */
-  padding: 12px 16px calc(var(--tabbar-h) + 32px + env(safe-area-inset-bottom));
+  padding: 12px 16px calc(var(--tabbar-h) + var(--dock) + 32px + env(safe-area-inset-bottom));
 }
 
 /* ---------- Common elements ---------- */
@@ -358,7 +359,7 @@ label { display: block; font-size: 0.85rem; color: var(--text-dim); margin-botto
 .toast-root {
   position: fixed;
   /* Above the bottom tab bar. */
-  bottom: calc(var(--tabbar-h) + 12px + env(safe-area-inset-bottom));
+  bottom: calc(var(--tabbar-h) + var(--dock) + 12px + env(safe-area-inset-bottom));
   left: 50%;
   transform: translateX(-50%);
   z-index: 100;
@@ -377,6 +378,12 @@ label { display: block; font-size: 0.85rem; color: var(--text-dim); margin-botto
   animation: toast-in 0.2s ease-out;
 }
 .toast.error { background: var(--danger); color: #fff; }
+.toast-undo { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.toast-action {
+  background: none; border: none; color: inherit; font: inherit; font-weight: 700;
+  text-decoration: underline; text-underline-offset: 3px; cursor: pointer;
+  min-height: var(--tap); min-width: var(--tap); padding: 0 6px;
+}
 @keyframes toast-in {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
@@ -555,4 +562,105 @@ label { display: block; font-size: 0.85rem; color: var(--text-dim); margin-botto
   button.btn { padding: 7px 14px; font-size: 0.9rem; }
   button.btn.small { min-height: 30px; padding: 4px 10px; }
   input, select, textarea { padding: 7px 10px; font-size: 0.95rem; }
+}
+
+/* ---------- Gym floor: Today's session ---------- */
+.session-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin: 6px 2px 10px; }
+.session-title { font-size: 1.2rem; font-weight: 700; }
+.block-label { font-size: 0.8rem; font-weight: 650; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.04em; margin: 14px 2px 8px; }
+.ex-card { padding: 14px 12px; }
+.ex-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.ex-title { font-weight: 650; font-size: 1.05rem; overflow-wrap: anywhere; }
+.ex-variant { font-weight: 500; color: var(--text-dim); }
+.ex-card .chev { color: var(--text-dim); font-size: 1rem; font-weight: 600; white-space: nowrap; }
+.ex-card.is-finished { opacity: 0.75; }
+.ex-card.is-open { border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); }
+.last-time { margin-top: 2px; }
+.link-btn {
+  background: none; border: none; color: var(--accent); font: inherit; font-weight: 600; font-size: 0.9rem;
+  cursor: pointer; min-height: var(--tap); padding: 0 6px;
+}
+
+/* Set rows: [n] [weight − x +] [reps − x +] [✓]. Every control >= 44px. */
+.set-rows { margin-top: 10px; }
+.set-row {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr) minmax(0, 1fr) 48px;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.set-rows.no-weight .set-row { grid-template-columns: 18px minmax(0, 1fr) 48px; }
+.set-head { margin-bottom: 4px; font-size: 0.78rem; color: var(--text-dim); }
+.set-head .set-col { text-align: center; }
+.set-n { font-size: 0.95rem; color: var(--text-dim); text-align: center; }
+.set-row.is-done .set-n { color: var(--text); font-weight: 650; }
+.stepper {
+  display: flex; align-items: center;
+  background: var(--surface-2);
+  border-radius: 12px;
+  min-height: 48px;
+  min-width: 0;
+}
+.step-btn {
+  flex: none; width: 44px; height: 48px;
+  background: none; border: none; color: var(--text-dim);
+  font-size: 1.3rem; line-height: 1; cursor: pointer; border-radius: 12px;
+}
+.step-btn:active { background: color-mix(in srgb, var(--text) 10%, transparent); }
+.stepper input {
+  flex: 1; min-width: 0; width: 100%;
+  background: none; border: none; padding: 0; min-height: 48px;
+  text-align: center; font-size: 1.15rem; font-weight: 700; color: var(--text);
+}
+.stepper input::placeholder { color: var(--text-dim); font-weight: 500; font-style: italic; opacity: 0.85; }
+.stepper input.ghost-suggested::placeholder { color: var(--warn); font-style: normal; font-weight: 700; opacity: 1; }
+.set-check {
+  width: 48px; height: 48px; border-radius: 50%;
+  border: 2px solid var(--border); background: none;
+  color: var(--text-dim); font-size: 1.2rem; font-weight: 700; cursor: pointer;
+}
+.set-check.done { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
+.set-warn { color: var(--warn); font-size: 0.82rem; margin: -4px 0 8px 24px; }
+.set-footer { display: flex; flex-wrap: wrap; gap: 4px 10px; margin-top: 2px; }
+
+/* Finish session: in thumb reach, above the tab bar and the rest timer. */
+.finish-bar {
+  position: sticky;
+  bottom: calc(var(--tabbar-h) + var(--dock) + 10px + env(safe-area-inset-bottom));
+  z-index: 5;
+  margin-top: 16px;
+}
+
+/* ---------- Rest timer (js/rest-timer.js) ---------- */
+body.resting { --dock: 76px; }
+.rest-bar {
+  position: fixed; left: 0; right: 0;
+  bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom));
+  z-index: 29;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+}
+.rest-bar[hidden] { display: none; }
+.rest-progress { height: 3px; background: var(--surface-2); }
+.rest-fill { height: 100%; background: var(--accent); transition: width 0.25s linear; }
+.rest-main {
+  max-width: 760px; margin: 0 auto; padding: 8px 16px;
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+}
+.rest-label { font-size: 0.75rem; color: var(--text-dim); }
+.rest-time { font-size: 1.6rem; font-weight: 750; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.rest-actions { display: flex; gap: 8px; }
+.rest-btn { min-width: 52px; padding: 8px 10px; }
+.rest-bar.rest-done { animation: rest-flash 0.5s ease-in-out 3; }
+.rest-bar.rest-done .rest-time { color: var(--accent); }
+@keyframes rest-flash { 50% { background: color-mix(in srgb, var(--accent) 30%, var(--surface)); } }
+
+@media (min-width: 960px) and (hover: hover) and (pointer: fine) {
+  .rest-bar { bottom: 0; }
+  body.resting { --dock: 68px; }
+  .finish-bar { bottom: calc(var(--dock) + 16px); }
+  .toast-root { bottom: calc(var(--dock) + 20px); }
+  /* The page's density rules shrink inputs; keep set rows thumb-sized. */
+  .stepper input { padding: 0; font-size: 1.1rem; }
 }

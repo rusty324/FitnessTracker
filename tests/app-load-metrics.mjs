@@ -89,8 +89,8 @@ step('the explicit loadModel arrives from the pack', pushRec.loadModel === 'bw_e
 step('an exercise with no pack match keeps no loadModel (inferred instead)', (await byName('Old Bench')).loadModel === undefined);
 
 // ---------- variant select: prefill from the plan target, save ----------
-await page.waitForSelector('.list-row:has-text("Push-Up") button:has-text("Log")');
-await page.click('.list-row:has-text("Push-Up") button:has-text("Log")');
+await page.waitForSelector('.ex-card:has-text("Push-Up") button:has-text("Details")');
+await page.click('.ex-card:has-text("Push-Up") button:has-text("Details")');
 await page.waitForSelector('.modal [data-name="variant"]');
 step('Variant prefills from the plan target (L5 Standard)',
   (await page.inputValue('.modal [data-name="variant"]')) === '5'

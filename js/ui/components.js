@@ -57,6 +57,35 @@ export function toast(message, type = '') {
   setTimeout(() => t.remove(), 3500);
 }
 
+// Instead of "Are you sure?": do it, with a few seconds to take it back.
+// onCommit runs when the toast expires — or at pagehide, so a pending
+// removal isn't lost when the app is closed; onUndo if Undo is tapped.
+const pendingCommits = new Set();
+addEventListener('pagehide', () => {
+  for (const commit of [...pendingCommits]) commit();
+});
+export function undoToast(message, { onUndo, onCommit, ms = 5000 } = {}) {
+  const root = document.getElementById('toast-root');
+  let done = false;
+  const finish = (fn) => {
+    if (done) return;
+    done = true;
+    pendingCommits.delete(commit);
+    clearTimeout(timer);
+    t.remove();
+    fn?.();
+  };
+  const commit = () => finish(onCommit);
+  const t = el('div', { class: 'toast toast-undo', role: 'status' },
+    el('span', {}, message),
+    el('button', { class: 'toast-action', onclick: () => finish(onUndo) }, 'Undo'),
+  );
+  root.appendChild(t);
+  pendingCommits.add(commit);
+  const timer = setTimeout(commit, ms);
+  return { commit, undo: () => finish(onUndo) };
+}
+
 // File pickers deliberately carry no `accept` filter. iOS resolves accept
 // values to system UTIs, and any extension it doesn't recognise — .gpx and
 // .tcx among them — leaves every file greyed out and unselectable in the

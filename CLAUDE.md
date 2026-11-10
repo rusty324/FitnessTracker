@@ -83,6 +83,16 @@ files). `datarepo-template/scripts/crypto.js` must stay **byte-identical** to
   and the main one for cardio. Variant levels are positional: changing a
   ladder's order breaks plans and logs that reference levels, so ladder
   fixes need a migration (`js/preset-sync.js` has the Push-Up one).
+- **Sessions** (`data/sessions.json`, encrypted): `{id:'<date>:<plannedSessionId>',
+  date, plannedSessionId, planId, kind:'full'|'minimum'}` written by "Finish
+  session". A planned session is **completed** when it has such a record *or*
+  every non-optional item has a linked log / confirmed match
+  (`js/sessions.js` — the only definition; reuse it).
+- **Gym-floor drafts**: ticking a set writes `localStorage`
+  `ft.draft.<date>.<sessionId|adhoc>`, never the repo; drafts become logs when an
+  exercise's sets are all ticked, on Finish, and on pagehide/hidden (and on the
+  next load). Deletes of sets/log entries use an Undo toast; `store.removeLater`
+  hides the record until the toast expires, then removes it.
 - Old data must keep working: shapes only ever **add** optional fields, and
   readers handle every older shape.
 
@@ -95,7 +105,9 @@ files). `datarepo-template/scripts/crypto.js` must stay **byte-identical** to
 | `js/config.js` | Tabs, data paths, taxonomies, sport map, gear kinds, muscle/position lists |
 | `js/models.js` | Record factories and v1→v2 migrations |
 | `js/storage/store.js` | App layer over ghsync |
-| `js/ui/*-tab.js`, `gear-view.js` | The tabs; `cardio-form.js`, `sets-form.js` are the shared entry forms |
+| `js/ui/*-tab.js`, `gear-view.js` | The tabs; `cardio-form.js` and `set-rows.js` (stepper set rows, Today + log form) are the shared entry forms |
+| `js/history.js`, `js/sanity.js`, `js/sessions.js` | Pure: last performance / ghosts, inline set warnings, the one "completed session" rule |
+| `js/draft.js`, `js/rest-timer.js` | Gym-floor drafts (localStorage, flushed to logs) and the rest timer / wake lock |
 | `js/ui/tabbar.js` | Hash router `#/<tab>[/<path>]`; tabs may export `route(path)` |
 | `js/cardio.js`, `js/sets.js`, `js/gps.js` | Pure helpers (gear, per-set math, GPX/TCX parsing) |
 | `js/load.js`, `js/rwi.js` | Pure strength-load (Brzycki eRM) and RWI math |
@@ -157,6 +169,10 @@ files). `datarepo-template/scripts/crypto.js` must stay **byte-identical** to
 9. Desktop layout; RWI counts distance × speed for cardio; load metrics
    (Brzycki eRM per load model, variant select in the log form, Load index
    card) and the Push-Up ladder fix (Wall → One-Arm, so plan levels match).
+10. Adherence-first revamp (owner's spec + mockups), phase by phase: restyle
+    (teal theme, bottom tab bar, page titles, heatmap inside Metrics), then
+    Phase A gym-floor logging (set rows with ghosts and one-tap ✓, drafts,
+    rest timer, sanity warnings, Undo, Finish session + sessions.json).
 
 ## Ideas not built yet
 

@@ -40,6 +40,9 @@ export const DATA_FILES = {
   activityEdits: 'data/activity-edits.json',
   // Shoes, bikes and other kit whose mileage is tracked (see js/cardio.js).
   gear: 'data/gear.json',
+  // One record per (date, planned session) the user finished — full or
+  // minimum — and later skips and pain flags. Health data: encrypted.
+  sessions: 'data/sessions.json',
 };
 // Synced activities, split by writer so the two can never conflict:
 //   ACTIVITY_DIR — written only by the Polar sync workflow (Actions)
@@ -209,3 +212,26 @@ export const BODY_METRICS = [
   { id: 'restingHr', label: 'Resting HR', unit: 'bpm', step: 1, dimension: null },
   { id: 'waist', label: 'Waist', unit: 'cm', step: 0.5, dimension: 'length' },
 ];
+
+// ---------- Gym-floor logging (js/ui/set-rows.js) ----------
+
+// Weight stepper step, in the DISPLAY unit, by modality (exercise.weightStepKg
+// overrides). Bodyweight exercises with added weight use `other`.
+export const WEIGHT_STEP = {
+  imperial: { barbell: 5, dumbbell: 5, machine: 5, kettlebell: 8, other: 5 },
+  metric: { barbell: 2.5, dumbbell: 2, machine: 2.5, kettlebell: 4, other: 2.5 },
+};
+
+// Rest timer default when the plan target has no restSec, by exercise
+// category. Cardio has no timer.
+export const REST_DEFAULT_SEC = { strength: 90, plyometric: 90, skill: 60, other: 60, mobility: 30 };
+
+// Inline set warnings (js/sanity.js). Warn, never block.
+export const SANITY = {
+  jumpFactor: 3, // weight > 3× the heaviest prior weight…
+  jumpMinHistory: 3, // …once there are at least this many prior sets
+  unitMixTolerance: 0.01, // within 1% of prior × or ÷ 2.2046 looks like lb/kg mixed up
+  maxReps: 100,
+  maxDurationSec: 12 * 3600,
+  maxFirstWeightKg: 500, // with no history
+};

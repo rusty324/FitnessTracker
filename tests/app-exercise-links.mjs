@@ -46,10 +46,10 @@ await page.evaluate(async () => {
   localStorage.setItem('ft.data.data/logs.json', JSON.stringify(logs));
 });
 await page.reload();
-await page.waitForSelector('.list-row:has-text("Front Plank")');
+await page.waitForSelector('.ex-card:has-text("Front Plank")');
 
 // ---------- Today: planned exercise names are links ----------
-const plankLink = page.locator('.card .row-title a.ex-link:has-text("Front Plank")');
+const plankLink = page.locator('.ex-card .ex-title a.ex-link:has-text("Front Plank")');
 step('a planned exercise name is a link', (await plankLink.count()) === 1);
 step('to its library page', (await plankLink.getAttribute('href')) === '#/library/exercise/ex-plank');
 step('ids are encoded in the link', (await page.getAttribute('a.ex-link:has-text("Easy Run")', 'href')) === '#/library/exercise/ex%2Frun%201');
@@ -61,7 +61,7 @@ step('it opens the exercise in the Fitness Library',
 step('with its description', /Hold a straight line from head to heels/.test(await page.textContent('#view')));
 step('the address names the exercise', (await hash()) === '#/library/exercise/ex-plank');
 await page.click('button:has-text("‹ Back")');
-await page.waitForSelector('.list-row:has-text("Front Plank")');
+await page.waitForSelector('.ex-card:has-text("Front Plank")');
 // The page was opened with no hash, which is the Logs tab.
 step('‹ Back returns to the Logs page', (await activeTab()) === 'Logs' && ['', '#/logs'].includes(await hash()), `${await activeTab()} ${await hash()}`);
 
@@ -71,7 +71,7 @@ await page.waitForSelector('button:has-text("‹ Back")');
 step('an id with odd characters opens the right exercise',
   (await detailTitle()) === 'Easy Run' && (await hash()) === '#/library/exercise/ex%2Frun%201');
 await page.goBack();
-await page.waitForSelector('.list-row:has-text("Front Plank")');
+await page.waitForSelector('.ex-card:has-text("Front Plank")');
 step('the browser back button returns too', (await activeTab()) === 'Logs');
 
 // ---------- History: the name is a link; the rest of the row still edits ----------

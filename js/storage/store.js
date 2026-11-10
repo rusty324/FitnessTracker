@@ -23,7 +23,7 @@ const gh = createStore({
   files: DATA_FILES,
   // Personal data is encrypted when a password is set; plans, the exercise
   // library, and match links stay plaintext so they remain diffable.
-  encrypted: ['logs', 'metrics', 'goals', 'activityEdits', 'gear'],
+  encrypted: ['logs', 'metrics', 'goals', 'activityEdits', 'gear', 'sessions'],
   encryptPath: (path) =>
     path.startsWith(`${ACTIVITY_DIR}/activities-`)
     || path.startsWith(`${IMPORT_DIR}/imported-`)
@@ -42,11 +42,51 @@ export const {
   getDataRepo, setDataRepo, hasDataRepo,
   getToken, setToken, hasToken,
   setPassword, encryption,
-  get, save, upsert, remove,
+  save, upsert, remove,
   onChange, syncStatus, refreshStatus,
   refresh, flushQueue, rewriteEncryptedFiles, pushAllData, init,
   client,
 } = gh;
+
+// ---------- removals that can be undone ----------
+// Deleting a log (or other record) is held pending for a few seconds so it
+// can be undone (js/ui/components.js undoToast). While pending, get() hides
+// it everywhere; the real remove happens only on commit — on expiry, or at
+// pagehide. A crash before then leaves the record in place: the safe failure.
+const hidden = new Map(); // collection -> Set of ids
+
+export function get(collection) {
+  const rows = gh.get(collection);
+  const h = hidden.get(collection);
+  return h?.size ? rows.filter((r) => !h.has(r.id)) : rows;
+}
+
+// -> { commit(), undo() }; each runs once.
+export function removeLater(collection, id) {
+  const original = gh.get(collection).find((r) => r.id === id);
+  if (!hidden.has(collection)) hidden.set(collection, new Set());
+  hidden.get(collection).add(id);
+  gh.emit({ type: 'changed', collection });
+  let settled = false;
+  const unhide = () => hidden.get(collection)?.delete(id);
+  return {
+    commit() {
+      if (settled) return;
+      settled = true;
+      unhide();
+      gh.remove(collection, id);
+    },
+    undo() {
+      if (settled) return;
+      settled = true;
+      unhide();
+      // Something may have saved the collection (without the hidden record)
+      // in the meantime; put it back if so.
+      if (original && !gh.get(collection).some((r) => r.id === id)) gh.upsert(collection, original);
+      else gh.emit({ type: 'changed', collection });
+    },
+  };
+}
 
 // ---------- activities ----------
 
