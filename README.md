@@ -1,5 +1,7 @@
 # Fitness Tracker & Planner
 
+[![Tests](https://github.com/rusty324/FitnessTracker/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/rusty324/FitnessTracker/actions/workflows/tests.yml)
+
 A single-user fitness tracking and planning web app that runs entirely on
 GitHub Pages — no backend. Data is saved as JSON files in a separate private
 GitHub repo via the GitHub Contents API, with localStorage as a write-through
