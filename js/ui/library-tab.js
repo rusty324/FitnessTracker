@@ -7,7 +7,7 @@
 // km × km/h for distance, or seconds for a hold — see js/rwi.js.
 
 import * as store from '../storage/store.js';
-import { makeGoal, exerciseUsage, remapExercise, allSessions, sessionItems } from '../models.js';
+import { makeGoal, makeExercise, exerciseUsage, remapExercise, allSessions, sessionItems } from '../models.js';
 import { RUN_GOAL_PRESETS, MUSCLE_GROUPS, WEIGHT_TYPES, POSITIONS } from '../config.js';
 import {
   matchesFilters, muscleGroupsOf, weightTypesOf, positionsOf, isFiltering, NOT_SET,
@@ -21,6 +21,8 @@ import { el, openModal, confirmDialog, toast, emptyState, downloadJson, filePick
 import { loadManifest, loadPreset } from '../presets.js';
 import { syncFromPresets } from '../preset-sync.js';
 import { filterBar, emptyFilters, describeExercise, labelOf } from './exercise-filter-bar.js';
+import { extractExerciseDefs, planExerciseImport, applyExerciseImport, exerciseTemplate } from '../exercise-io.js';
+import { gifImage, hasGif } from './media.js';
 import { editExercise, pickExercise, targetSummary, libraryUpserter, exerciseDef, slug } from './plans-tab.js';
 import { renderGear } from './gear-view.js';
 import { formatSets } from '../sets.js';
@@ -195,7 +197,14 @@ function exportLibrary() {
   for (const ex of [...lib].sort((a, b) => a.name.localeCompare(b.name))) {
     let key = slug(ex.name);
     while (exerciseLibrary[key]) key += '_2';
-    exerciseLibrary[key] = exerciseDef(ex);
+    // The id lets a re-import update this exercise even if you rename it.
+    exerciseLibrary[key] = {
+      id: ex.id,
+      ...exerciseDef(ex),
+      ...(ex.gif ? { gif: ex.gif } : {}),
+      ...(ex.weightStepKg ? { weightStepKg: ex.weightStepKg } : {}),
+      ...(ex.archived ? { archived: true } : {}),
+    };
   }
   downloadJson('exercise-library.json', {
     format: 'fitness-tracker-exercise-library',
@@ -205,36 +214,52 @@ function exportLibrary() {
   toast(`Exported ${lib.length} exercise${lib.length === 1 ? '' : 's'}`);
 }
 
-// Accepts: a full v2 plan file (uses its exerciseLibrary), a bare
-// exerciseLibrary map, an array of definitions, or a single definition.
-function extractExerciseDefs(data) {
-  if (Array.isArray(data)) return data;
-  if (data && typeof data === 'object') {
-    if (data.exerciseLibrary && typeof data.exerciseLibrary === 'object') {
-      return Object.values(data.exerciseLibrary);
-    }
-    if (typeof data.name === 'string') return [data];
-    const vals = Object.values(data);
-    if (vals.length && vals.every((v) => v && typeof v === 'object' && typeof v.name === 'string')) {
-      return vals;
-    }
-  }
-  throw new Error('Expected an exerciseLibrary map, an exercise object, or an array of them');
-}
-
+// Import: starter packs (they only fill blanks, never overwrite your edits),
+// or your own file — which updates the exercises it matches and adds the
+// rest, after a preview (js/exercise-io.js).
 function importExercisesModal() {
   const textarea = el('textarea', {
-    placeholder: 'Paste exercise JSON here, or pick a file below…',
-    style: 'min-height:140px;font-family:monospace;font-size:0.8rem',
+    placeholder: 'Paste exercise JSON here, or pick a file above…',
+    style: 'min-height:120px;font-family:monospace;font-size:0.8rem',
+    dataset: { name: 'import-json' },
   });
+  const preview = el('div', { class: 'import-preview', dataset: { name: 'import-preview' } });
+  let plan = null;
   const fileInput = filePicker({
     onchange: () => {
       const f = fileInput.files?.[0];
       if (!f) return;
-      f.text().then((t) => { textarea.value = t; }).catch(() => toast('Could not read file', 'error'));
+      f.text().then((t) => { textarea.value = t; check(); }).catch(() => toast('Could not read file', 'error'));
     },
   });
-  // Starter packs bundled with the site; tapping one imports it directly.
+  textarea.addEventListener('input', () => { clearTimeout(textarea._t); textarea._t = setTimeout(check, 300); });
+
+  // Parse and show what would happen; nothing changes until Import.
+  function check() {
+    plan = null;
+    preview.innerHTML = '';
+    if (!textarea.value.trim()) return;
+    let defs;
+    try {
+      defs = extractExerciseDefs(JSON.parse(textarea.value));
+    } catch (e) {
+      preview.appendChild(el('p', { class: 'import-error' }, e instanceof SyntaxError ? `That isn’t valid JSON: ${e.message}` : e.message));
+      return;
+    }
+    plan = planExerciseImport(defs, store.get('exercises'), { makeExercise: (name) => makeExercise({ name }) });
+    const names = (list) => list.map((x) => x.name).join(', ');
+    preview.append(
+      el('div', { class: 'import-counts' },
+        `${plan.creates.length} new · ${plan.updates.length} updated · ${plan.unchanged.length} unchanged`
+        + (plan.skipped.length ? ` · ${plan.skipped.length} skipped` : '')),
+      plan.creates.length ? el('div', { class: 'row-sub' }, el('strong', {}, 'New: '), names(plan.creates)) : null,
+      plan.updates.length ? el('div', { class: 'row-sub' }, el('strong', {}, 'Updated: '),
+        plan.updates.map((u) => `${u.after.name} (${u.fields.join(', ')})`).join('; ')) : null,
+      plan.skipped.length ? el('div', { class: 'row-sub import-error' }, el('strong', {}, 'Skipped: '),
+        plan.skipped.map((x) => `${x.name} — ${x.reason}`).join('; ')) : null,
+    );
+  }
+
   const packList = el('div', {}, el('p', { class: 'muted' }, 'Loading starter packs…'));
   let modal;
   loadManifest().then((manifest) => {
@@ -242,9 +267,14 @@ function importExercisesModal() {
     for (const pack of manifest.exercisePacks ?? []) {
       packList.appendChild(el('div', { class: 'list-row tappable', onclick: async () => {
         try {
-          const data = await loadPreset(pack.file);
-          applyImport(data);
+          const lib = libraryUpserter();
+          for (const def of extractExerciseDefs(await loadPreset(pack.file))) lib.resolve(def);
+          lib.commit();
+          const { created, enriched } = lib.stats;
+          toast(!created && !enriched ? 'Nothing new — all exercises already in the library'
+            : `Imported: ${created} new${enriched ? `, ${enriched} filled in` : ''}`);
           modal.close();
+          render();
         } catch (e) {
           toast(e.message, 'error');
         }
@@ -262,47 +292,33 @@ function importExercisesModal() {
     packList.appendChild(el('p', { class: 'muted' }, 'Starter packs unavailable offline.'));
   });
 
-  // Shared by the preset rows and the paste/file route.
-  function applyImport(data) {
-    const defs = extractExerciseDefs(data);
-    const lib = libraryUpserter();
-    for (const def of defs) lib.resolve(def);
-    lib.commit();
-    const { created, enriched } = lib.stats;
-    if (!created && !enriched) toast('Nothing new — all exercises already in the library');
-    else toast(`Imported: ${created} new${enriched ? `, ${enriched} updated` : ''}`);
-    render();
-  }
-
   modal = openModal('Import exercises', el('div', {},
-    el('h3', {}, 'Starter packs'),
-    packList,
-    el('h3', {}, 'Or paste your own'),
-    el('div', { class: 'field' }, textarea),
-    el('div', { class: 'field' }, el('label', {}, 'Or choose a file'), fileInput),
+    el('h3', {}, 'Your file'),
     el('p', { class: 'muted' },
-      'Accepts an exerciseLibrary map (as in plan files), a whole plan file, a single exercise, ',
-      'or an array of exercises. Matched by name; existing entries gain any missing detail fields, ',
-      'and your own edits are never overwritten.'),
+      'Add or edit many exercises at once: Export, edit the file, import it here. Exercises you already have ',
+      '(matched by id, else by name) are updated with the file’s fields; the rest are added.'),
+    el('div', { class: 'field-row' },
+      el('div', { class: 'field' }, fileInput),
+      el('div', { class: 'field', style: 'flex:0 0 auto' },
+        el('button', { class: 'btn small secondary', type: 'button', dataset: { action: 'template' },
+          onclick: () => downloadJson('exercise-template.json', exerciseTemplate()) }, 'Download template'))),
+    el('div', { class: 'field' }, textarea),
+    preview,
+    el('h3', {}, 'Starter packs'),
+    el('p', { class: 'muted' }, 'Adds the pack’s exercises; ones you already have only gain blank fields — your edits are kept.'),
+    packList,
   ), [
     { label: 'Cancel', class: 'btn secondary', onClick: () => {} },
     {
       label: 'Import',
       class: 'btn',
       onClick: () => {
-        let data;
-        try {
-          data = JSON.parse(textarea.value);
-        } catch {
-          toast('That isn’t valid JSON', 'error');
-          return false;
-        }
-        try {
-          applyImport(data);
-        } catch (e) {
-          toast(e.message, 'error');
-          return false;
-        }
+        check();
+        if (!plan) { toast(textarea.value.trim() ? 'Fix the file first' : 'Pick or paste a file first', 'error'); return false; }
+        if (!plan.creates.length && !plan.updates.length) { toast('Nothing to change'); return; }
+        store.save('exercises', applyExerciseImport(store.get('exercises'), plan));
+        toast(`Imported: ${plan.creates.length} new, ${plan.updates.length} updated`);
+        render();
       },
     },
   ]);
@@ -346,6 +362,8 @@ function renderExerciseDetail(id) {
     ex.archived ? [' ', el('span', { class: 'pill warn' }, 'archived')] : '',
   ));
 
+  // The exercise's animation, beside what it is; tap for full size.
+  if (hasGif(ex.gif)) root.appendChild(el('div', { class: 'gif-figure' }, gifImage(ex.gif, { alt: ex.name })));
   if (ex.description) root.appendChild(el('p', {}, ex.description));
   if (ex.whyItsHere) root.appendChild(el('p', { class: 'muted' }, `Why it’s here: ${ex.whyItsHere}`));
   if (ex.equipment?.length) root.appendChild(el('p', { class: 'muted' }, `Equipment: ${ex.equipment.join(', ')}`));
@@ -369,7 +387,8 @@ function renderExerciseDetail(id) {
   if (ex.variants?.length) {
     const card = el('div', { class: 'card' }, el('h3', {}, 'Progression variants'));
     for (const v of [...ex.variants].sort((a, b) => a.level - b.level)) {
-      card.appendChild(el('div', { class: 'list-row' },
+      card.appendChild(el('div', { class: 'list-row variant-row' },
+        hasGif(v.gif) && gifImage(v.gif, { cls: 'gif-thumb', alt: `${ex.name}: ${v.name}` }),
         el('div', { class: 'row-main' },
           el('div', { class: 'row-title' }, `L${v.level} · ${v.name}`),
           v.description && el('div', { class: 'row-sub' }, v.description),

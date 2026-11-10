@@ -14,6 +14,7 @@ import {
 } from '../config.js';
 import { loadModelOf } from '../load.js';
 import { filterBar, emptyFilters, describeExercise } from './exercise-filter-bar.js';
+import { gifImage, hasGif, isUpload, uploadGif, removeUpload } from './media.js';
 import { muscleGroupsOf, matchesFilters, isFiltering } from '../exercise-filters.js';
 import { effectiveSessionDate, isSkipped, occurrences, sessionKey } from '../schedule.js';
 import { todayStr, addDays, toDateStr, parseDateStr, formatDate, formatDuration } from '../dates.js';
@@ -654,6 +655,55 @@ export function editExercise(ex, onSaved, prefillName = '') {
   loadSel.addEventListener('change', showRefReps);
   modSel.addEventListener('change', showRefReps);
   showRefReps();
+  // GIFs: the exercise's, and one per variant — a link, or an upload kept
+  // in the data repo. Uploads made here but not saved are removed on Cancel.
+  const gifs = {
+    exercise: draft.gif ?? '',
+    variants: (draft.variants ?? []).map((v) => v.gif ?? ''),
+  };
+  const startGifs = JSON.parse(JSON.stringify(gifs));
+  const fresh = new Set(); // uploads made in this editor
+  const gifSection = el('div', { class: 'gif-editor' });
+  const gifRow = (label, get, set, key) => {
+    const value = get();
+    const link = el('input', {
+      type: 'url', inputmode: 'url', placeholder: 'https://…/exercise.gif',
+      value: isUpload(value) ? '' : value, dataset: { gif: key },
+      oninput: (e) => { if (isUpload(get())) return; set(e.target.value.trim()); },
+    });
+    const picker = el('input', { type: 'file', class: 'gif-file', dataset: { gifFile: key } });
+    picker.addEventListener('change', async () => {
+      const f = picker.files?.[0];
+      if (!f) return;
+      try {
+        const ref = await uploadGif(f);
+        fresh.add(ref);
+        set(ref);
+        drawGifs();
+      } catch (e) {
+        toast(e.message, 'error');
+      }
+    });
+    return el('div', { class: 'gif-row' },
+      el('div', { class: 'gif-row-head' },
+        el('span', { class: 'gif-row-label' }, label),
+        hasGif(value) && gifImage(value, { cls: 'gif-thumb', alt: label })),
+      isUpload(value)
+        ? el('div', { class: 'row-sub' }, 'Uploaded GIF')
+        : link,
+      el('div', { class: 'gif-row-actions' },
+        el('label', { class: 'btn small secondary gif-upload' }, isUpload(value) ? 'Replace…' : 'Upload GIF…', picker),
+        hasGif(value) && el('button', { class: 'btn small secondary', type: 'button', onclick: () => { set(''); drawGifs(); } }, 'Remove')));
+  };
+  function drawGifs() {
+    gifSection.replaceChildren(
+      gifRow('Exercise', () => gifs.exercise, (v) => { gifs.exercise = v; }, 'exercise'),
+      ...(draft.variants ?? []).map((v, i) =>
+        gifRow(`L${v.level} · ${v.name}`, () => gifs.variants[i], (val) => { gifs.variants[i] = val; }, `variant-${v.level}`)),
+    );
+  }
+  drawGifs();
+
   const positionBoxes = POSITIONS.map((p) => {
     const box = el('input', { type: 'checkbox', value: p.id, checked: (draft.positions ?? []).includes(p.id) });
     return { box, label: el('label', { class: 'check-inline' }, box, ` ${p.label}`) };
@@ -677,8 +727,11 @@ export function editExercise(ex, onSaved, prefillName = '') {
     el('div', { class: 'row-sub' },
       'How strength is tracked on the exercise page. Bodyweight fraction: share of body weight moved, ',
       'for a bodyweight exercise with no variant ladder (a floor push-up is about 0.64).'),
+    el('h3', {}, 'Animations (GIF)'),
+    el('p', { class: 'muted', style: 'margin-top:0' }, 'A link to a GIF, or upload one (up to 5 MB). Tap a GIF on the exercise page to see it full size.'),
+    gifSection,
   ), [
-    { label: 'Cancel', class: 'btn secondary', onClick: () => {} },
+    { label: 'Cancel', class: 'btn secondary', onClick: () => { for (const ref of fresh) removeUpload(ref); } },
     {
       label: 'Save',
       class: 'btn',
@@ -697,6 +750,16 @@ export function editExercise(ex, onSaved, prefillName = '') {
         // Optional fields: set when given, removed when cleared, and left
         // exactly as stored when untouched.
         const setOpt = (k, v) => { if (v == null || v === '') delete draft[k]; else draft[k] = v; };
+        // GIFs: set or clear; an upload that's been replaced or removed goes.
+        setOpt('gif', gifs.exercise);
+        if (draft.variants?.length) {
+          draft.variants = draft.variants.map((v, i) => {
+            const { gif: _old, ...rest } = v;
+            return gifs.variants[i] ? { ...rest, gif: gifs.variants[i] } : rest;
+          });
+        }
+        const kept = new Set([gifs.exercise, ...gifs.variants]);
+        for (const ref of [startGifs.exercise, ...startGifs.variants, ...fresh]) if (!kept.has(ref)) removeUpload(ref);
         setOpt('loadModel', loadSel.value);
         if (refRepsInput.value !== shownLoad.referenceReps) setOpt('referenceReps', refReps);
         if (fractionInput.value !== shownLoad.bodyweightFraction) setOpt('bodyweightFraction', fraction);

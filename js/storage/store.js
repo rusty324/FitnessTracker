@@ -10,6 +10,7 @@
 //   - the browser owns data/imported/** (file imports)
 
 import { createStore } from '../../ghsync/store.js';
+import { createBlobStore } from '../../ghsync/blobs.js';
 import { migratePlan, migrateExercise } from '../models.js';
 import {
   DATA_FILES, ACTIVITY_DIR, IMPORT_DIR, LEGACY_STRAVA_DIR, DATA_REPO_DEFAULT,
@@ -35,8 +36,18 @@ const gh = createStore({
   // Activity shards are app-owned paths outside DATA_FILES, so ghsync needs
   // to be told about them when re-encrypting or seeding a repo.
   extraPaths: () => gh.readFile(ACTIVITY_INDEX) ?? [],
-  onRefresh: () => refreshActivities(),
+  onRefresh: async () => {
+    await refreshActivities();
+    // Uploaded exercise GIFs added on another device.
+    await media.mirror().catch(() => {});
+  },
 });
+
+// Exercise GIFs uploaded from a device: one repo file per GIF under
+// data/media/ (bytes kept as-is so they stay animated), mirrored to
+// IndexedDB so they show offline. Exercises hold "media:<id>" in their `gif`
+// field. Not personal, so not encrypted.
+export const media = createBlobStore(gh, { dbName: 'ft.media', dir: 'data/media', kind: 'media' });
 
 export const {
   getDataRepo, setDataRepo, hasDataRepo,
@@ -44,9 +55,16 @@ export const {
   setPassword, encryption,
   save, upsert, remove,
   onChange, syncStatus, refreshStatus,
-  refresh, flushQueue, rewriteEncryptedFiles, pushAllData, init,
+  refresh, flushQueue, rewriteEncryptedFiles, init,
   client,
 } = gh;
+
+// Seeding a newly connected repo also uploads the GIFs this device holds.
+export async function pushAllData(...args) {
+  const r = await gh.pushAllData(...args);
+  await media.pushAll(true);
+  return r;
+}
 
 // ---------- removals that can be undone ----------
 // Deleting a log (or other record) is held pending for a few seconds so it

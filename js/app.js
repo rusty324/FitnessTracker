@@ -273,6 +273,7 @@ store.onChange((e) => {
   if (e.type === 'sync-status') renderBadge();
 });
 store.init();
+store.media.init(); // uploaded exercise GIFs: retry queued uploads
 renderBadge();
 
 // Bring the exercise library up to date with the bundled packs (fills empty

@@ -70,7 +70,14 @@ files). `datarepo-template/scripts/crypto.js` must stay **byte-identical** to
 - **Exercises** have free-text `primaryTargets`/`equipment` (v2 schema shape);
   filters map them onto muscle groups/weight types at read time
   (`js/exercise-filters.js`, patterns in `js/config.js`). `positions` is a
-  list of position ids.
+  list of position ids. Optional `gif` on an exercise and on each variant:
+  an `https://` link or `media:<id>` — an upload stored by `store.media`
+  (ghsync blobs) at `data/media/<id>.json`, mirrored to IndexedDB `ft.media`.
+- **Exercise import** (`js/exercise-io.js`): a user's file *updates* what it
+  matches (by `id`, else by normalised name — a name match never renames)
+  and adds the rest, after a preview; starter packs only fill blanks
+  (`libraryUpserter`). Library exports carry ids so a round trip updates in
+  place. Names ending "(example)" are skipped (the downloadable template).
 - **Load metrics** (`js/load.js`, pure): optional exercise `loadModel`
   (`e1rm | erm_ref | bw_e1rm | reps | duration | cardio`; inferred from
   modality when absent), `referenceReps` (erm_ref), `bodyweightFraction`
@@ -124,6 +131,7 @@ files). `datarepo-template/scripts/crypto.js` must stay **byte-identical** to
 | `js/trend.js`, `js/review.js` | Pure weight trend (time-aware EMA; rate/ETA from OLS on raw weights) and the weekly review (sessions, PRs, volume, one recommendation) |
 | `js/schedule.js`, `js/minimum.js`, `js/pain.js` | Pure: the one session-date function + slide/skip/repeat; the derived minimum session; pain escalation and rules |
 | `js/draft.js`, `js/rest-timer.js` | Gym-floor drafts (localStorage, flushed to logs) and the rest timer / wake lock |
+| `js/exercise-io.js`, `js/ui/media.js` | Pure exercise import planning + template; exercise GIFs (link/upload, card, thumb, lightbox) |
 | `js/ui/exercise-filter-bar.js` | Exercise search + muscle/weights/position filters, shared by the Library list and the exercise picker |
 | `js/ui/tabbar.js` | Hash router `#/<tab>[/<path>]`; tabs may export `route(path)` |
 | `js/cardio.js`, `js/sets.js`, `js/gps.js` | Pure helpers (gear, per-set math, GPX/TCX parsing) |
