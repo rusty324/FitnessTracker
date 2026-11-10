@@ -929,3 +929,46 @@ label.btn.small {
   .data-table .num-l { font-variant-numeric: tabular-nums; }
   .data-table .said-up { color: var(--warn); font-weight: 650; }
 }
+
+/* ---------- Plans: the current plan ---------- */
+.plan-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 8px 16px; margin-bottom: 12px; }
+.plan-head-main { min-width: 0; flex: 1 1 260px; }
+.plan-head-main .page-h1 { overflow-wrap: anywhere; margin: 0 0 6px; }
+.plan-head-actions { display: flex; align-items: center; gap: 12px; }
+.plan-progress { display: flex; align-items: center; gap: 10px; color: var(--text-dim); font-size: 0.9rem; flex-wrap: wrap; }
+.progress-bar { display: inline-block; width: 140px; max-width: 40vw; height: 6px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--border); overflow: hidden; }
+.progress-fill { display: block; height: 100%; background: var(--accent); }
+.plan-layout { display: block; }
+/* Phone: the weeks as a scrolling row of chips above the sessions. */
+.week-card { padding: 8px; margin-bottom: 12px; }
+.week-card .side-head { display: none; }
+.week-list { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; align-items: center; }
+.week-btn { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--text-dim); font: inherit; font-size: 0.9rem; cursor: pointer; white-space: nowrap; }
+.week-btn.active { color: var(--text); border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); font-weight: 650; }
+.week-list .link-btn { flex: 0 0 auto; white-space: nowrap; }
+.week-mark { display: inline-grid; place-items: center; width: 16px; height: 16px; border-radius: 50%; font-size: 0.65rem; border: 1.5px solid var(--border); color: #fff; }
+.week-mark.done { background: var(--accent); border-color: var(--accent); }
+.week-mark.current { border-color: var(--accent); box-shadow: inset 0 0 0 3px var(--surface); background: var(--accent); }
+.week-title { font-weight: 700; font-size: 1.1rem; margin: 4px 0 10px; display: flex; flex-wrap: wrap; align-items: baseline; }
+.session-cards { display: grid; gap: 12px; grid-template-columns: 1fr; }
+.session-cards > .card { margin-bottom: 0; min-width: 0; }
+.session-card-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.session-card-title { font-weight: 700; font-size: 1.05rem; margin: 6px 0 2px; overflow-wrap: anywhere; }
+.session-blocks { margin-top: 10px; border-top: 1px solid var(--border); padding-top: 8px; display: grid; gap: 4px; font-size: 0.9rem; }
+.block-row { display: flex; justify-content: space-between; gap: 10px; min-width: 0; }
+.block-row > span:last-child { text-align: right; overflow-wrap: anywhere; }
+.session-card.state-skipped { opacity: 0.6; }
+.status-pill.planned { color: var(--text-dim); }
+.status-pill.skipped { color: var(--text-dim); text-decoration: line-through; }
+.next-week-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; width: 100%; margin-top: 12px; font: inherit; color: var(--text); text-align: left; cursor: pointer; border: 1px solid var(--border); }
+.next-week-name { font-weight: 650; }
+@media (min-width: 960px) and (hover: hover) and (pointer: fine) {
+  .plan-layout { display: flex; }
+  .week-side { flex: 0 0 220px; position: sticky; top: 84px; }
+  .week-card { padding: 12px; }
+  .week-card .side-head { display: flex; }
+  .week-list { flex-direction: column; align-items: stretch; overflow: visible; }
+  .week-btn { border-radius: 8px; border-color: transparent; background: transparent; }
+  .week-btn.active { border-color: var(--accent); }
+  .session-cards { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+}

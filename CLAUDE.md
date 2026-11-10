@@ -134,6 +134,7 @@ files). `datarepo-template/scripts/crypto.js` must stay **byte-identical** to
 | `js/exercise-io.js`, `js/ui/media.js` | Pure exercise import planning + template; exercise GIFs (link/upload, card, thumb, lightbox) |
 | `js/ui/exercise-filter-bar.js` | Exercise search + muscle/weights/position filters, shared by the Library list and the exercise picker |
 | `js/ui/layout.js` | `isDesktop()` (wide + mouse, the CSS's desktop query); desktop-redesigned views add `wide` to `#view` (1200px, `.two-col` → `.col-main` + `.col-side`) |
+| `js/ui/overdue.js` | The missed-session card (slide / skip / not now), shared by Today and Plans |
 | `js/ui/exercise-desktop.js` | Desktop exercise page: library sidebar, Next time + the rule, top set by session, what the rule said per session (replayed) |
 | `js/ui/tabbar.js` | Hash router `#/<tab>[/<path>]`; tabs may export `route(path)` |
 | `js/cardio.js`, `js/sets.js`, `js/gps.js` | Pure helpers (gear, per-set math, GPX/TCX parsing) |
@@ -208,6 +209,13 @@ files). `datarepo-template/scripts/crypto.js` must stay **byte-identical** to
     sessions, the derived minimum session (counts as completed, never
     progresses), pain flags with the plan's injury rule and repeat-week,
     and weekly dots ("2 of 3 this week") instead of an adherence %.
+
+11. Desktop redesign from the owner's design canvas, in three batches: Today
+    (side panel, keyboard shortcuts) and Metrics; the weekly Review and the
+    exercise page; then Plans opening on the current plan (`ft.currentPlan`
+    in localStorage, else the one running today) — week N of M, weeks as a
+    sidebar (chips on a phone), the missed-session card, session cards —
+    with the plan list and editors behind "Switch plan".
 
 ## Ideas not built yet
 
