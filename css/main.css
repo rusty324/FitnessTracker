@@ -972,3 +972,4 @@ label.btn.small {
   .week-btn.active { border-color: var(--accent); }
   .session-cards { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
 }
+.session-exercises { margin-top: 8px; font-size: 0.9rem; color: var(--text-dim); overflow-wrap: anywhere; }

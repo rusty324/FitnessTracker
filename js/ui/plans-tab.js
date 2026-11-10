@@ -26,7 +26,7 @@ import {
   weightUnit, weightToInput, weightFromInput,
   distanceUnit, distanceToInput, distanceFromInput, paceToInput, paceFromInput,
 } from '../units.js';
-import { el, openModal, confirmDialog, toast, emptyState, downloadJson, filePicker } from './components.js';
+import { el, openModal, confirmDialog, toast, emptyState, downloadJson, filePicker, exerciseLink } from './components.js';
 import { loadManifest, loadPreset } from '../presets.js';
 
 let root = null;
@@ -128,9 +128,11 @@ function blockSummary(block) {
   return `${items.length} exercises`;
 }
 
-// A rough length from the targets (no session stores one): timed work as
+// The plan's own length when it has one (v2 imports do), else a rough
+// length from the targets: timed work as
 // written, a strength set as ~40 s plus its rest (90 s if none given).
 function estimateMin(session) {
+  if (session.estimatedDurationMin) return session.estimatedDurationMin; // the plan's own
   let sec = 0;
   for (const it of (session.blocks ?? []).flatMap((b) => b.items ?? [])) {
     const t = it.target ?? {};
@@ -144,6 +146,7 @@ function estimateMin(session) {
 
 function renderOverview(plan) {
   const today = todayStr();
+  const lib = new Map(store.get('exercises').map((e) => [e.id, e]));
   const weeks = planWeeks(plan);
   if (!weeks.length) { renderPlanList(); return; }
   const currentIdx = Math.max(0, weeks.findIndex((w) => !w.finished));
@@ -204,7 +207,8 @@ function renderOverview(plan) {
     + `${o.moved ? ' · moved' : ''}${estimateMin(o.session) ? ` · ~${estimateMin(o.session)} min` : ''}`),
   el('div', { class: 'session-blocks' }, (o.session.blocks ?? []).map((b) => el('div', { class: 'block-row' },
     el('span', {}, b.name || blockTypeLabel(b.type)),
-    el('span', { class: 'muted' }, blockSummary(b)))))))));
+    el('span', { class: 'muted' }, blockSummary(b))))),
+  exerciseLinks(sessionItems(o.session).map(({ item }) => item.exerciseId), lib, 'session-exercises')))));
   const after = weeks[shownIdx + 1];
   if (after) {
     const ds = after.sessions.map((x) => x.date).sort();
@@ -389,7 +393,7 @@ function sessionCard(plan, week, session, exercises) {
   const moved = schedule.some((r) => r.id === sessionKey(plan.id, session.id) && r.kind === 'move');
   const skipped = isSkipped(plan, session, schedule);
   const items = sessionItems(session);
-  const exNames = items.map(({ item }) => exercises.get(item.exerciseId)?.shortName || exercises.get(item.exerciseId)?.name || '?').join(', ');
+  const exNames = exerciseLinks(items.map(({ item }) => item.exerciseId), exercises, 'row-sub');
   return el('div', { class: 'card' },
     el('div', { class: 'list-row', style: 'border:none;padding:0' },
       el('div', { class: 'row-main tappable', onclick: () => editSession(plan, session) },
@@ -399,11 +403,25 @@ function sessionCard(plan, week, session, exercises) {
           + `${skipped ? ' · skipped' : moved ? ' · moved' : ''}`
           + `${session.sessionType ? ` · ${session.sessionType}` : ''}`
           + `${session.estimatedDurationMin ? ` · ~${session.estimatedDurationMin} min` : ''}`),
-        exNames && el('div', { class: 'row-sub' }, exNames),
+        exNames,
         session.note && el('div', { class: 'row-sub' }, session.note),
       ),
     ),
   );
+}
+
+// "Bench, Row, Plank" with each name a link to its library page (taps on a
+// link don't open the session underneath). Repeats listed once.
+function exerciseLinks(ids, lib, cls) {
+  const unique = [...new Set(ids)];
+  if (!unique.length) return null;
+  const out = el('div', { class: cls });
+  unique.forEach((id, i) => {
+    if (i) out.append(', ');
+    const ex = lib.get(id);
+    out.append(ex ? exerciseLink(ex, ex.shortName || ex.name) : '?');
+  });
+  return out;
 }
 
 // ---------- Session editor (blocks + items) ----------

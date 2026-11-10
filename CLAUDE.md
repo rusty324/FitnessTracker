@@ -223,7 +223,7 @@ files). `datarepo-template/scripts/crypto.js` must stay **byte-identical** to
 
 ## Ideas not built yet
 
-Exercise names on the Plans tab as links; per-set timed holds; editing
+Per-set timed holds; editing
 variant ladders (and their fractions) in the UI; RIR logging; a Google Drive
 backup (owner prefers a visible folder via `drive.file`, plaintext); copying
 ghsync 1.2 back to homeInventory.

@@ -28,7 +28,7 @@ async function open(viewport, opts = {}) {
       const week = m.makeWeek(w);
       for (const [k, off] of [[1, 0], [2, 2], [3, 4]]) {
         const dayOffset = (w - 1) * 7 + off;
-        week.sessions.push({ ...m.makeSession({ label: `Full body ${k}`, dayOffset }), id: `s${w}${k}`,
+        week.sessions.push({ ...m.makeSession({ label: `Full body ${k}`, dayOffset }), id: `s${w}${k}`, ...(k === 2 ? { estimatedDurationMin: 50 } : {}),
           blocks: [{ id: `k${w}${k}`, type: 'strength', name: 'Main', items: [{ id: `i${w}${k}`, exerciseId: 'b', target: { kind: 'reps', sets: 3, repsMin: 8, repsMax: 12 } }] }] });
         if (w <= 2) logs.push({ ...m.makeLogEntry({ date: d(15 - dayOffset), exerciseId: 'b', planId: plan.id, plannedExerciseId: `i${w}${k}`, actual: { sets: 3, reps: 10, weight: 20 } }), id: `L${w}${k}` });
       }
@@ -77,6 +77,10 @@ step('…each with its status (Open for the missed one)', pills[0] === 'Open' &&
 step('…the label, date, minutes and a block summary', /Full body 1/.test(await cards.first().textContent())
   && /~5 min/.test(await cards.first().textContent()) && /Main.*3 × 8–12/.test(await cards.first().locator('.block-row').textContent()),
   await cards.first().textContent());
+const link = cards.first().locator('.session-exercises a.ex-link');
+step('each session lists its exercises as library links', (await link.count()) === 1 && (await link.textContent()) === 'Bench'
+  && (await link.getAttribute('href')) === '#/library/exercise/b');
+step('the plan’s own session length wins over the estimate', /~50 min/.test(await cards.nth(1).textContent()), await cards.nth(1).textContent());
 step('the next week as a row below', /Week 4.*3 sessions/.test(await page.textContent('[data-action="next-week"]')));
 await page.click('.week-btn[data-week="1"]');
 step('picking a week shows its sessions, all Done', (await page.locator('.session-cards .status-pill').allTextContents()).every((t) => t === 'Done'));
@@ -88,6 +92,24 @@ await page.keyboard.press('Escape');
 await page.evaluate(() => document.querySelector('.modal-backdrop, .modal')?.closest('.modal-backdrop, .modal-root')?.remove());
 
 // Switch plan → the list; tapping a plan makes it current.
+await link.click();
+await page.waitForSelector('.page-h1:has-text("Bench")');
+step('tapping a name opens the exercise (not the session editor)', page.url().endsWith('#/library/exercise/b') && (await page.locator('.modal').count()) === 0);
+await page.click('.tabbar button[data-tab="plans"]');
+await page.waitForSelector('.plan-head');
+await page.click('[data-action="edit-plan"]');
+await page.waitForSelector('#view h2:has-text("Strength Block")');
+const dl = page.locator('.card a.ex-link').first();
+step('the plan editor’s session cards link their exercises too', (await dl.getAttribute('href')) === '#/library/exercise/b');
+await dl.click();
+await page.waitForSelector('.page-h1:has-text("Bench")');
+step('…and the link wins over opening the session', (await page.locator('.modal').count()) === 0);
+await page.click('.tabbar button[data-tab="plans"]');
+await page.waitForFunction(() => location.hash === '#/plans' && !document.querySelector('.lib-side, .col-lib'));
+const back = await page.evaluate(() => ({ hash: location.hash, head: !!document.querySelector('.plan-head'), links: document.querySelectorAll('#view .card a.ex-link').length, h: document.querySelector('#view h2')?.textContent }));
+step('back on Plans: still in the editor you left', !back.head && back.links > 0, JSON.stringify(back));
+await page.click('.segmented button:has-text("Plans")');
+await page.waitForSelector('.plan-head');
 await page.click('[data-action="switch-plan"]');
 await page.waitForSelector('h2:has-text("Training plans")');
 step('Switch plan opens the plan list (with Import)', await page.isVisible('button:has-text("Import")'));
