@@ -54,6 +54,7 @@ export function route(path, { navigated = false } = {}) {
     // from the hash; put it back (same history entry, so Back still works).
     history.replaceState(null, '', `#/library/exercise/${m[1]}`);
     render();
+    scrollTo(0, 0);
   } else if (view.linked) {
     view = { ...view, linked: false };
     render();
@@ -62,14 +63,21 @@ export function route(path, { navigated = false } = {}) {
 
 // In-tab navigation keeps the hash in step without adding history entries,
 // so a reload lands in the same place and Back skips the in-tab steps.
+// The page keeps its scroll position across a re-render, so an exercise
+// opened from far down the list would open scrolled to its bottom. Open it at
+// the top, and bring the list back to where you were.
+let listScrollY = 0;
 function showExercise(id) {
+  if (view.name === 'exercises') listScrollY = scrollY;
   view = { name: 'exercise', id };
   history.replaceState(null, '', `#/library/exercise/${encodeURIComponent(id)}`);
   render();
+  scrollTo(0, 0);
 }
 function showList() {
   view = { name: 'exercises' };
   render();
+  scrollTo(0, listScrollY);
 }
 
 export function unmount() {

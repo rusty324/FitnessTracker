@@ -93,5 +93,31 @@ const wide = await page.evaluate(() => {
 step('settings: a long data-repo path stays inside its box', wide.length === 0, wide.join(' | '));
 step('settings: no sideways scroll', (await overflow()) <= 0);
 
+// ---------- Library: an exercise opened from far down the list ----------
+await page.keyboard.press('Escape');
+await page.goto(BASE);
+await page.evaluate(async () => {
+  const m = await import('/js/models.js');
+  // Real exercises have long pages (cues, variants, charts): a short one would
+  // hide the bug, because the browser clamps the scroll to the shorter page.
+  const many = Array.from({ length: 40 }, (_, i) => ({
+    ...m.makeExercise({ name: `Exercise ${String(i).padStart(2, '0')}` }), id: `ex-${i}`,
+    cues: Array.from({ length: 30 }, (_, k) => `Cue number ${k + 1}, long enough to take a line of its own.`),
+    variants: Array.from({ length: 10 }, (_, k) => ({ level: k + 1, name: `Variant ${k + 1}`, description: 'A description of this rung.' })),
+  }));
+  localStorage.setItem('ft.data.data/exercises.json', JSON.stringify(many));
+});
+await page.goto(`${BASE}#/library`);
+await page.reload();
+await page.waitForSelector('.list-row:has-text("Exercise 39")');
+await page.locator('.list-row:has-text("Exercise 39")').scrollIntoViewIfNeeded();
+const listY = await page.evaluate(() => scrollY);
+await page.click('.list-row:has-text("Exercise 39")');
+await page.waitForSelector('button:has-text("‹ Library")');
+step('library: an exercise opens at the top of the page', (await page.evaluate(() => scrollY)) === 0 && listY > 200, `list at ${listY}`);
+await page.click('button:has-text("‹ Library")');
+await page.waitForSelector('.list-row:has-text("Exercise 39")');
+step('library: back to the list returns to where you were', Math.abs((await page.evaluate(() => scrollY)) - listY) < 2);
+
 step('no page errors', errors.length === 0, errors.join(' | '));
 await done(browser);
