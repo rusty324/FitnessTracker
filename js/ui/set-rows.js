@@ -94,7 +94,7 @@ export function actualFromRows(rows, { showWeight, includeTyped = false }) {
  */
 export function setRows({
   exercise, target = {}, perf = null, rows: startRows = null, showWeight: startShow = null,
-  history = [], includeTyped = false, onCheck, onChange,
+  history = [], includeTyped = false, onCheck, onChange, lastColumn = false,
 }) {
   const lastHadWeight = (perf?.sets ?? []).some((s) => s.weightKg > 0);
   let showWeight = startShow ?? (isLoadedExercise(exercise) || lastHadWeight
@@ -115,7 +115,13 @@ export function setRows({
     };
   };
 
-  const wrap = el('div', { class: 'set-rows' });
+  // lastColumn (desktop): each row also shows what that set was last time.
+  const wrap = el('div', { class: `set-rows${lastColumn ? ' with-last' : ''}` });
+  const lastText = (i) => {
+    const g = ghostSet(perf, i);
+    if (!g) return '—';
+    return g.weightKg > 0 ? `${kgToDisplay(g.weightKg)} × ${g.reps}` : `${g.reps ?? '—'}`;
+  };
   const head = el('div', { class: 'set-row set-head' });
   const list = el('div', {});
   const footer = el('div', { class: 'set-footer' });
@@ -126,6 +132,7 @@ export function setRows({
   function renderHead() {
     head.replaceChildren(...[
       el('span', { class: 'set-n' }, 'Set'),
+      lastColumn && el('span', { class: 'set-col set-last' }, 'Last'),
       showWeight && el('span', { class: 'set-col' }, `Weight (${weightUnit()})`),
       el('span', { class: 'set-col' }, 'Reps'),
       el('span', { class: 'set-check-h' }),
@@ -221,6 +228,7 @@ export function setRows({
       }, '✓');
       list.append(el('div', { class: `set-row${row.done ? ' is-done' : ''}`, dataset: { set: i + 1 } },
         el('span', { class: 'set-n' }, String(i + 1)),
+        lastColumn && el('span', { class: 'set-last' }, lastText(i)),
         weightCell,
         repsCell,
         check,

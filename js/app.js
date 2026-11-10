@@ -8,6 +8,7 @@ import { initTabbar } from './ui/tabbar.js';
 import { el, openModal, toast, downloadJson } from './ui/components.js';
 import { loadPreset } from './presets.js';
 import { syncFromPresets } from './preset-sync.js';
+import { onLayoutChange } from './ui/layout.js';
 import { installDraftFlush } from './draft.js';
 import { installRestTimer, restSettings, setRestSetting } from './rest-timer.js';
 import { todayStr } from './dates.js';
@@ -280,6 +281,8 @@ renderBadge();
 // fields; migrates the old Push-Up ladder so plan variant levels mean what
 // the plan says) — before Logs needs variant names.
 syncFromPresets();
+// Crossing the desktop/phone boundary (resizing, docking) redraws the tab.
+onLayoutChange(() => tabbar.refresh());
 // Gym-floor drafts left from an earlier visit are written out now, and every
 // draft is written when the page is hidden (js/draft.js).
 installDraftFlush(todayStr);

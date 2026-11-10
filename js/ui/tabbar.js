@@ -42,6 +42,7 @@ export function initTabbar({ tabs, defaultTab, navEl, viewEl, ctx, onTabChange }
     }
     if (active?.module?.unmount) active.module.unmount();
     viewEl.innerHTML = '';
+    viewEl.className = 'view'; // drop a previous tab's layout classes (e.g. 'wide')
     for (const btn of navEl.querySelectorAll('button')) {
       btn.classList.toggle('active', btn.dataset.tab === tab.id);
     }

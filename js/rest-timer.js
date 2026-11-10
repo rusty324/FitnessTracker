@@ -123,6 +123,8 @@ function ensureBar() {
         el('button', { class: 'btn secondary rest-btn', type: 'button', onclick: skipRest }, 'Skip'),
       ),
     ),
+    // Desktop only (CSS): the keyboard shortcuts on Today.
+    el('div', { class: 'rest-hint' }, 'Enter logs the next set · R skips the rest'),
   );
   document.body.appendChild(bar);
 }

@@ -71,6 +71,8 @@ body {
   padding: calc(14px + env(safe-area-inset-top)) 16px 2px;
 }
 .app-title { font-size: 1.85rem; line-height: 1.15; margin: 0; font-weight: 750; letter-spacing: -0.01em; min-width: 0; overflow-wrap: anywhere; }
+.header-main { display: flex; align-items: center; gap: 28px; min-width: 0; }
+.brand { display: none; } /* desktop only */
 .header-actions { display: flex; align-items: center; gap: 8px; }
 .icon-btn {
   background: none;
@@ -541,45 +543,59 @@ label { display: block; font-size: 0.85rem; color: var(--text-dim); margin-botto
 @media (min-width: 960px) and (hover: hover) and (pointer: fine) {
   :root { --tap: 36px; }
 
-  /* A full-width bar again, its contents aligned with the content column. */
+  /* A full-width bar; its contents in a 1200px column, as the designs:
+     brand and tab pills on the left, sync status and settings on the right. */
   .app-header {
     max-width: none;
-    height: 57px;
+    height: 64px;
     padding-block: 0;
-    padding-inline: max(16px, calc(50% - 368px));
+    padding-inline: max(24px, calc(50% - 576px));
     background: var(--surface);
     border-bottom: 1px solid var(--border);
     position: sticky;
     top: 0;
     z-index: 20;
   }
-  .app-title { font-size: 1.15rem; font-weight: 700; }
+  .brand { display: inline; font-size: 1.1rem; font-weight: 700; letter-spacing: -0.01em; white-space: nowrap; }
+  .app-title { display: none; } /* the sub-tabs and the page's own heading say where you are */
   .tabbar {
-    top: 0;
-    bottom: auto;
-    left: 50%;
-    right: auto;
-    transform: translateX(-50%);
-    height: 56px;
+    position: static;
+    display: flex;
+    gap: 4px;
     padding: 0;
-    z-index: 21; /* over the sticky header it sits in */
     background: none;
     border: none;
   }
   .tabbar button {
     flex: none;
     flex-direction: row;
-    height: 100%;
+    height: 40px;
     padding: 0 16px;
-    font-size: 0.92rem;
-    border-bottom: 3px solid transparent;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    font-weight: 550;
   }
-  .tabbar button.active { border-bottom-color: var(--accent); }
+  .tabbar button.active { background: color-mix(in srgb, var(--text) 12%, var(--surface)); color: var(--text); font-weight: 650; }
   .tabbar .tab-icon { display: none; }
-  .tabbar button:hover:not(.active) { color: var(--text); }
+  .tabbar button:hover:not(.active) { color: var(--text); background: var(--surface-2); }
   .toast-root { bottom: 20px; }
 
   .view { padding: 20px 12px 80px; }
+  /* Views redesigned for desktop opt into the full 1200px column. */
+  .view.wide { max-width: 1200px; padding: 24px 24px 80px; }
+  .two-col { display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start; }
+  .col-main { flex: 999 1 600px; min-width: 0; }
+  .col-side { flex: 1 1 320px; min-width: 0; display: flex; flex-direction: column; gap: 12px; position: sticky; top: 84px; }
+  .col-side > .card { margin-bottom: 0; }
+  .page-h1 { font-size: 2.1rem; font-weight: 750; letter-spacing: -0.02em; margin: 4px 0 10px; }
+  .set-rows.with-last .set-row { grid-template-columns: 22px 84px minmax(0, 1fr) minmax(0, 1fr) 48px; }
+  .set-rows.with-last.no-weight .set-row { grid-template-columns: 22px 84px minmax(0, 1fr) 48px; }
+  .set-last { color: var(--text-dim); font-variant-numeric: tabular-nums; font-size: 0.92rem; }
+  .rest-hint { display: block; }
+  .tile-row { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 12px; }
+  .tile-row > .card { margin-bottom: 0; }
+  .stat-card { flex: 1 1 200px; }
+  .stat-card .stat-value { font-size: 1.6rem; margin: 6px 0 2px; }
 
   .segmented { width: fit-content; max-width: 100%; }
   .segmented button { flex: none; padding: 5px 18px; min-height: 32px; }
@@ -843,4 +859,34 @@ label.btn.small {
   display: inline-flex; align-items: center; justify-content: center;
   background: var(--surface-2); color: var(--text); border-radius: 12px;
   min-height: 34px; padding: 4px 12px; font-size: 0.85rem; font-weight: 650; cursor: pointer;
+}
+
+/* ---------- Desktop side panels, tables, metric tabs ---------- */
+.side-card { padding: 16px; }
+.side-head { display: flex; justify-content: space-between; gap: 8px; font-size: 0.85rem; color: var(--text-dim); margin-bottom: 8px; }
+.side-big { font-size: 1.9rem; font-weight: 750; margin-bottom: 6px; }
+.side-big .muted { font-size: 0.9rem; font-weight: 500; }
+.side-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 8px 0; border-top: 1px solid var(--border); font-size: 0.95rem; }
+.status-pill { font-size: 0.8rem; font-weight: 650; border-radius: 999px; padding: 2px 10px; border: 1px solid var(--border); color: var(--text-dim); background: var(--surface-2); white-space: nowrap; }
+.status-pill.done { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 40%, transparent); background: color-mix(in srgb, var(--accent) 10%, transparent); }
+.status-pill.today { color: var(--accent); border-color: var(--accent); background: transparent; }
+.status-pill.open { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 40%, transparent); background: color-mix(in srgb, var(--warn) 10%, transparent); }
+.data-table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+.data-table th { text-align: left; font-weight: 500; font-size: 0.78rem; color: var(--text-dim); padding: 4px 0 6px; }
+.data-table td { padding: 8px 0; border-top: 1px solid var(--border); }
+.data-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+.metric-tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+.metric-tabs button {
+  background: none; border: none; font: inherit; font-size: 1.25rem; font-weight: 700; color: var(--text-dim);
+  padding: 4px 10px; border-radius: 10px; cursor: pointer; min-height: var(--tap);
+}
+.metric-tabs button.active { color: var(--text); background: var(--surface-2); }
+.rest-hint { display: none; text-align: center; font-size: 0.78rem; color: var(--text-dim); padding: 0 0 6px; }
+@media (min-width: 960px) and (hover: hover) and (pointer: fine) {
+  .rest-hint { display: block; }
+}
+@media (min-width: 960px) and (hover: hover) and (pointer: fine) {
+  /* The "Last" column and the side panel already say what last time was. */
+  .view.wide .last-time { display: none; }
+  .rest-main { max-width: 1200px; padding-inline: 24px; }
 }

@@ -11,7 +11,8 @@ async function measure(page) {
     const r = (s) => document.querySelector(s).getBoundingClientRect();
     const header = r('.app-header');
     const tabbar = r('.tabbar');
-    const title = r('.app-title');
+    // Desktop shows the brand; phones the page title.
+    const title = getComputedStyle(document.querySelector('.brand')).display !== 'none' ? r('.brand') : r('.app-title');
     const view = document.querySelector('.view');
     const pad = parseFloat(getComputedStyle(view).paddingLeft);
     return {
@@ -44,11 +45,11 @@ let page = await open({ width: 1440, height: 900 });
 let m = await measure(page);
 step('desktop: main tabs share the header row', m.tabbar.top < m.header.bottom && m.tabbar.bottom <= m.header.bottom + 1,
   `tabbar ${m.tabbar.top}-${m.tabbar.bottom}, header ends ${m.header.bottom}`);
-step('desktop: title lines up with the content column', Math.abs(m.title.left - m.contentLeft) <= 1,
+step('desktop: brand lines up with the (wide) content column', Math.abs(m.title.left - m.contentLeft) <= 1,
   `${m.title.left} vs ${m.contentLeft}`);
 step('desktop: settings button lines up with its right edge', Math.abs(m.gear.right - m.contentRight) <= 1,
   `${m.gear.right} vs ${m.contentRight}`);
-step('desktop: tabs do not overlap the title or actions', m.tabbar.left > m.title.right && m.tabbar.right < m.gear.left);
+step('desktop: tabs sit beside the brand, clear of the actions', m.tabbar.left > m.title.right && m.tabbar.left - m.title.right < 60 && m.tabbar.right < m.gear.left);
 step('desktop: sub-tabs shrink to fit', m.seg.width < (m.contentRight - m.contentLeft) / 2, `${m.seg.width}px`);
 step('desktop: denser controls', m.tap === '36px', m.tap);
 await page.click('.tabbar button:has-text("Plans")');
@@ -56,7 +57,7 @@ const navigated = await page.waitForSelector('.tabbar button.active:has-text("Pl
 step('desktop: header tabs still navigate', navigated && (await page.evaluate(() => location.hash)) === '#/plans');
 await page.mouse.wheel(0, 2000);
 m = await measure(page);
-step('desktop: tabs stay put while scrolling', m.tabbar.top === 0 && m.header.top === 0);
+step('desktop: tabs stay put while scrolling', m.header.top === 0 && m.tabbar.top >= 0 && m.tabbar.bottom <= m.header.bottom);
 
 // The narrowest width the desktop layout applies at.
 page = await open({ width: 960, height: 700 });

@@ -15,13 +15,17 @@
 </head>
 <body>
   <header class="app-header">
-    <h1 class="app-title" id="page-title">Fitness Tracker</h1>
+    <div class="header-main">
+      <span class="brand">Fitness Tracker</span>
+      <h1 class="app-title" id="page-title">Fitness Tracker</h1>
+      <!-- A bottom bar on phones (position: fixed); pills beside the brand on desktop. -->
+      <nav id="tabbar" class="tabbar" aria-label="Main navigation"></nav>
+    </div>
     <div class="header-actions">
       <span id="sync-badge" class="sync-badge" hidden></span>
       <button id="settings-btn" class="icon-btn" aria-label="Settings" title="Settings">⚙</button>
     </div>
   </header>
-  <nav id="tabbar" class="tabbar" aria-label="Main navigation"></nav>
   <main id="view" class="view"></main>
   <div id="modal-root"></div>
   <div id="toast-root" class="toast-root" aria-live="polite"></div>
