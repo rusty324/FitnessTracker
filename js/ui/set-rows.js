@@ -133,7 +133,7 @@ export function setRows({
     wrap.classList.toggle('no-weight', !showWeight);
   }
 
-  function stepper({ value, ghost, ghostSuggested, step, kind, onInput, onStep, label }) {
+  function stepper({ value, ghost, ghostSuggested, ghostArrow, step, kind, onInput, onStep, label }) {
     const input = el('input', {
       type: 'text',
       inputmode: kind === 'weight' ? 'decimal' : 'numeric',
@@ -146,7 +146,10 @@ export function setRows({
     input.addEventListener('input', () => onInput(input.value));
     // Select on focus, so typing replaces rather than appends.
     input.addEventListener('focus', () => input.select());
-    return el('div', { class: 'stepper' },
+    // A suggested value (Phase B) wears its arrow as a small badge above the
+    // number (in the placeholder it would crowd out "135" on a phone).
+    const arrow = ghostSuggested && ghostArrow && ghost != null ? ghostArrow : null;
+    return el('div', { class: 'stepper', dataset: arrow ? { arrow } : {} },
       el('button', { class: 'step-btn', type: 'button', 'aria-label': `${label} minus`, onclick: () => onStep(-step) }, '−'),
       input,
       el('button', { class: 'step-btn', type: 'button', 'aria-label': `${label} plus`, onclick: () => onStep(step) }, '+'),
@@ -172,6 +175,7 @@ export function setRows({
         value: kgToDisplay(row.kg),
         ghost: kgToDisplay(g.kg),
         ghostSuggested: g.suggested,
+        ghostArrow: g.arrow,
         step: wStep,
         onInput: (text) => {
           const v = parse(text);
@@ -193,6 +197,7 @@ export function setRows({
         value: row.reps,
         ghost: g.reps,
         ghostSuggested: g.suggested,
+        ghostArrow: g.arrow,
         step: 1,
         onInput: (text) => {
           const v = parse(text);

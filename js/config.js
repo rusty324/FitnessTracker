@@ -235,3 +235,13 @@ export const SANITY = {
   maxDurationSec: 12 * 3600,
   maxFirstWeightKg: 500, // with no history
 };
+
+// Progression suggestions (js/progression.js). Starting values, not science:
+// tune them here.
+export const PROGRESSION = {
+  addAfterSessions: 1, // sessions at the top of the range before adding weight
+  variantAdvanceAfter: 2, // matches the plan's progressionPolicy.generalRule
+  dropAfterSessions: 2, // consecutive sessions with the first set below the range
+  layoffDays: 21,
+  layoffFactor: 0.9, // unvalidated heuristic; keep configurable
+};

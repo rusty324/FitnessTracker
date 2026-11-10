@@ -7,12 +7,12 @@
 // km × km/h for distance, or seconds for a hold — see js/rwi.js.
 
 import * as store from '../storage/store.js';
-import { makeGoal, exerciseUsage, remapExercise } from '../models.js';
+import { makeGoal, exerciseUsage, remapExercise, allSessions, sessionItems } from '../models.js';
 import { RUN_GOAL_PRESETS, MUSCLE_GROUPS, WEIGHT_TYPES, POSITIONS } from '../config.js';
 import {
   matchesFilters, muscleGroupsOf, weightTypesOf, positionsOf, isFiltering, NOT_SET,
 } from '../exercise-filters.js';
-import { todayStr, formatDate, formatDuration, parseDateStr } from '../dates.js';
+import { todayStr, formatDate, formatDuration, parseDateStr, addDays } from '../dates.js';
 import {
   formatWeight, formatDistance, formatPace, weightUnit, weightToInput, weightFromInput,
   distanceToInput, distanceFromInput, distanceUnit,
@@ -29,6 +29,7 @@ import {
   fractionFor, variantLevelFor, plannedTargetOf, bestReps, longestHold,
 } from '../load.js';
 import { lineChart, datePoints } from '../charts.js';
+import { suggestionFor, suggestionChip } from './suggestion.js';
 
 let root = null;
 let unsub = null;
@@ -420,6 +421,8 @@ function renderExerciseDetail(id) {
   }
   if (ex.progressionRule) root.appendChild(el('p', { class: 'muted' }, `Progression: ${ex.progressionRule}`));
 
+  const next = nextTimeSection(ex);
+  if (next) root.appendChild(next);
   const load = loadSection(ex);
   if (load) root.appendChild(load);
   root.appendChild(rwiSection(ex));
@@ -501,6 +504,49 @@ function deleteExerciseFlow(ex) {
 }
 
 // ---------- RWI ----------
+
+// ---------- Next time (js/progression.js) ----------
+
+// The plan item this exercise is next prescribed in (today or later, in an
+// active plan), else its most recent one: its target and week drive the
+// suggestion.
+function nextPlannedFor(exerciseId) {
+  const today = todayStr();
+  let next = null;
+  let prev = null;
+  for (const plan of store.get('plans').filter((p) => p.status === 'active')) {
+    for (const { session, week, dayOffset } of allSessions(plan)) {
+      const date = addDays(plan.startDate, dayOffset);
+      for (const { item } of sessionItems(session)) {
+        if (item.exerciseId !== exerciseId) continue;
+        const hit = { item, week, date };
+        if (date >= today) { if (!next || date < next.date) next = hit; } else if (!prev || date > prev.date) prev = hit;
+      }
+    }
+  }
+  return next ?? prev;
+}
+
+function nextTimeSection(ex) {
+  const planned = nextPlannedFor(ex.id);
+  const today = todayStr();
+  const sug = suggestionFor({
+    exercise: ex,
+    target: planned?.item.target ?? null,
+    weekIsDeload: !!planned?.week?.isDeload,
+    logs: store.get('logs'),
+    plans: store.get('plans'),
+    today,
+  });
+  if (!sug) return null;
+  return el('div', { class: 'card next-time' },
+    el('h3', { style: 'margin-top:0' }, 'Next time',
+      planned && planned.date >= today
+        ? el('span', { class: 'muted', style: 'font-weight:400' }, ` · ${formatDate(planned.date, { weekday: 'short', month: 'short', day: 'numeric' })}`)
+        : null),
+    suggestionChip(sug, ex, { target: planned?.item.target ?? null }),
+  );
+}
 
 // ---------- Load index (js/load.js) ----------
 

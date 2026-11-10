@@ -639,6 +639,13 @@ label { display: block; font-size: 0.85rem; color: var(--text-dim); margin-botto
   text-align: center; font-size: 1.15rem; font-weight: 700; color: var(--text);
 }
 .stepper input::placeholder { color: var(--text-dim); font-weight: 500; font-style: italic; opacity: 0.85; }
+.stepper { position: relative; }
+/* The suggestion's arrow, only while the field still shows the ghost. */
+.stepper[data-arrow]:has(input:placeholder-shown)::after {
+  content: attr(data-arrow);
+  position: absolute; top: 2px; left: 50%; transform: translateX(-50%);
+  font-size: 0.72rem; font-weight: 800; line-height: 1; color: var(--warn); pointer-events: none;
+}
 .stepper input.ghost-suggested::placeholder { color: var(--warn); font-style: normal; font-weight: 700; opacity: 1; }
 .set-check {
   width: 48px; height: 48px; border-radius: 50%;
@@ -689,3 +696,28 @@ body.resting { --dock: 76px; }
   /* The page's density rules shrink inputs; keep set rows thumb-sized. */
   .stepper input { padding: 0; font-size: 1.1rem; }
 }
+
+/* ---------- Progression suggestions (js/ui/suggestion.js) ---------- */
+.sug-chip {
+  display: flex; align-items: flex-start; gap: 10px;
+  margin: 10px 0 4px; padding: 10px 6px 10px 12px;
+  border-radius: 12px; border: 1px solid var(--border);
+  background: var(--surface-2);
+}
+.sug-chip.up, .sug-chip.down {
+  background: color-mix(in srgb, var(--warn) 14%, var(--surface));
+  border-color: color-mix(in srgb, var(--warn) 45%, var(--border));
+}
+.sug-arrow { font-size: 1.2rem; font-weight: 800; line-height: 1.3; color: var(--text-dim); }
+.sug-chip.up .sug-arrow, .sug-chip.down .sug-arrow, .sug-chip.up .sug-title, .sug-chip.down .sug-title { color: var(--warn); }
+.sug-body { flex: 1; min-width: 0; }
+.sug-title { font-weight: 700; font-size: 1.02rem; }
+.sug-reason, .sug-plan { font-size: 0.85rem; color: var(--text-dim); overflow-wrap: anywhere; }
+.sug-plan { margin-top: 4px; }
+.sug-x {
+  flex: none; width: var(--tap); height: var(--tap); margin: -8px 0;
+  background: none; border: none; color: var(--text-dim); font-size: 1rem; cursor: pointer; border-radius: 50%;
+}
+.sug-mini { font-size: 0.85rem; font-weight: 650; color: var(--warn); margin-top: 2px; }
+.sug-mini[data-kind="deload"], .sug-mini[data-kind="variant_gap"] { color: var(--text-dim); }
+.next-time .sug-chip { margin-top: 4px; }

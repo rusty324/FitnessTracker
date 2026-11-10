@@ -21,7 +21,8 @@ import { cardioFields, cardioExtras } from './cardio-form.js';
 import { formatSets } from '../sets.js';
 import { variantLevelFor } from '../load.js';
 import { setRows, rowsFromActual } from './set-rows.js';
-import { lastPerformance, setsOf } from '../history.js';
+import { lastPerformance, setsOf, ghostSet } from '../history.js';
+import { suggestionFor, suggestionChip, suggestionTitle, arrowOf, CHANGES_GHOSTS } from './suggestion.js';
 import { draftKey, readDraft, updateDraftItem, removeDraftItem, flushItem, flushDraft, clearDraft } from '../draft.js';
 import { sessionRecordId, sessionStatus, doneItemIds } from '../sessions.js';
 import { startRest, skipRest, restSecondsFor, restSettings, setSessionActive } from '../rest-timer.js';
@@ -34,6 +35,9 @@ let sub = 'today'; // 'today' | 'history' | 'metrics' | 'heatmap'
 let histFilter = { from: addDays(todayStr(), -30), to: todayStr(), planId: '' };
 let adherenceDays = 30;
 let expandedItem = null; // the planned item open on Today (set rows shown)
+// Suggestions dismissed with ✕ (by planned item id) — this page view only;
+// a rejection is never stored.
+const dismissedSug = new Set();
 let heatmapMod = null;
 
 export function mount(elRoot, appCtx) {
@@ -338,7 +342,7 @@ function renderSessionToday({ plan, session, week, today, lib, logs, loggedByPe,
       if (e.block.note) root.appendChild(el('div', { class: 'row-sub', style: 'margin:-4px 2px 8px' }, e.block.note));
     }
     lastBlock = e.block;
-    root.appendChild(exerciseCard({ plan, session, today, key, logs, entries, ...e }));
+    root.appendChild(exerciseCard({ plan, session, week, today, key, logs, entries, ...e }));
   }
 
   // Returned, not appended: Today puts it at the very bottom.
@@ -370,9 +374,24 @@ function finishSession(plan, session, date, kind) {
   toast('Session finished — nice work');
 }
 
-function exerciseCard({ plan, session, today, key, logs, entries, block, item, ex, reps, log, finished }) {
+function exerciseCard({ plan, session, week, today, key, logs, entries, block, item, ex, reps, log, finished }) {
   const t = item.target ?? {};
-  const vName = variantName(ex, t.variantLevel);
+  const plans = store.get('plans');
+  const draftItem = readDraft(key).items[item.id];
+  // What to do this time (js/progression.js): advisory, derived from the
+  // logs before today, never stored. ✕ hides it for this visit.
+  const sug = reps ? suggestionFor({
+    exercise: ex, target: t, weekIsDeload: !!week?.isDeload,
+    logs: logs.filter((l) => l.date < today), plans, today,
+  }) : null;
+  const active = sug && !dismissedSug.has(item.id);
+  // A suggested move up/down the ladder is the level you log at — unless
+  // sets are already ticked at another level.
+  const ticked = draftItem?.rows?.some((r) => r.done);
+  const level = ticked ? draftItem.variantLevel ?? null
+    : active && ['advance', 'regress'].includes(sug.kind) ? sug.variantLevel
+      : t.variantLevel ?? null;
+  const vName = variantName(ex, level);
   const title = el('div', { class: 'ex-title' },
     ex ? exerciseLink(ex) : '?',
     vName ? el('span', { class: 'ex-variant' }, ` · ${vName}`) : null,
@@ -395,18 +414,17 @@ function exerciseCard({ plan, session, today, key, logs, entries, block, item, e
       onclick: () => { expandedItem = item.id; render(); } },
     el('div', { class: 'ex-head' },
       el('div', { class: 'row-main' }, title,
-        el('div', { class: 'row-sub' }, log ? `✓ ${actualSummary(log.actual)}` : targetText)),
+        el('div', { class: 'row-sub' }, log ? `✓ ${actualSummary(log.actual)}` : targetText),
+        !log && active && sug.kind !== 'hold' && el('div', { class: 'sug-mini', dataset: { kind: sug.kind } }, `${arrowOf(sug)} ${suggestionTitle(sug, ex)}`)),
       el('span', { class: 'chev', 'aria-hidden': 'true' }, '›')));
   }
 
-  const draftItem = readDraft(key).items[item.id];
   const perf = lastPerformance({
-    exerciseId: item.exerciseId, variantLevel: t.variantLevel ?? null, logs, beforeDate: today,
-    exercise: ex, plans: store.get('plans'),
+    exerciseId: item.exerciseId, variantLevel: level, logs, beforeDate: today, exercise: ex, plans,
   });
   const base = {
     exerciseId: item.exerciseId, planId: plan.id, plannedExerciseId: item.id,
-    variantLevel: t.variantLevel ?? null, logId: draftItem?.logId ?? log?.id ?? null,
+    variantLevel: level, logId: draftItem?.logId ?? log?.id ?? null,
   };
   const rowsUi = setRows({
     exercise: ex,
@@ -429,6 +447,24 @@ function exerciseCard({ plan, session, today, key, logs, entries, block, item, e
     },
   });
 
+  // The suggested values become the ghosts (accent, with an arrow), so ✓
+  // on an untouched row logs the suggestion.
+  if (active && CHANGES_GHOSTS.includes(sug.kind)) {
+    rowsUi.setGhosts((i) => {
+      const g = ghostSet(perf, i);
+      return {
+        reps: sug.repsMin ?? g?.reps ?? t.reps ?? t.repsMin ?? null,
+        kg: sug.weightKg ?? g?.weightKg ?? null,
+        suggested: true,
+        arrow: arrowOf(sug),
+      };
+    });
+  }
+  const chip = active && !log && suggestionChip(sug, ex, {
+    target: t,
+    onDismiss: () => { dismissedSug.add(item.id); render(); },
+  });
+
   const last = perf
     ? `Last time (${formatDate(perf.date, { month: 'short', day: 'numeric' })}): ${perf.sets.map((s) => s.reps).join(' / ')}`
       + (perf.sets.some((s) => s.weightKg > 0) ? ` @ ${formatWeight(Math.max(...perf.sets.map((s) => s.weightKg ?? 0)))}` : '')
@@ -446,6 +482,7 @@ function exerciseCard({ plan, session, today, key, logs, entries, block, item, e
           logEntryModal(existing ? { existing, plan, pe: item, ex } : { plan, session, pe: item, ex });
         },
       }, 'Details')),
+    chip,
     last && el('div', { class: 'row-sub last-time' }, last),
     item.note && el('div', { class: 'row-sub' }, item.note),
     rowsUi.el,
