@@ -13,7 +13,10 @@ function s(tag, attrs = {}) {
 
 // refLine (optional): { value, label } draws a horizontal dashed goal line
 // at that y-value; the y-domain is widened to keep it in view.
-export function lineChart({ points, width = 640, height = 220, yLabel = '', yFormat = (v) => v, invertY = false, refLine = null }) {
+// dots (optional): [{ x, y, title? }] drawn as small muted points under the
+// line — e.g. raw weigh-ins beneath their trend. With dots, the line itself
+// is drawn without markers.
+export function lineChart({ points, width = 640, height = 220, yLabel = '', yFormat = (v) => v, invertY = false, refLine = null, dots = null }) {
   const wrap = document.createElement('div');
   wrap.className = 'chart-wrap';
   const svg = s('svg', { viewBox: `0 0 ${width} ${height}`, class: 'chart-svg' });
@@ -29,8 +32,8 @@ export function lineChart({ points, width = 640, height = 220, yLabel = '', yFor
   const iw = width - pad.l - pad.r;
   const ih = height - pad.t - pad.b;
 
-  const xs = points.map((p) => p.x);
-  const ys = points.map((p) => p.y);
+  const xs = points.map((p) => p.x).concat((dots ?? []).map((p) => p.x));
+  const ys = points.map((p) => p.y).concat((dots ?? []).map((p) => p.y));
   if (refLine?.value != null) ys.push(refLine.value);
   const xMin = Math.min(...xs);
   const xMax = Math.max(...xs);
@@ -86,9 +89,18 @@ export function lineChart({ points, width = 640, height = 220, yLabel = '', yFor
     }
   }
 
+  for (const p of dots ?? []) {
+    const dot = s('circle', { cx: X(p.x), cy: Y(p.y), r: 2.6, class: 'raw-dot' });
+    if (p.title) {
+      const t = s('title');
+      t.textContent = p.title;
+      dot.appendChild(t);
+    }
+    svg.appendChild(dot);
+  }
   const d = points.map((p, i) => `${i ? 'L' : 'M'}${X(p.x).toFixed(1)},${Y(p.y).toFixed(1)}`).join('');
   svg.appendChild(s('path', { d, class: 'series-line' }));
-  for (const p of points) {
+  for (const p of dots ? [] : points) {
     const dot = s('circle', { cx: X(p.x), cy: Y(p.y), r: 3, class: 'series-dot' });
     if (p.title) {
       const t = s('title');

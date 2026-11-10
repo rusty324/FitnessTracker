@@ -7,7 +7,7 @@ import { makeLogEntry, makeBodyMetric, makeMatch, matchActivityId, allSessions, 
 import { findSuggestions, findCandidates } from '../matcher.js';
 import { sportMapping, BODY_METRICS } from '../config.js';
 import {
-  todayStr, addDays, diffDays, formatDate, formatDateLong, formatDuration,
+  todayStr, addDays, diffDays, formatDate, formatDateLong, formatDuration, parseDateStr,
 } from '../dates.js';
 import {
   formatWeight, formatDistance, formatPace, paceChartValue, paceUnit,
@@ -26,6 +26,8 @@ import { suggestionFor, suggestionChip, suggestionTitle, arrowOf, CHANGES_GHOSTS
 import { draftKey, readDraft, updateDraftItem, removeDraftItem, flushItem, flushDraft, clearDraft } from '../draft.js';
 import { sessionRecordId, sessionStatus, doneItemIds } from '../sessions.js';
 import { startRest, skipRest, restSecondsFor, restSettings, setSessionActive } from '../rest-timer.js';
+import { trendSeries, trendSlope, rateLabel, etaToGoal, weightPoints } from '../trend.js';
+import { weeklyReview, weekStartOf } from '../review.js';
 import { pickExercise, targetSummary } from './plans-tab.js';
 
 let root = null;
@@ -34,6 +36,8 @@ let unsub = null;
 let sub = 'today'; // 'today' | 'history' | 'metrics' | 'heatmap'
 let histFilter = { from: addDays(todayStr(), -30), to: todayStr(), planId: '' };
 let adherenceDays = 30;
+let weightWeeks = 12; // Metrics weight chart range: 4 | 12 | 0 (all)
+let reviewThisWeek = false; // Review: last completed week (default) or this week so far
 let expandedItem = null; // the planned item open on Today (set rows shown)
 // Suggestions dismissed with ✕ (by planned item id) — this page view only;
 // a rejection is never stored.
@@ -86,6 +90,7 @@ function render() {
     ['today', 'Today'],
     ['history', 'History'],
     ['metrics', 'Metrics'],
+    ['review', 'Review'],
   ];
   // Heatmap used to be a fourth sub-tab; it now lives at the bottom of
   // Metrics, so an old remembered 'heatmap' lands there.
@@ -108,6 +113,7 @@ function render() {
   }
   if (sub === 'today') renderToday();
   else if (sub === 'history') renderHistory();
+  else if (sub === 'review') renderReview();
   else renderMetrics();
 }
 
@@ -158,6 +164,8 @@ function renderToday() {
   );
 
   root.appendChild(el('h2', {}, formatDateLong(today)));
+  const banner = reviewBanner(today);
+  if (banner) root.appendChild(banner);
   root.appendChild(weighInCard(today));
 
   let anyPlanned = false;
@@ -212,7 +220,10 @@ function weighInCard(today) {
     const kg = weightFromInput(w);
     const entry = todays ? { ...todays, weight: kg } : makeBodyMetric({ date: today, weight: kg });
     store.upsert('metrics', entry);
-    toast('Weight logged');
+    // The trend, not a verdict on today's number.
+    const series = trendSeries(weightPoints(store.get('metrics')));
+    const t = series.at(-1)?.trendKg;
+    toast(t != null ? `Weight logged · trend ${w1(t)} ${weightUnit()}` : 'Weight logged');
   };
   return el('div', { class: 'card' },
     el('div', { class: 'row-sub', style: 'margin-bottom:6px' }, 'Morning weigh-in'),
@@ -953,6 +964,7 @@ function manualLink(entry) {
 
 function renderMetrics() {
   const metrics = [...store.get('metrics')].sort((a, b) => (a.date < b.date ? -1 : 1));
+  renderWeightTrend(metrics);
 
   // Adherence over the selected window.
   const { done, planned } = adherence(adherenceDays);
@@ -974,30 +986,22 @@ function renderMetrics() {
     }, `${d} days`)),
   ));
 
-  // Body metrics: weight chart always, other metrics only once they have
-  // enough data to draw a trend.
-  root.appendChild(el('div', { class: 'list-row' },
-    el('h3', {}, 'Body weight'),
-    el('button', { class: 'btn small', onclick: () => logBodyMetric() }, '+ Log metrics'),
-  ));
-  const weightGoal = store.get('goals').find((g) => g.type === 'bodyweight' && g.targetWeight != null);
+  // Other body metrics stay raw (weight has its trend section above), shown
+  // once they have enough data to draw.
   for (const m of BODY_METRICS) {
+    if (m.smooth) continue;
     const res = resolveMetric(m);
     const points = datePoints(
       metrics.filter((r) => r[m.id] != null),
       (r) => res.toInput(r[m.id]),
       (r) => `${r.date}: ${res.toInput(r[m.id])} ${res.unit}`,
     );
-    if (m.id !== 'weight' && points.length < 2) continue;
-    if (m.id !== 'weight') root.appendChild(el('h3', {}, m.label));
-    const refLine = m.id === 'weight' && weightGoal
-      ? { value: res.toInput(weightGoal.targetWeight), label: `goal ${res.toInput(weightGoal.targetWeight)} ${res.unit}` }
-      : null;
+    if (points.length < 2) continue;
+    root.appendChild(el('h3', {}, m.label));
     root.appendChild(lineChart({
       points,
       yLabel: res.unit,
       yFormat: (v) => (res.step >= 1 ? String(Math.round(v)) : v.toFixed(1)),
-      refLine,
     }));
   }
 
@@ -1034,6 +1038,209 @@ function renderMetrics() {
     root.appendChild(card);
   }
   root.appendChild(heatmapSection());
+}
+
+// ---------- Weekly review (js/review.js) ----------
+
+const weekStartDay = () => {
+  try { return localStorage.getItem('ft.weekStart') === 'sun' ? 'sun' : 'mon'; } catch { return 'mon'; }
+};
+const lastWeekStart = (today) => addDays(weekStartOf(today, weekStartDay()), -7);
+const markReviewSeen = (start) => { try { localStorage.setItem('ft.reviewSeen', start); } catch { /* blocked */ } };
+
+function reviewData(weekStart, today) {
+  return weeklyReview({
+    weekStart, today,
+    plans: store.get('plans'), logs: store.get('logs'), activities: store.getActivityEntries(),
+    metrics: store.get('metrics'), goals: store.get('goals'), sessionsRecords: store.get('sessions'),
+    matches: store.get('matches'), exercises: store.get('exercises'),
+    units: weightUnit() === 'lb' ? 'imperial' : 'metric',
+  });
+}
+
+// On Today: last week's review is ready and hasn't been looked at.
+function reviewBanner(today) {
+  const start = lastWeekStart(today);
+  let seen = null;
+  try { seen = localStorage.getItem('ft.reviewSeen'); } catch { /* blocked */ }
+  if (seen && seen >= start) return null;
+  const end = addDays(start, 6);
+  const anything = store.get('logs').some((l) => l.date >= start && l.date <= end)
+    || store.get('sessions').some((r) => r.date >= start && r.date <= end)
+    || reviewData(start, today).sessions.planned > 0;
+  if (!anything) return null;
+  return el('div', { class: 'card review-banner', dataset: { banner: 'review' } },
+    el('div', { class: 'row-main tappable', onclick: () => { sub = 'review'; reviewThisWeek = false; render(); } },
+      el('div', { class: 'row-title' }, 'Your week in review is ready'),
+      el('div', { class: 'row-sub' }, `${formatDate(start, { month: 'short', day: 'numeric' })} – ${formatDate(end, { month: 'short', day: 'numeric' })} · tap to open`)),
+    el('button', { class: 'sug-x', type: 'button', 'aria-label': 'Dismiss', onclick: () => { markReviewSeen(start); render(); } }, '✕'));
+}
+
+const fmtShort = (ds) => formatDate(ds, { month: 'short', day: 'numeric' });
+
+function prText(pr) {
+  const w = (kg) => formatWeight(weightUnit() === 'lb' ? kg : Math.round(kg * 10) / 10);
+  if (pr.kind === 'weight') return [pr.exercise.name, `Heaviest for ${pr.minReps}+ reps: ${w(pr.value)} (was ${w(pr.was)})`];
+  if (pr.kind === 'variant') return [pr.exercise.name, `New level: ${pr.valueName} (was ${pr.wasName})`];
+  if (pr.kind === 'reps') {
+    const at = pr.weightKg > 0 ? w(pr.weightKg) : pr.levelName ?? 'bodyweight';
+    return [pr.exercise.name, `Most reps at ${at}: ${pr.value} (was ${pr.was})`];
+  }
+  if (pr.kind === 'distance') return [pr.sportLabel, `Longest: ${formatDistance(pr.value)} (was ${formatDistance(pr.was)})`];
+  return [pr.sportLabel, `Longest time: ${formatDuration(pr.value)} (was ${formatDuration(pr.was)})`];
+}
+
+function renderReview() {
+  const today = todayStr();
+  const start = reviewThisWeek ? weekStartOf(today, weekStartDay()) : lastWeekStart(today);
+  if (!reviewThisWeek) markReviewSeen(start);
+  const r = reviewData(start, today);
+
+  root.appendChild(el('div', { class: 'section-head' },
+    el('div', {},
+      el('h2', { class: 'section-title' }, reviewThisWeek ? 'This week' : 'Last week'),
+      el('div', { class: 'row-sub' }, `${fmtShort(r.week.start)} – ${fmtShort(r.week.end)}${reviewThisWeek ? ' · so far' : ''}`)),
+    el('button', { class: 'link-btn', type: 'button', onclick: () => { reviewThisWeek = !reviewThisWeek; render(); } },
+      reviewThisWeek ? 'Last week' : 'This week so far')));
+
+  // The one thing.
+  root.appendChild(el('div', { class: `card rec-card ${r.recommendation.severity}`, dataset: { rec: r.recommendation.id } },
+    el('div', { class: 'rec-kicker' }, reviewThisWeek ? 'One thing so far' : 'One thing for this week'),
+    el('div', { class: 'rec-text' }, r.recommendation.text),
+    r.recommendation.id === 'progress' ? el('div', { class: 'row-sub' }, 'The suggestions are waiting on Today, with the reason for each.') : null));
+
+  // Sessions: a bar per planned session — no streaks, no pass/fail.
+  const s = r.sessions;
+  root.appendChild(el('div', { class: 'card' },
+    el('div', { class: 'review-head' }, el('span', { class: 'row-sub' }, 'Sessions'),
+      el('span', { class: 'review-big' }, `${s.completed} of ${s.planned}`)),
+    s.planned
+      ? el('div', { class: 'session-bars' }, s.each.map((x) => el('div', { class: `sbar${x.completed ? ' done' : ''}` },
+        el('div', { class: 'sbar-fill' }),
+        el('div', { class: 'sbar-label' }, x.completed ? (x.kind === 'minimum' ? 'Minimum' : 'Full') : x.date > today ? 'Ahead' : 'Not logged'))))
+      : el('div', { class: 'row-sub' }, 'Nothing was planned.')));
+
+  // Personal bests: five, the rest folded away.
+  if (r.prs.length) {
+    const row = (pr) => {
+      const [title, sub] = prText(pr);
+      return el('div', { class: 'list-row pr-row' },
+        el('span', { class: 'pr-star', 'aria-hidden': 'true' }, '☆'),
+        el('div', { class: 'row-main' }, el('div', { class: 'row-title' }, title), el('div', { class: 'row-sub' }, sub)));
+    };
+    const card = el('div', { class: 'card' },
+      el('div', { class: 'review-head' }, el('span', { class: 'row-sub' }, 'Personal bests'),
+        el('span', { class: 'row-sub' }, `${r.prs.length} this week`)),
+      r.prs.slice(0, 5).map(row));
+    if (r.prs.length > 5) card.appendChild(el('details', {}, el('summary', { class: 'link-btn' }, `${r.prs.length - 5} more`), r.prs.slice(5).map(row)));
+    root.appendChild(card);
+  }
+
+  // Weight trend.
+  if (r.weight) {
+    const u = weightUnit();
+    const d = (kg) => (u === 'lb' ? kg * 2.20462262 : kg).toFixed(1);
+    root.appendChild(el('div', { class: 'card review-weight' },
+      el('div', { class: 'row-main' },
+        el('div', { class: 'row-sub' }, 'Weight trend'),
+        el('div', { class: 'review-big' }, `${d(r.weight.startKg)} → ${d(r.weight.endKg)} ${u}`)),
+      r.weight.rate && el('div', { class: 'row-sub', style: 'text-align:right' },
+        `${signed((u === 'lb' ? 2.20462262 : 1) * r.weight.rate.slopeKgPerWeek)} ${u}/wk`, el('br'), 'over 28 days')));
+  }
+
+  // Training volume: hard sets per muscle group, for information only.
+  if (r.volume.length) {
+    root.appendChild(el('div', { class: 'card' },
+      el('div', { class: 'review-head' }, el('span', { class: 'row-sub' }, 'Sets per muscle group'), el('span', { class: 'row-sub' }, 'vs week before')),
+      r.volume.map((v) => el('div', { class: 'list-row' },
+        el('div', { class: 'row-main' }, v.label),
+        el('div', { class: 'row-sub' }, `${v.sets}${v.delta ? ` (${v.delta > 0 ? '+' : '−'}${Math.abs(v.delta)})` : ''}`)))));
+  }
+  if (r.cardio.sessions) {
+    root.appendChild(el('div', { class: 'card' },
+      el('div', { class: 'review-head' }, el('span', { class: 'row-sub' }, 'Cardio'),
+        el('span', { class: 'row-sub' }, `${r.cardio.sessions} session${r.cardio.sessions === 1 ? '' : 's'}`)),
+      el('div', {}, [r.cardio.distanceM ? formatDistance(r.cardio.distanceM) : null, r.cardio.movingSec ? formatDuration(r.cardio.movingSec) : null]
+        .filter(Boolean).join(' · ') || '—')));
+  }
+}
+
+// ---------- Weight trend (js/trend.js) ----------
+//
+// The headline is the trend, not today's number: daily weight swings by a
+// kilo or two with water and food, and reacting to that is demoralising and
+// meaningless. Today's weigh-in is shown smaller, with a neutral difference
+// from the trend — no red or green on a raw weight anywhere.
+
+const toDispW = (kg) => (weightUnit() === 'lb' ? kg * 2.20462262 : kg);
+const w1 = (kg) => (Math.round(toDispW(kg) * 10) / 10).toFixed(1);
+const signed = (v) => `${v > 0 ? '+' : v < 0 ? '−' : '±'}${Math.abs(v).toFixed(1)}`;
+
+function renderWeightTrend(metrics) {
+  const unit = weightUnit();
+  const pts = weightPoints(metrics);
+  root.appendChild(el('div', { class: 'section-head' },
+    el('h2', { class: 'section-title' }, 'Weight'),
+    el('div', { class: 'range-pills', role: 'group', 'aria-label': 'Chart range' },
+      [[4, '4 wk'], [12, '12 wk'], [0, 'All']].map(([n, label]) => el('button', {
+        class: weightWeeks === n ? 'active' : '', type: 'button', onclick: () => { weightWeeks = n; render(); },
+      }, label)))));
+  if (!pts.length) {
+    root.appendChild(el('div', { class: 'card' },
+      el('p', { class: 'muted', style: 'margin:0 0 10px' }, 'No weigh-ins yet. Log one on Today, or here.'),
+      el('button', { class: 'btn small', onclick: () => logBodyMetric() }, '+ Log metrics')));
+    return;
+  }
+  const series = trendSeries(pts);
+  const latest = series.at(-1);
+  const todays = series.find((p) => p.date === todayStr());
+  const swing = unit === 'lb' ? 'A pound or two either way is mostly water, not fat.' : 'Daily swings of 1–2 kg are mostly water, not fat.';
+  root.appendChild(el('div', { class: 'card trend-card' },
+    el('div', { class: 'row-sub' }, 'Trend weight'),
+    el('div', { class: 'trend-value' }, w1(latest.trendKg), el('span', { class: 'trend-unit' }, ` ${unit}`)),
+    todays && el('div', { class: 'today-chip' },
+      `Today ${w1(todays.kg)} ${unit} · ${signed(toDispW(todays.kg - todays.trendKg))} vs trend`),
+    el('div', { class: 'row-sub', style: 'margin-top:8px' }, swing),
+  ));
+
+  const from = weightWeeks ? addDays(todayStr(), -weightWeeks * 7) : '';
+  const shown = series.filter((p) => p.date >= from);
+  const x = (ds) => parseDateStr(ds).getTime();
+  root.appendChild(el('div', { class: 'card chart-card' },
+    lineChart({
+      points: shown.map((p) => ({ x: x(p.date), y: toDispW(p.trendKg), title: `${p.date}: trend ${w1(p.trendKg)} ${unit}` })),
+      dots: shown.map((p) => ({ x: x(p.date), y: toDispW(p.kg), title: `${p.date}: ${w1(p.kg)} ${unit}` })),
+      yLabel: unit,
+      yFormat: (v) => String(Math.round(v)),
+    }),
+    el('div', { class: 'chart-legend' },
+      el('span', {}, el('span', { class: 'lg-dot' }), ' Daily weigh-in'),
+      el('span', {}, el('span', { class: 'lg-line' }), ' Trend')),
+  ));
+
+  const rate = trendSlope(pts, { windowDays: 28 });
+  const label = rateLabel(rate, latest.trendKg);
+  const goal = store.get('goals').find((g) => g.type === 'bodyweight' && g.targetWeight != null);
+  const eta = goal && rate ? etaToGoal(latest.trendKg, goal.targetWeight, rate.slopeKgPerWeek, rate.seKgPerWeek) : null;
+  root.appendChild(el('div', { class: 'stat-row trend-stats' },
+    el('div', { class: 'stat-tile', dataset: { stat: 'rate' } },
+      el('div', { class: 'stat-label' }, 'Rate, last 28 days'),
+      rate
+        ? [el('div', { class: 'stat-value' }, `${signed(toDispW(rate.slopeKgPerWeek))} ${unit}/wk`),
+          el('div', { class: 'stat-label' }, `±${toDispW(rate.seKgPerWeek).toFixed(1)} · from ${rate.n} weigh-ins`),
+          label?.flat ? el('div', { class: 'stat-label' }, 'Flat — within the noise') : null,
+          label?.fast ? el('div', { class: 'stat-label attention' }, 'Faster than about 1%/week') : null]
+        : el('div', { class: 'stat-label', style: 'margin-top:6px' }, 'Not enough data yet (needs 10 weigh-ins over 2+ weeks)'),
+    ),
+    goal && el('div', { class: 'stat-tile', dataset: { stat: 'goal' } },
+      el('div', { class: 'stat-label' }, `To goal (${w1(goal.targetWeight).replace(/\.0$/, '')} ${unit})`),
+      el('div', { class: 'stat-value' }, `${Math.abs(toDispW(latest.trendKg - goal.targetWeight)).toFixed(1)} ${unit}`),
+      el('div', { class: 'stat-label' }, eta == null ? 'No clear rate toward it yet'
+        : eta === 0 ? 'There' : `About ${Math.round(eta)} week${Math.round(eta) === 1 ? '' : 's'} at this rate (rough)`)),
+  ));
+  root.appendChild(el('p', { class: 'muted footnote' },
+    'Rate is a straight-line fit to raw weigh-ins. The trend line smooths them but is not used for the rate.'));
+  root.appendChild(el('button', { class: 'btn small secondary', style: 'margin-bottom:18px', onclick: () => logBodyMetric() }, '+ Log metrics'));
 }
 
 function runningActivities() {

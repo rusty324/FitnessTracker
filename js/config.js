@@ -207,10 +207,11 @@ export const SYNC_WORKFLOW_FILE = 'polar-sync.yml';
 // unit/step are the metric (canonical) defaults; entries with a `dimension`
 // are shown in the user's preferred unit via units.js resolveMetric().
 export const BODY_METRICS = [
-  { id: 'weight', label: 'Weight', unit: 'kg', step: 0.1, dimension: 'weight' },
-  { id: 'bodyFat', label: 'Body fat', unit: '%', step: 0.1, dimension: null },
-  { id: 'restingHr', label: 'Resting HR', unit: 'bpm', step: 1, dimension: null },
-  { id: 'waist', label: 'Waist', unit: 'cm', step: 0.5, dimension: 'length' },
+  // smooth: shown as a trend (js/trend.js) rather than raw points.
+  { id: 'weight', label: 'Weight', unit: 'kg', step: 0.1, dimension: 'weight', smooth: true },
+  { id: 'bodyFat', label: 'Body fat', unit: '%', step: 0.1, dimension: null, smooth: false },
+  { id: 'restingHr', label: 'Resting HR', unit: 'bpm', step: 1, dimension: null, smooth: false },
+  { id: 'waist', label: 'Waist', unit: 'cm', step: 0.5, dimension: 'length', smooth: false },
 ];
 
 // ---------- Gym-floor logging (js/ui/set-rows.js) ----------
@@ -245,3 +246,10 @@ export const PROGRESSION = {
   layoffDays: 21,
   layoffFactor: 0.9, // unvalidated heuristic; keep configurable
 };
+
+// Weight trend (js/trend.js). A heuristic, not medical advice: a loss rate
+// above this (% of body weight per week) is flagged as fast.
+export const RATE_WARN_PCT = 1.0;
+
+// Weekly review (js/review.js): a weight PR needs at least this many reps.
+export const PR_MIN_REPS = 5;

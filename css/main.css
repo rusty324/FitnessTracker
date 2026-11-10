@@ -721,3 +721,48 @@ body.resting { --dock: 76px; }
 .sug-mini { font-size: 0.85rem; font-weight: 650; color: var(--warn); margin-top: 2px; }
 .sug-mini[data-kind="deload"], .sug-mini[data-kind="variant_gap"] { color: var(--text-dim); }
 .next-time .sug-chip { margin-top: 4px; }
+
+/* ---------- Weight trend (Metrics) ---------- */
+.section-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 4px 0 10px; }
+.section-title { font-size: 1.7rem; font-weight: 750; margin: 0; }
+.range-pills { display: flex; gap: 4px; }
+.range-pills button {
+  background: none; border: none; color: var(--text-dim); font: inherit; font-weight: 600; font-size: 0.92rem;
+  min-height: var(--tap); padding: 0 12px; border-radius: 10px; cursor: pointer;
+}
+.range-pills button.active { background: var(--surface-2); color: var(--text); }
+.trend-value { font-size: 3rem; font-weight: 800; line-height: 1.1; letter-spacing: -0.02em; margin: 2px 0 8px; }
+.trend-unit { font-size: 1.1rem; font-weight: 600; color: var(--text-dim); letter-spacing: 0; }
+/* Neutral on purpose: no red/green on a raw daily weight. */
+.today-chip { display: inline-block; background: var(--surface-2); border-radius: 999px; padding: 4px 12px; font-weight: 650; font-size: 0.92rem; }
+.chart-card { padding: 12px 10px 8px; }
+.chart-svg .raw-dot { fill: var(--text-dim); opacity: 0.55; }
+.chart-legend { display: flex; justify-content: center; gap: 18px; font-size: 0.8rem; color: var(--text-dim); margin-top: 4px; }
+.lg-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--text-dim); opacity: 0.7; vertical-align: 1px; }
+.lg-line { display: inline-block; width: 16px; height: 3px; border-radius: 2px; background: var(--accent); vertical-align: 3px; }
+.trend-stats .stat-tile { text-align: left; }
+.trend-stats .stat-value { margin: 4px 0 2px; }
+.stat-label.attention { color: var(--warn); font-weight: 650; }
+.footnote { font-size: 0.82rem; }
+
+/* ---------- Weekly review ---------- */
+.review-banner { display: flex; align-items: center; gap: 8px; border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); }
+.rec-card.info { border-color: color-mix(in srgb, var(--accent) 50%, var(--border)); background: color-mix(in srgb, var(--accent) 7%, var(--surface)); }
+.rec-card.attention { border-color: color-mix(in srgb, var(--warn) 50%, var(--border)); background: color-mix(in srgb, var(--warn) 9%, var(--surface)); }
+.rec-kicker { font-size: 0.78rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent); margin-bottom: 6px; }
+.rec-card.attention .rec-kicker { color: var(--warn); }
+.rec-text { font-size: 1.12rem; font-weight: 700; line-height: 1.35; margin-bottom: 4px; }
+.review-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+.review-big { font-size: 1.4rem; font-weight: 750; }
+.session-bars { display: flex; gap: 8px; }
+.sbar { flex: 1; min-width: 0; }
+.sbar-fill { height: 10px; border-radius: 999px; border: 2px solid var(--accent); }
+.sbar.done .sbar-fill { background: var(--accent); }
+.sbar:not(.done) .sbar-fill { border-color: var(--border); }
+.sbar-label { font-size: 0.78rem; color: var(--text-dim); margin-top: 4px; }
+.pr-row { justify-content: flex-start; }
+.pr-star {
+  flex: none; width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center;
+  background: color-mix(in srgb, var(--warn) 15%, var(--surface-2)); color: var(--warn); font-size: 1.1rem;
+}
+.review-weight { display: flex; align-items: center; justify-content: space-between; gap: 10px; }

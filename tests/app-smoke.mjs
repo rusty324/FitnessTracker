@@ -19,8 +19,8 @@ step('each tab has an icon', await page.evaluate(() => [...document.querySelecto
 step('the header titles the page', (await page.textContent('#page-title')) === 'Today');
 await page.click('.segmented button:has-text("Metrics")');
 step('…and follows the Logs sub-view', (await page.textContent('#page-title')) === 'Metrics');
-step('Logs has Today / History / Metrics (the heatmap is inside Metrics)',
-  (await page.$$eval('.segmented:first-of-type button', (bs) => bs.map((b) => b.textContent))).join() === 'Today,History,Metrics');
+step('Logs has Today / History / Metrics / Review (the heatmap is inside Metrics)',
+  (await page.$$eval('.segmented:first-of-type button', (bs) => bs.map((b) => b.textContent))).join() === 'Today,History,Metrics,Review');
 await page.click('.tabbar button[data-tab="plans"]');
 await page.waitForFunction(() => document.getElementById('page-title').textContent === 'Plans');
 step('other tabs title themselves', true);

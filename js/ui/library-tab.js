@@ -30,6 +30,7 @@ import {
 } from '../load.js';
 import { lineChart, datePoints } from '../charts.js';
 import { suggestionFor, suggestionChip } from './suggestion.js';
+import { nextPlannedFor } from '../sessions.js';
 
 let root = null;
 let unsub = null;
@@ -507,29 +508,9 @@ function deleteExerciseFlow(ex) {
 
 // ---------- Next time (js/progression.js) ----------
 
-// The plan item this exercise is next prescribed in (today or later, in an
-// active plan), else its most recent one: its target and week drive the
-// suggestion.
-function nextPlannedFor(exerciseId) {
-  const today = todayStr();
-  let next = null;
-  let prev = null;
-  for (const plan of store.get('plans').filter((p) => p.status === 'active')) {
-    for (const { session, week, dayOffset } of allSessions(plan)) {
-      const date = addDays(plan.startDate, dayOffset);
-      for (const { item } of sessionItems(session)) {
-        if (item.exerciseId !== exerciseId) continue;
-        const hit = { item, week, date };
-        if (date >= today) { if (!next || date < next.date) next = hit; } else if (!prev || date > prev.date) prev = hit;
-      }
-    }
-  }
-  return next ?? prev;
-}
-
 function nextTimeSection(ex) {
-  const planned = nextPlannedFor(ex.id);
   const today = todayStr();
+  const planned = nextPlannedFor(ex.id, store.get('plans'), today);
   const sug = suggestionFor({
     exercise: ex,
     target: planned?.item.target ?? null,

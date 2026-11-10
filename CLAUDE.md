@@ -93,7 +93,7 @@ files). `datarepo-template/scripts/crypto.js` must stay **byte-identical** to
   exercise's sets are all ticked, on Finish, and on pagehide/hidden (and on the
   next load). Deletes of sets/log entries use an Undo toast; `store.removeLater`
   hides the record until the toast expires, then removes it.
-- **Suggestions are derived, never stored** (progression, and later trend and
+- **Suggestions are derived, never stored** (progression, weight trend, weekly
   review). Only user-confirmed facts are persisted. Logs may carry
   `mode:'minimum'`; such sessions never qualify a progression.
 - Old data must keep working: shapes only ever **add** optional fields, and
@@ -111,6 +111,7 @@ files). `datarepo-template/scripts/crypto.js` must stay **byte-identical** to
 | `js/ui/*-tab.js`, `gear-view.js` | The tabs; `cardio-form.js` and `set-rows.js` (stepper set rows, Today + log form) are the shared entry forms |
 | `js/history.js`, `js/sanity.js`, `js/sessions.js` | Pure: last performance / ghosts, inline set warnings, the one "completed session" rule |
 | `js/progression.js`, `js/ui/suggestion.js` | Pure next-time suggestions (double / variant progression, `PROGRESSION` in config) and their chip / Next time card |
+| `js/trend.js`, `js/review.js` | Pure weight trend (time-aware EMA; rate/ETA from OLS on raw weights) and the weekly review (sessions, PRs, volume, one recommendation) |
 | `js/draft.js`, `js/rest-timer.js` | Gym-floor drafts (localStorage, flushed to logs) and the rest timer / wake lock |
 | `js/ui/tabbar.js` | Hash router `#/<tab>[/<path>]`; tabs may export `route(path)` |
 | `js/cardio.js`, `js/sets.js`, `js/gps.js` | Pure helpers (gear, per-set math, GPX/TCX parsing) |
@@ -178,7 +179,9 @@ files). `datarepo-template/scripts/crypto.js` must stay **byte-identical** to
     Phase A gym-floor logging (set rows with ghosts and one-tap ✓, drafts,
     rest timer, sanity warnings, Undo, Finish session + sessions.json), then
     Phase B progression suggestions (chip on Today with suggested ghosts,
-    Next time card; derived at read time, never stored).
+    Next time card; derived at read time, never stored), then Phase C weight
+    trend (trend is the headline; raw weigh-ins are muted dots with neutral
+    deltas — never red/green) and the weekly Review sub-tab + Today banner.
 
 ## Ideas not built yet
 

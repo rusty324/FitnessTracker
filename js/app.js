@@ -115,6 +115,14 @@ function workoutSection() {
       box('ft.restAuto', 'Start the rest timer when I tick a set', restSettings.auto),
       box('ft.restSound', 'Play a short tone when rest is over', restSettings.sound),
       box('ft.keepAwake', 'Keep the screen on during a session', restSettings.keepAwake),
+      el('div', { class: 'field', style: 'margin-top:6px' }, el('label', {}, 'Weeks start on (weekly review)'),
+        el('select', {
+          dataset: { setting: 'ft.weekStart' },
+          onchange: (e) => { try { localStorage.setItem('ft.weekStart', e.target.value); } catch { /* blocked */ } tabbar.refresh(); },
+        },
+        [['mon', 'Monday'], ['sun', 'Sunday']].map(([v, label]) => el('option', {
+          value: v, selected: (localStorage.getItem('ft.weekStart') ?? 'mon') === v,
+        }, label)))),
       el('p', { class: 'muted' },
         'A web app can’t alert you on a locked iPhone screen: the timer is right when you come back, and the tone ',
         'plays only while the app is open. Keeping the screen on during a session is the workaround.'),
