@@ -20,6 +20,7 @@ import {
 import { el, openModal, confirmDialog, toast, emptyState, downloadJson, filePicker } from './components.js';
 import { loadManifest, loadPreset } from '../presets.js';
 import { syncFromPresets } from '../preset-sync.js';
+import { filterBar, emptyFilters, describeExercise, labelOf } from './exercise-filter-bar.js';
 import { editExercise, pickExercise, targetSummary, libraryUpserter, exerciseDef, slug } from './plans-tab.js';
 import { renderGear } from './gear-view.js';
 import { formatSets } from '../sets.js';
@@ -117,21 +118,7 @@ function render() {
 
 // Search + filters survive re-renders and opening an exercise, so "Back"
 // returns to the same filtered list.
-let filters = { query: '', muscle: '', weight: '', position: '' };
-
-const labelOf = (list, id, short = false) => {
-  const item = list.find((x) => x.id === id);
-  return (short ? item?.short : null) ?? item?.label ?? id;
-};
-
-// "Strength · Chest, Arms · Barbell · Lying" — what the filters see.
-function describeExercise(ex) {
-  const groups = muscleGroupsOf(ex).map((id) => labelOf(MUSCLE_GROUPS, id)).join(', ');
-  const weights = weightTypesOf(ex).map((id) => labelOf(WEIGHT_TYPES, id, true)).join(' / ');
-  const positions = positionsOf(ex).map((id) => labelOf(POSITIONS, id, true)).join(' / ');
-  const category = ex.category ? ex.category[0].toUpperCase() + ex.category.slice(1) : '';
-  return [category, groups, weights, positions].filter(Boolean).join(' · ');
-}
+let filters = emptyFilters();
 
 function renderExerciseList() {
   const lib = store.get('exercises');
@@ -154,39 +141,10 @@ function renderExerciseList() {
   const active = lib.filter((e) => !e.archived).sort(byName);
   const archived = lib.filter((e) => e.archived).sort(byName);
 
-  // A filter menu: "All muscles", then each option with how many
-  // (non-archived) exercises it matches, then "Not set" for gaps to fill in.
-  const menu = (key, label, anyLabel, options, valuesOf) => {
-    const count = (id) => active.filter((ex) => (id === NOT_SET ? valuesOf(ex).length === 0 : valuesOf(ex).includes(id))).length;
-    const opt = (value, text, n) => el('option', {
-      value, selected: filters[key] === value, disabled: n === 0 && filters[key] !== value,
-    }, `${text} (${n})`);
-    return el('select', {
-      'aria-label': label,
-      dataset: { filter: key },
-      onchange: (e) => { filters[key] = e.target.value; update(); },
-    },
-      el('option', { value: '', selected: !filters[key] }, anyLabel),
-      options.map((o) => opt(o.id, o.label, count(o.id))),
-      opt(NOT_SET, 'Not set', count(NOT_SET)),
-    );
-  };
-  const search = el('input', {
-    type: 'search', value: filters.query, placeholder: 'Search name, muscle, equipment…',
-    'aria-label': 'Search exercises', dataset: { filter: 'query' },
-  });
-  search.addEventListener('input', () => { filters.query = search.value; update(); });
-  const selects = [
-    menu('muscle', 'Muscle group', 'All muscles', MUSCLE_GROUPS, muscleGroupsOf),
-    menu('weight', 'Weights', 'All weights', WEIGHT_TYPES, weightTypesOf),
-    menu('position', 'Position', 'All positions', POSITIONS, positionsOf),
-  ];
-  // Only weights can't be "not set": an exercise needing none is bodyweight.
-  selects[1].querySelector(`option[value="${NOT_SET}"]`).remove();
-
+  const bar = filterBar({ exercises: active, filters, onChange: () => update() });
   const summary = el('div', { class: 'filter-summary' });
   const listEl = el('div', {});
-  root.append(el('div', { class: 'filter-bar' }, search, el('div', { class: 'filter-row' }, selects)), summary, listEl);
+  root.append(bar.el, summary, listEl);
 
   const row = (ex) => el('div', { class: 'list-row tappable', onclick: () => showExercise(ex.id) },
     el('div', { class: 'row-main' },
@@ -207,7 +165,7 @@ function renderExerciseList() {
         el('span', { class: 'muted' }, `${shown.length} of ${active.length} exercises`),
         el('button', {
           class: 'btn small secondary',
-          onclick: () => { filters = { query: '', muscle: '', weight: '', position: '' }; render(); },
+          onclick: () => { filters = emptyFilters(); render(); },
         }, 'Clear filters'),
       );
     }

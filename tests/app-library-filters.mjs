@@ -164,5 +164,54 @@ await page.waitForSelector('select[data-filter="muscle"]');
 await page.waitForTimeout(300);
 step('the fill runs once per page load, not on every visit', before === 1 && manifestFetches === 1, `${before} → ${manifestFetches}`);
 
+// ---------- arms, split three ways ----------
+await page.goto(`${BASE}#/library`);
+await page.reload();
+await page.waitForSelector('select[data-filter="muscle"]');
+const muscleOpts = await page.$$eval('select[data-filter="muscle"] option', (os) => os.map((o) => o.value));
+step('Arms is split into Biceps, Triceps and Forearms', !muscleOpts.includes('arms')
+  && ['biceps', 'triceps', 'forearms'].every((v) => muscleOpts.includes(v)), muscleOpts.join());
+await clear();
+await setFilter('muscle', 'biceps');
+step('biceps: rows and pull-ups', (await names()).sort().join() === 'Barbell Bent-Over Row,Front Lever,Pull-Up,Single-Arm Dumbbell Row', (await names()).sort().join());
+await setFilter('muscle', 'triceps');
+step('triceps: presses, push-ups, dips, L-sit', (await names()).sort().join()
+  === 'Barbell Bench Press,Dumbbell Bench Press,Dumbbell Shoulder Press,Handstand Push-Up,L-Sit,Parallel Bar Dip,Push-Up,Standing Overhead Press',
+  (await names()).sort().join());
+await setFilter('muscle', 'forearms');
+step('forearms include grip work (deadlift, hanging)',
+  (await names()).sort().join() === 'Conventional Deadlift,Front Lever,Hanging Leg Raise,Human Flag,Pull-Up', (await names()).sort().join());
+const mods = await page.evaluate(async () => {
+  const { muscleGroupsOf } = await import('/js/exercise-filters.js');
+  return [muscleGroupsOf({ primaryTargets: ['arms'] }), muscleGroupsOf({ primaryTargets: ['brachioradialis'] }), muscleGroupsOf({ primaryTargets: ['brachialis'] })]
+    .map((g) => g.join('+')).join(' | ');
+});
+step('a bare “arms” counts for all three; brachioradialis is forearm, brachialis biceps', mods === 'biceps+triceps+forearms | forearms | biceps', mods);
+await clear();
+
+// ---------- the same filters when picking an exercise to log ----------
+await page.click('.tabbar button[data-tab="logs"]');
+await page.click('.segmented button:has-text("Today")');
+await page.click('button:has-text("Log ad-hoc")');
+await page.waitForSelector('.modal select[data-filter="muscle"]');
+const modalNames = () => page.locator('.modal .list-row .row-title').allTextContents();
+step('the picker has the library’s search and three filters', (await page.locator('.modal select[data-filter]').count()) === 3
+  && await page.isVisible('.modal input[data-filter="query"]'));
+await page.selectOption('.modal select[data-filter="muscle"]', 'triceps');
+await page.selectOption('.modal select[data-filter="weight"]', 'bodyweight');
+step('picker: triceps + bodyweight', (await modalNames()).sort().join() === 'Handstand Push-Up,L-Sit,Parallel Bar Dip,Push-Up', (await modalNames()).sort().join());
+step('…with a match count', /4 of \d+ exercises/.test(await page.textContent('.modal .filter-summary')));
+step('…rows describe the exercise like the library does', /Triceps/.test(await page.textContent('.modal .list-row:has-text("Parallel Bar Dip") .row-sub')));
+await page.click('.modal .list-row:has-text("Parallel Bar Dip")');
+await page.waitForSelector('.modal-title:has-text("Parallel Bar Dip")');
+await page.click('.modal-actions button:has-text("‹ Back")');
+await page.waitForSelector('.modal select[data-filter="muscle"]');
+step('‹ Back returns to the picker with the filters still set', (await page.inputValue('.modal select[data-filter="muscle"]')) === 'triceps'
+  && (await modalNames()).length === 4);
+await page.click('.modal button:has-text("Clear filters")');
+step('Clear filters resets the picker', (await page.inputValue('.modal select[data-filter="muscle"]')) === '' && (await modalNames()).length > 4);
+const ov = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+step('390px: the picker doesn’t push the page sideways', ov <= 0);
+
 step('no page errors', errors.length === 0, errors.join(' | '));
 await done(browser);

@@ -93,7 +93,12 @@ export const MUSCLE_GROUPS = [
   { id: 'chest', label: 'Chest', match: /chest|\bpec/ },
   { id: 'back', label: 'Back', match: /\blats?\b|latissimus|rhomboid|upper back|\bback\b|\btrap|erector/ },
   { id: 'shoulders', label: 'Shoulders', match: /shoulder|deltoid|\bdelts?\b|rotator cuff|serratus/ },
-  { id: 'arms', label: 'Arms', match: /bicep|tricep|forearm|brachi/ },
+  // Arms, split three ways; a bare "arms" in an exercise's targets counts
+  // for all three (as "legs" does for quads and hamstrings). Brachialis
+  // flexes the elbow with the biceps; brachioradialis is a forearm muscle.
+  { id: 'biceps', label: 'Biceps', match: /bicep|brachialis|\barms?\b/ },
+  { id: 'triceps', label: 'Triceps', match: /tricep|\barms?\b/ },
+  { id: 'forearms', label: 'Forearms', match: /forearm|brachioradialis|\bgrip\b|\bwrists?\b|\barms?\b/ },
   { id: 'core', label: 'Core', match: /\bcore\b|\babs?\b|abdomin|oblique|anterior chain/ },
   { id: 'glutes', label: 'Glutes', match: /glute|hip abductor|hip external rotator/ },
   { id: 'quads', label: 'Quads', match: /quad|\blegs?\b/ },

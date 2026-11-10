@@ -124,6 +124,7 @@ files). `datarepo-template/scripts/crypto.js` must stay **byte-identical** to
 | `js/trend.js`, `js/review.js` | Pure weight trend (time-aware EMA; rate/ETA from OLS on raw weights) and the weekly review (sessions, PRs, volume, one recommendation) |
 | `js/schedule.js`, `js/minimum.js`, `js/pain.js` | Pure: the one session-date function + slide/skip/repeat; the derived minimum session; pain escalation and rules |
 | `js/draft.js`, `js/rest-timer.js` | Gym-floor drafts (localStorage, flushed to logs) and the rest timer / wake lock |
+| `js/ui/exercise-filter-bar.js` | Exercise search + muscle/weights/position filters, shared by the Library list and the exercise picker |
 | `js/ui/tabbar.js` | Hash router `#/<tab>[/<path>]`; tabs may export `route(path)` |
 | `js/cardio.js`, `js/sets.js`, `js/gps.js` | Pure helpers (gear, per-set math, GPX/TCX parsing) |
 | `js/load.js`, `js/rwi.js` | Pure strength-load (Brzycki eRM) and RWI math |

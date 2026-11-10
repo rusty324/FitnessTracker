@@ -12,8 +12,9 @@ import {
 import {
   CATEGORIES, MODALITIES, MEASUREMENT_TYPES, TARGET_KINDS, POSITIONS, MUSCLE_GROUPS, LOAD_MODEL_IDS,
 } from '../config.js';
-import { muscleGroupsOf } from '../exercise-filters.js';
 import { loadModelOf } from '../load.js';
+import { filterBar, emptyFilters, describeExercise } from './exercise-filter-bar.js';
+import { muscleGroupsOf, matchesFilters, isFiltering } from '../exercise-filters.js';
 import { effectiveSessionDate, isSkipped, occurrences, sessionKey } from '../schedule.js';
 import { todayStr, addDays, toDateStr, parseDateStr, formatDate, formatDuration } from '../dates.js';
 import {
@@ -527,19 +528,33 @@ function editTarget(item, ex, done) {
 // Archived exercises are hidden here but still resolve everywhere else;
 // excludeId omits one more (used when picking a replacement for it).
 export function pickExercise(onPick, restore = {}, { excludeId = null } = {}) {
-  const search = el('input', { placeholder: 'Search exercises…', autocomplete: 'off', value: restore.query ?? '' });
+  // The library's search and filters (muscle group, weights, position).
+  const filters = { ...emptyFilters(), ...(restore.filters ?? {}), query: restore.query ?? restore.filters?.query ?? '' };
+  const pool = store.get('exercises')
+    .filter((e) => !e.archived && e.id !== excludeId)
+    .sort((a, b) => a.name.localeCompare(b.name));
+  const bar = filterBar({ exercises: pool, filters, onChange: () => renderList(), placeholder: 'Search exercises…' });
+  const search = bar.search;
   const list = el('div', {});
+  const summary = el('div', { class: 'filter-summary' });
   let modal;
 
-  const pickerState = () => ({ query: search.value, scroll: list.closest('.modal')?.scrollTop ?? 0 });
+  const pickerState = () => ({ query: filters.query, filters: { ...filters }, scroll: list.closest('.modal')?.scrollTop ?? 0 });
+  const LIMIT = 50;
 
   function renderList() {
-    const q = search.value.trim().toLowerCase();
-    const lib = store.get('exercises')
-      .filter((e) => !e.archived && e.id !== excludeId)
-      .filter((e) => !q || e.name.toLowerCase().includes(q));
+    const lib = pool.filter((e) => matchesFilters(e, filters));
     list.innerHTML = '';
-    for (const ex of lib.slice(0, 30)) {
+    summary.replaceChildren(...(isFiltering(filters) ? [
+      el('span', { class: 'muted' }, `${lib.length} of ${pool.length} exercises`),
+      el('button', { class: 'btn small secondary', type: 'button', onclick: () => {
+        Object.assign(filters, emptyFilters());
+        bar.el.querySelectorAll('select').forEach((s) => { s.value = ''; });
+        search.value = '';
+        renderList();
+      } }, 'Clear filters'),
+    ] : []));
+    for (const ex of lib.slice(0, LIMIT)) {
       list.appendChild(el('div', { class: 'list-row tappable', onclick: () => {
         const state = pickerState();
         modal.close();
@@ -547,26 +562,29 @@ export function pickExercise(onPick, restore = {}, { excludeId = null } = {}) {
       } },
         el('div', { class: 'row-main' },
           el('div', { class: 'row-title' }, ex.name),
-          el('div', { class: 'row-sub' }, `${ex.category} · ${ex.modality} · ${ex.measurementType}`),
+          el('div', { class: 'row-sub' }, describeExercise(ex) || `${ex.category} · ${ex.modality}`),
         ),
       ));
     }
+    if (lib.length > LIMIT) list.appendChild(el('p', { class: 'muted' }, `${lib.length - LIMIT} more — search or filter to narrow it down.`));
     if (!lib.length) {
-      list.appendChild(el('p', { class: 'muted' }, q ? `No match for “${search.value}”.` : 'Library is empty.'));
+      list.appendChild(el('p', { class: 'muted' }, !pool.length ? 'Library is empty.'
+        : filters.query.trim() && !filters.muscle && !filters.weight && !filters.position
+          ? `No match for “${filters.query}”.` : 'No exercises match these filters.'));
     }
   }
-  search.addEventListener('input', renderList);
   renderList();
 
   modal = openModal('Pick exercise', el('div', {},
-    el('div', { class: 'field' }, search),
+    el('div', { class: 'field' }, bar.el),
+    summary,
     list,
     el('button', {
       class: 'btn secondary small',
       onclick: () => {
         const state = pickerState();
         modal.close();
-        editExercise(null, (ex) => onPick(ex, state), search.value.trim());
+        editExercise(null, (ex) => onPick(ex, state), filters.query.trim());
       },
     }, '+ New exercise'),
   ), [{ label: 'Cancel', class: 'btn secondary', onClick: () => {} }]);
