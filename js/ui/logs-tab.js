@@ -18,7 +18,7 @@ import { lineChart, datePoints } from '../charts.js';
 import { isCardioExercise, hasCardioData, sportOf, defaultGear } from '../cardio.js';
 import { el, openModal, confirmDialog, toast, undoToast, emptyState, filePicker, exerciseLink } from './components.js';
 import { cardioFields, cardioExtras } from './cardio-form.js';
-import { formatSets } from '../sets.js';
+import { formatSets, formatTimedSets, isTimedActual, holdText } from '../sets.js';
 import { variantLevelFor } from '../load.js';
 import { setRows, rowsFromActual } from './set-rows.js';
 import { lastPerformance, setsOf, ghostSet } from '../history.js';
@@ -186,10 +186,13 @@ export function actualSummary(actual) {
   const parts = [];
   const sets = formatSets(actual); // includes the weight(s)
   if (sets) parts.push(sets);
+  // Timed sets: "2 × 20s", "3 × 5 × 10s" (an old single duration reads too).
+  const timed = isTimedActual(actual) ? formatTimedSets(actual) : '';
+  if (timed) parts.push(timed);
   if (actual.distanceM) parts.push(formatDistance(actual.distanceM));
   if (actual.movingSec) parts.push(formatDuration(actual.movingSec));
   if (actual.distanceM && actual.movingSec) parts.push(formatPace(actual.distanceM, actual.movingSec));
-  if (actual.durationSec) parts.push(formatDuration(actual.durationSec));
+  if (actual.durationSec && !timed) parts.push(formatDuration(actual.durationSec));
   if (actual.avgHr) parts.push(`${Math.round(actual.avgHr)} bpm`);
   return parts.join(' · ');
 }
@@ -418,11 +421,17 @@ function blockLabel(type) {
 // a time; the first unfinished one by default): ✓ a set and it goes to the
 // session's draft (js/draft.js), the rest timer starts, and when every set
 // is ticked the exercise is written as a log and the next one opens.
-// Timed and cardio work keeps the full log form. "Finish session" writes
-// whatever is ticked and records the session as done (js/sessions.js).
+// Timed work (planks, holds, stretches) gets set rows too, with time per rep
+// in place of weight; cardio and intervals keep the full log form. "Finish
+// session" writes whatever is ticked and records the session as done
+// (js/sessions.js).
 
-const isRepsItem = (item, ex) => !isCardioExercise(ex)
-  && (item.target?.kind ? item.target.kind === 'reps' : (ex?.measurementType ?? 'reps') === 'reps');
+// 'reps' | 'timed' (set rows) | null (the full form).
+function setModeOf(item, ex) {
+  if (isCardioExercise(ex)) return null;
+  const kind = item.target?.kind ?? (ex?.measurementType === 'duration' ? 'duration' : (ex?.measurementType ?? 'reps'));
+  return kind === 'reps' ? 'reps' : kind === 'duration' ? 'timed' : null;
+}
 
 const variantName = (ex, level) => (level != null ? ex?.variants?.find((v) => v.level === level)?.name : null);
 
@@ -442,11 +451,13 @@ function renderSessionToday({ plan, session, week, today, lib, logs, loggedByPe,
   const shown = mode === 'minimum' ? minimum : session;
   const entries = sessionItems(shown).map(({ block, item }) => {
     const ex = lib.get(item.exerciseId);
-    const reps = isRepsItem(item, ex);
+    const setMode = setModeOf(item, ex);
+    const reps = setMode != null; // has set rows
+    const timed = setMode === 'timed';
     const log = loggedByPe.get(item.id) ?? null;
     const d = draft.items[item.id];
     const finished = !!log && !(d?.rows?.some((r) => !r.done));
-    return { block, item, ex, reps, log, finished };
+    return { block, item, ex, reps, timed, log, finished };
   });
   const rec = status.kind ? { kind: status.kind } : null;
   // Open the first unfinished exercise — unless the session is finished.
@@ -597,13 +608,13 @@ function painPrompt({ plan, session, date }) {
   modal = openModal('Any pain today?', body, []);
 }
 
-function exerciseCard({ plan, session, week, today, key, logs, entries, block, item, ex, reps, log, finished, minimumMode = false }) {
+function exerciseCard({ plan, session, week, today, key, logs, entries, block, item, ex, reps, timed = false, log, finished, minimumMode = false }) {
   const t = item.target ?? {};
   const plans = store.get('plans');
   const draftItem = readDraft(key).items[item.id];
   // What to do this time (js/progression.js): advisory, derived from the
   // logs before today, never stored. ✕ hides it for this visit.
-  const sug = reps ? suggestionFor({
+  const sug = reps && !timed ? suggestionFor({
     exercise: ex, target: t, weekIsDeload: !!week?.isDeload,
     logs: logs.filter((l) => l.date < today), plans, today, records: store.get('sessions'),
   }) : null;
@@ -659,10 +670,11 @@ function exerciseCard({ plan, session, week, today, key, logs, entries, block, i
     exercise: ex,
     target: t,
     perf,
-    rows: draftItem?.rows ?? (log ? rowsFromActual(log.actual) : null),
+    rows: draftItem?.rows ?? (log ? rowsFromActual(log.actual, { timed }) : null),
     showWeight: draftItem?.showWeight ?? null,
     history: priorSets(item.exerciseId, today, logs),
     lastColumn: isDesktop(),
+    timed,
     onChange: (st) => updateDraftItem(key, item.id, { ...base, ...st }),
     onCheck: () => {
       setSessionActive(true);
@@ -695,10 +707,11 @@ function exerciseCard({ plan, session, week, today, key, logs, entries, block, i
     onDismiss: () => { dismissedSug.add(item.id); render(); },
   });
 
-  const last = perf
-    ? `Last time (${formatDate(perf.date, { month: 'short', day: 'numeric' })}): ${perf.sets.map((s) => s.reps).join(' / ')}`
-      + (perf.sets.some((s) => s.weightKg > 0) ? ` @ ${formatWeight(Math.max(...perf.sets.map((s) => s.weightKg ?? 0)))}` : '')
-    : null;
+  const lastDate = perf ? `Last time (${formatDate(perf.date, { month: 'short', day: 'numeric' })}): ` : '';
+  const last = !perf ? null
+    : timed ? lastDate + perf.sets.map((x) => (x.reps > 1 ? `${x.reps} × ${holdText(x.durationSec)}` : holdText(x.durationSec))).join(' / ')
+      : lastDate + perf.sets.map((x) => x.reps).join(' / ')
+        + (perf.sets.some((x) => x.weightKg > 0) ? ` @ ${formatWeight(Math.max(...perf.sets.map((x) => x.weightKg ?? 0)))}` : '');
   return el('div', { class: 'card ex-card is-open', dataset: { item: item.id } },
     el('div', { class: 'ex-head' },
       el('div', { class: 'row-main' }, title,
@@ -725,7 +738,7 @@ function exerciseCard({ plan, session, week, today, key, logs, entries, block, i
 function inferKind(actual) {
   if (!actual) return null;
   if (actual.distanceM != null || actual.movingSec != null) return 'distance';
-  if (actual.durationSec != null) return 'duration';
+  if (actual.durationSec != null || actual.holdSec != null || Array.isArray(actual.setHoldSec)) return 'duration';
   if (['sets', 'reps', 'setReps', 'weight', 'setWeights'].some((k) => actual[k] != null)) return 'reps';
   return null;
 }
@@ -769,20 +782,24 @@ function logEntryModal({ existing = null, plan = null, session = null, pe = null
   const field = (label, input) => el('div', { class: 'field' }, el('label', {}, label), input);
 
   let dropDraft = null;
-  if (kind === 'reps') {
+  // Timed work (non-cardio duration) gets set rows too: time per rep × reps.
+  const timed = kind === 'duration';
+  if (kind === 'reps' || timed) {
     // Unsaved sets of a new entry are kept as a draft (flushed as this same
     // entry if the app is closed mid-way); Save or Cancel drops the draft.
     const adhocKey = existing ? null : draftKey(entry.date, 'adhoc');
     const drafted = adhocKey ? readDraft(adhocKey).items[entry.id] : null;
     repsForm = setRows({
       exercise: ex,
-      target: existing ? {} : t,
+      // Intervals log as one block of their total time.
+      target: existing ? {} : t.kind === 'intervals' ? { sets: 1, durationSec: t.totalSec ?? null } : t,
       perf: ex ? lastPerformance({
         exerciseId: ex.id, variantLevel: a.variantLevel ?? t.variantLevel ?? null,
         logs: store.get('logs').filter((l) => l.id !== entry.id), beforeDate: entry.date, exercise: ex, plans: store.get('plans'),
       }) : null,
-      rows: drafted?.rows ?? (existing ? rowsFromActual(a) : null),
-      showWeight: drafted?.showWeight ?? (existing && ex?.modality === 'bodyweight' ? rowsFromActual(a).some((r) => r.kg > 0) : null),
+      rows: drafted?.rows ?? (existing ? rowsFromActual(a, { timed }) : null),
+      showWeight: drafted?.showWeight ?? (existing && !timed && ex?.modality === 'bodyweight' ? rowsFromActual(a).some((r) => r.kg > 0) : null),
+      timed,
       history: ex ? priorSets(ex.id, entry.date, store.get('logs').filter((l) => l.id !== entry.id)) : [],
       includeTyped: true,
       onChange: (st) => adhocKey && updateDraftItem(adhocKey, entry.id, {
@@ -800,9 +817,6 @@ function logEntryModal({ existing = null, plan = null, session = null, pe = null
       movingSec: a.movingSec ?? a.durationSec ?? (existing ? null : t.durationSec ?? t.totalSec ?? null),
       distanceM: a.distanceM ?? (existing ? null : t.distanceM ?? null),
     }, { gear: store.get('gear'), sport: sportOf(entry, ex), date: entry.date });
-  } else {
-    const prefillSec = a.durationSec ?? t.durationSec ?? t.totalSec;
-    fields.append(field('Duration (min)', num('min', prefillSec ? +(prefillSec / 60).toFixed(1) : '', 1)));
   }
 
   // Which rung of the exercise's ladder this was (drives the load metrics,
@@ -850,7 +864,7 @@ function logEntryModal({ existing = null, plan = null, session = null, pe = null
           return isNaN(v) ? null : v;
         };
         const actual = {};
-        if (kind === 'reps') {
+        if (repsForm) {
           const r = repsForm.read();
           if (r.error) { toast(r.error, 'error'); return false; }
           Object.assign(actual, r.values);
@@ -866,8 +880,6 @@ function logEntryModal({ existing = null, plan = null, session = null, pe = null
             const d = defaultGear(store.get('gear'), sportOf(entry, ex), dateInput.value || todayStr());
             if (d) actual.gearId = d.id;
           }
-        } else if (val('min') != null) {
-          actual.durationSec = Math.round(val('min') * 60);
         }
         if (variantSel) {
           if (existing && variantSel.value === variantShown) {
@@ -1320,6 +1332,7 @@ const fmtShort = (ds) => formatDate(ds, { month: 'short', day: 'numeric' });
 function prText(pr) {
   const w = (kg) => formatWeight(weightUnit() === 'lb' ? kg : Math.round(kg * 10) / 10);
   if (pr.kind === 'weight') return [pr.exercise.name, `Heaviest for ${pr.minReps}+ reps: ${w(pr.value)} (was ${w(pr.was)})`];
+  if (pr.kind === 'hold') return [pr.exercise.name, `Longest hold${pr.levelName ? ` (${pr.levelName})` : ''}: ${holdText(pr.value)} (was ${holdText(pr.was)})`];
   if (pr.kind === 'variant') return [pr.exercise.name, `New level: ${pr.valueName} (was ${pr.wasName})`];
   if (pr.kind === 'reps') {
     const at = pr.weightKg > 0 ? w(pr.weightKg) : pr.levelName ?? 'bodyweight';

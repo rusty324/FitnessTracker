@@ -51,7 +51,7 @@ export function itemSeconds(t = {}) {
   const sides = t.perSide ? 2 : 1;
   const rest = t.restSec ?? 30;
   if (t.kind === 'intervals') return t.totalSec ?? (t.rounds ?? 1) * ((t.workSec ?? 0) + (t.recoverySec ?? 0));
-  if (t.kind === 'duration') return (t.sets ?? 1) * (t.durationSec ?? 0) * sides + ((t.sets ?? 1) - 1) * rest;
+  if (t.kind === 'duration') return (t.sets ?? 1) * (t.reps ?? 1) * (t.durationSec ?? 0) * sides + ((t.sets ?? 1) - 1) * rest;
   if (t.kind === 'distance') return ((t.distanceM ?? 0) / 1000) * (t.paceSecPerKm ?? 420);
   const sets = t.sets ?? 1;
   const reps = t.reps ?? t.repsMax ?? t.repsMin ?? 10;

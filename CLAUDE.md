@@ -58,7 +58,12 @@ files). `datarepo-template/scripts/crypto.js` must stay **byte-identical** to
 - **Logs** (`data/logs.json`): `{id,date,exerciseId,planId,plannedExerciseId,actual,rpe,notes}`.
   `actual` shapes: strength `{sets,reps,weight}` — or, when sets differ,
   `setReps:[…]` and/or `setWeights:[…]` (0 = bodyweight, null = not recorded);
-  everything reads through `js/sets.js`. Cardio `{movingSec,distanceM,avgHr,
+  everything reads through `js/sets.js`. Timed (planks, holds, stretches):
+  `{sets, holdReps, holdSec}` or per set `setHoldReps:[…]`/`setHoldSec:[…]`
+  (seconds per rep) — deliberately not `reps`, so load/RWI/progression never
+  read a 1-rep plank as a set of one; older timed logs are a bare
+  `{durationSec}` (one hold) and still read via `timedPerSet()`. Duration
+  plan targets may carry `reps` (per set, default 1). Cardio `{movingSec,distanceM,avgHr,
   maxHr,calories,elevationM,environment,gearId}` (`js/cardio.js`).
 - **Activities** (synced/imported): same cardio fields plus `id,date,name,type,
   source,gpsPolyline`. Matching to plan sessions is a fuzzy matcher
@@ -125,7 +130,7 @@ files). `datarepo-template/scripts/crypto.js` must stay **byte-identical** to
 | `js/config.js` | Tabs, data paths, taxonomies, sport map, gear kinds, muscle/position lists |
 | `js/models.js` | Record factories and v1→v2 migrations |
 | `js/storage/store.js` | App layer over ghsync |
-| `js/ui/*-tab.js`, `gear-view.js` | The tabs; `cardio-form.js` and `set-rows.js` (stepper set rows, Today + log form) are the shared entry forms |
+| `js/ui/*-tab.js`, `gear-view.js` | The tabs; `cardio-form.js` and `set-rows.js` (stepper set rows — weight × reps, or time × reps for timed work — Today + log form) are the shared entry forms |
 | `js/history.js`, `js/sanity.js`, `js/sessions.js` | Pure: last performance / ghosts, inline set warnings, the one "completed session" rule |
 | `js/progression.js`, `js/ui/suggestion.js` | Pure next-time suggestions (double / variant progression, `PROGRESSION` in config) and their chip / Next time card |
 | `js/trend.js`, `js/review.js` | Pure weight trend (time-aware EMA; rate/ETA from OLS on raw weights) and the weekly review (sessions, PRs, volume, one recommendation) |
@@ -150,7 +155,7 @@ files). `datarepo-template/scripts/crypto.js` must stay **byte-identical** to
 
 - **Run tests before every push:** `node tests/run.mjs` (starts its own static
   server, runs this repo's suites and ghsync's; needs `playwright` resolvable —
-  e.g. symlink the global install into `node_modules/`). ~690 checks, all
+  e.g. symlink the global install into `node_modules/`). ~730 checks, all
   should be green. Subset: `node tests/run.mjs app-sets`. The same run happens
   on every push to `main` in GitHub Actions (`.github/workflows/tests.yml`) —
   an alarm, not a gate: Pages deploys regardless. Keep its Playwright pin in
@@ -223,7 +228,7 @@ files). `datarepo-template/scripts/crypto.js` must stay **byte-identical** to
 
 ## Ideas not built yet
 
-Per-set timed holds; editing
+Editing
 variant ladders (and their fractions) in the UI; RIR logging; a Google Drive
 backup (owner prefers a visible folder via `drive.file`, plaintext); copying
 ghsync 1.2 back to homeInventory.

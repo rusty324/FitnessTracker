@@ -15,9 +15,16 @@
 // Bodyweight exercises hide the weight column ("+ Add weight" shows it, and
 // it shows itself if the last session had added weight). Hidden weight is
 // stored as 0 kg added — the app's existing "bodyweight" convention.
+//
+// Timed work (planks, holds, stretches) uses the same rows with time per rep
+// in place of weight: [set #] [time − m:ss +] [reps − n +] [✓], stored as
+// timed sets (js/sets.js). The time field types like a timer (iPhone's
+// number pad has no colon): "45" is 0:45, "130" is 1:30.
 
 import { WEIGHT_STEP } from '../config.js';
-import { repsPerSet, weightsPerSet, setFields, weightFields } from '../sets.js';
+import { repsPerSet, weightsPerSet, setFields, weightFields, timedPerSet, timedFields, holdText } from '../sets.js';
+import { parseHms, formatHms } from '../cardio.js';
+import { timerEntry } from './cardio-form.js';
 import { weightUnit } from '../units.js';
 import { ghostSet } from '../history.js';
 import { checkSet } from '../sanity.js';
@@ -61,8 +68,10 @@ export const isLoadedExercise = (ex) => LOADED_MODALITIES.includes(ex?.modality)
 // numbers (null = blank). The typed* flags say the user entered them (vs a
 // value loaded from an existing log), which matters only in the log form.
 
-// Rows from a stored `actual` (an existing log), all done.
-export function rowsFromActual(actual) {
+// Rows from a stored `actual` (an existing log), all done. Timed rows carry
+// sec (time per rep) instead of kg.
+export function rowsFromActual(actual, { timed = false } = {}) {
+  if (timed) return timedPerSet(actual).map((t) => ({ reps: t.reps, sec: t.sec, done: true }));
   const reps = repsPerSet(actual);
   const kg = weightsPerSet(actual);
   return reps.map((r, i) => ({ reps: r, kg: kg.length ? kg[i] ?? null : null, done: true }));
@@ -70,7 +79,11 @@ export function rowsFromActual(actual) {
 
 // The stored fields for the rows that count: done ones (and in the log form,
 // any row with reps typed). showWeight false = bodyweight (0 kg added).
-export function actualFromRows(rows, { showWeight, includeTyped = false }) {
+export function actualFromRows(rows, { showWeight, includeTyped = false, timed = false }) {
+  if (timed) {
+    const counted = rows.filter((r) => r.reps != null && r.sec != null && (r.done || (includeTyped && (r.typedReps || r.typedSec))));
+    return timedFields(counted.map((r) => ({ reps: r.reps, sec: r.sec })));
+  }
   const counted = rows.filter((r) => r.reps != null && (r.done || (includeTyped && r.typedReps)));
   if (!counted.length) return {};
   const reps = counted.map((r) => r.reps);
@@ -89,28 +102,31 @@ export function actualFromRows(rows, { showWeight, includeTyped = false }) {
  * @param {boolean} [o.showWeight] starting weight-column visibility
  * @param {object[]} [o.history]   prior sets [{weightKg, reps}] for sanity checks
  * @param {boolean} [o.includeTyped] log form: rows with typed reps count without ✓
+ * @param {boolean} [o.timed]      time per rep instead of weight (holds, stretches)
  * @param {(i:number)=>void} [o.onCheck]  a set was ticked
  * @param {(state)=>void} [o.onChange]    any change (for drafts)
  */
 export function setRows({
   exercise, target = {}, perf = null, rows: startRows = null, showWeight: startShow = null,
-  history = [], includeTyped = false, onCheck, onChange, lastColumn = false,
+  history = [], includeTyped = false, onCheck, onChange, lastColumn = false, timed = false,
 }) {
   const lastHadWeight = (perf?.sets ?? []).some((s) => s.weightKg > 0);
-  let showWeight = startShow ?? (isLoadedExercise(exercise) || lastHadWeight
-    || (startRows ?? []).some((r) => r.kg > 0));
+  let showWeight = !timed && (startShow ?? (isLoadedExercise(exercise) || lastHadWeight
+    || (startRows ?? []).some((r) => r.kg > 0)));
   const planned = Math.min(MAX_SETS, target.sets ?? perf?.sets?.length ?? 1);
   let rows = (startRows?.length ? startRows : Array.from({ length: Math.max(1, planned) }, () => ({})))
-    .map((r) => ({ reps: null, kg: null, done: false, ...r }));
+    .map((r) => ({ reps: null, kg: null, sec: null, done: false, ...r }));
   // Ghost overrides (Phase B suggestions replace last-time ghosts).
   let ghostOverride = null;
 
   const ghostOf = (i) => {
     if (ghostOverride) return ghostOverride(i);
     const g = ghostSet(perf, i);
+    // A timed target's reps default to one hold per set.
     return {
-      reps: g?.reps ?? target.reps ?? target.repsMin ?? null,
+      reps: g?.reps ?? target.reps ?? target.repsMin ?? (timed ? 1 : null),
       kg: g ? g.weightKg : null,
+      sec: g?.durationSec ?? target.durationSec ?? null,
       suggested: false,
     };
   };
@@ -120,6 +136,7 @@ export function setRows({
   const lastText = (i) => {
     const g = ghostSet(perf, i);
     if (!g) return '—';
+    if (timed) return g.reps > 1 ? `${g.reps} × ${holdText(g.durationSec)}` : holdText(g.durationSec);
     return g.weightKg > 0 ? `${kgToDisplay(g.weightKg)} × ${g.reps}` : `${g.reps ?? '—'}`;
   };
   const head = el('div', { class: 'set-row set-head' });
@@ -134,10 +151,11 @@ export function setRows({
       el('span', { class: 'set-n' }, 'Set'),
       lastColumn && el('span', { class: 'set-col set-last' }, 'Last'),
       showWeight && el('span', { class: 'set-col' }, `Weight (${weightUnit()})`),
+      timed && el('span', { class: 'set-col' }, 'Time'),
       el('span', { class: 'set-col' }, 'Reps'),
       el('span', { class: 'set-check-h' }),
     ].filter(Boolean)); // append(null) would print "null"
-    wrap.classList.toggle('no-weight', !showWeight);
+    wrap.classList.toggle('no-weight', !showWeight && !timed);
   }
 
   function stepper({ value, ghost, ghostSuggested, ghostArrow, step, kind, onInput, onStep, label }) {
@@ -150,6 +168,7 @@ export function setRows({
       class: ghostSuggested && value == null ? 'ghost-suggested' : '',
       dataset: { name: kind },
     });
+    if (kind === 'time') timerEntry(input); // registered first: formats, then onInput reads
     input.addEventListener('input', () => onInput(input.value));
     // Select on focus, so typing replaces rather than appends.
     input.addEventListener('focus', () => input.select());
@@ -198,6 +217,29 @@ export function setRows({
           changed();
         },
       }) : null;
+      // Time per rep: ±5 s under a minute, ±15 s above.
+      const timeStep = (base, d) => (base + (d > 0 ? 0 : -1) < 60 ? 5 : 15) * Math.sign(d);
+      const timeCell = timed ? stepper({
+        kind: 'time',
+        label: `Set ${i + 1} time`,
+        value: row.sec == null ? null : Number.isNaN(row.sec) ? null : formatHms(row.sec),
+        ghost: g.sec == null ? null : formatHms(g.sec),
+        step: 1,
+        onInput: (text) => {
+          const v = parseHms(text);
+          row.sec = v == null ? null : Number.isNaN(v) ? NaN : v;
+          row.typedSec = true;
+          changed();
+        },
+        onStep: (d) => {
+          const base = row.sec ?? g.sec ?? 0;
+          const st = timeStep(base, d);
+          row.sec = Math.max(0, Math.round((base + st) / Math.abs(st)) * Math.abs(st));
+          row.typedSec = true;
+          renderRows();
+          changed();
+        },
+      }) : null;
       const repsCell = stepper({
         kind: 'reps',
         label: `Set ${i + 1} reps`,
@@ -230,6 +272,7 @@ export function setRows({
         el('span', { class: 'set-n' }, String(i + 1)),
         lastColumn && el('span', { class: 'set-last' }, lastText(i)),
         weightCell,
+        timeCell,
         repsCell,
         check,
       ));
@@ -249,10 +292,12 @@ export function setRows({
     const g = ghostOf(i);
     const reps = row.reps ?? g.reps;
     const kg = showWeight ? row.kg ?? g.kg ?? null : null;
+    const sec = timed ? row.sec ?? g.sec ?? null : null;
     if (reps == null) { toast('Enter reps for this set', 'error'); return; }
-    const check = checkSet({ weightKg: showWeight ? kg : null, reps, history });
+    if (timed && sec == null) { toast('Enter a time for this set', 'error'); return; }
+    const check = checkSet({ weightKg: showWeight ? kg : null, reps, durationSec: sec, history });
     if (check?.reject) { toast(check.message, 'error'); return; }
-    Object.assign(row, { reps, kg, done: true, warning: check?.message ?? null });
+    Object.assign(row, { reps, kg, done: true, warning: check?.message ?? null }, timed ? { sec } : {});
     renderRows();
     changed();
     onCheck?.(i);
@@ -265,7 +310,7 @@ export function setRows({
     footer.replaceChildren(el('div', { class: 'set-footer-inner' },
       rows.length < MAX_SETS && el('button', { class: 'link-btn', type: 'button', onclick: addSet }, '+ Add set'),
       rows.length > 1 && el('button', { class: 'link-btn', type: 'button', onclick: removeSet }, '− Remove set'),
-      !showWeight && el('button', {
+      !showWeight && !timed && el('button', {
         class: 'link-btn', type: 'button',
         onclick: () => { showWeight = true; render(); changed(); },
       }, '+ Add weight'),
@@ -273,7 +318,7 @@ export function setRows({
   }
 
   function addSet() {
-    rows.push({ reps: null, kg: null, done: false });
+    rows.push({ reps: null, kg: null, sec: null, done: false });
     render();
     changed();
   }
@@ -296,7 +341,7 @@ export function setRows({
   render();
 
   function state() {
-    return { rows: rows.map(({ warning, ...r }) => r), showWeight };
+    return { rows: rows.map(({ warning, ...r }) => r), showWeight, ...(timed ? { timed: true } : {}) };
   }
 
   return {
@@ -305,12 +350,15 @@ export function setRows({
     // -> { values } | { error }
     read() {
       for (const [i, r] of rows.entries()) {
-        const counted = r.done || (includeTyped && r.typedReps);
+        const counted = r.done || (includeTyped && (r.typedReps || (timed && r.typedSec)));
         if (!counted) continue;
-        const check = checkSet({ weightKg: showWeight ? r.kg : null, reps: r.reps, history });
+        // The log form: a typed time with reps left blank is one rep.
+        if (timed && r.reps == null && r.sec != null) r.reps = 1;
+        if (timed && r.sec == null && r.reps != null) return { error: `Set ${i + 1}: enter a time` };
+        const check = checkSet({ weightKg: showWeight ? r.kg : null, reps: r.reps, durationSec: timed ? r.sec : null, history });
         if (check?.reject) return { error: `Set ${i + 1}: ${check.message}` };
       }
-      return { values: actualFromRows(rows, { showWeight, includeTyped }) };
+      return { values: actualFromRows(rows, { showWeight, includeTyped, timed }) };
     },
     allDone: () => rows.length > 0 && rows.every((r) => r.done),
     anyDone: () => rows.some((r) => r.done),

@@ -157,8 +157,8 @@ await page.waitForSelector('.tabbar button');
 // ---------- non-cardio is untouched ----------
 await pick('Plank');
 await page.waitForSelector('.modal-title:has-text("Plank")');
-step('a plank keeps the simple minutes form',
-  (await page.locator('.modal label:has-text("Duration (min)")').count()) === 1 && (await page.locator(f('avgHr')).count()) === 0);
+step('a plank gets timed set rows, not the cardio form',
+  (await page.locator('.modal .set-rows [data-name="time"]').count()) >= 1 && (await page.locator(f('avgHr')).count()) === 0);
 await page.click('.modal-actions button:has-text("Cancel")');
 
 // ---------- an old minutes-only run opens in the cardio form ----------

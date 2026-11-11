@@ -56,14 +56,31 @@ function strengthPRs({ start, end, logs, exercises, plans }) {
   const out = [];
   for (const ex of exercises) {
     if (isCardioExercise(ex)) continue;
-    const mine = logs.filter((l) => l.exerciseId === ex.id && setsOf(l).length && setsOf(l)[0].reps != null);
+    const nameOf = (lvl) => ex.variants?.find((v) => v.level === lvl)?.name ?? `level ${lvl}`;
+    const flat = (ls) => ls.flatMap((l) => setsOf(l).map((s) => ({ ...s, level: variantLevelFor(l, plans), lo: rangeOf(plannedTargetOf(l, plans))?.[0] ?? 1 })));
+    // Timed sets (planks, holds): the longest hold at the same variant.
+    const timed = logs.filter((l) => l.exerciseId === ex.id && setsOf(l)[0]?.durationSec != null);
+    const tNow = flat(timed.filter(inWeek));
+    const tPrior = flat(timed.filter(before));
+    if (tNow.length && tPrior.length) {
+      let best = null;
+      for (const s of tNow) {
+        const same = tPrior.filter((p) => p.level === s.level);
+        if (!same.length) continue;
+        const was = Math.max(...same.map((p) => p.durationSec));
+        if (s.durationSec > was && (!best || s.durationSec - was > best.value - best.was)) {
+          best = { kind: 'hold', exercise: ex, value: s.durationSec, was, level: s.level, levelName: s.level != null ? nameOf(s.level) : null };
+        }
+      }
+      if (best) out.push(best);
+    }
+
+    const mine = logs.filter((l) => l.exerciseId === ex.id && setsOf(l).length && setsOf(l)[0].reps != null && setsOf(l)[0].durationSec == null);
     const now = mine.filter(inWeek);
     const prior = mine.filter(before);
     if (!now.length || !prior.length) continue; // a first time isn't a "best"
-    const flat = (ls) => ls.flatMap((l) => setsOf(l).map((s) => ({ ...s, level: variantLevelFor(l, plans), lo: rangeOf(plannedTargetOf(l, plans))?.[0] ?? 1 })));
     const N = flat(now);
     const P = flat(prior);
-    const nameOf = (lvl) => ex.variants?.find((v) => v.level === lvl)?.name ?? `level ${lvl}`;
 
     // Weight: heaviest for PR_MIN_REPS+ reps.
     const heavy = (S) => Math.max(-1, ...S.filter((s) => s.weightKg > 0 && s.reps >= PR_MIN_REPS).map((s) => s.weightKg));
@@ -141,7 +158,8 @@ export function weeklyReview({
       if (l.date < s || l.date > e) continue;
       const ex = lib.get(l.exerciseId);
       if (!ex || isCardioExercise(ex)) continue;
-      const n = setsOf(l).filter((x) => x.reps != null).length;
+      // Timed sets count for strength work (a plank), not for stretches.
+      const n = setsOf(l).filter((x) => x.reps != null && (x.durationSec == null || ex.category === 'strength')).length;
       if (!n) continue;
       for (const g of muscleGroupsOf(ex)) m.set(g, (m.get(g) ?? 0) + n);
     }

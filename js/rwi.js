@@ -15,7 +15,7 @@
 // "work" view there, and the main one for cardio.
 // Always km-based, whatever the display units, so values stay comparable.
 
-import { repsPerSet } from './sets.js';
+import { repsPerSet, timedPerSet, totalTimedSec } from './sets.js';
 
 // { basis: 'reps' | 'run time' | 'distance' | 'time' | null, perSet: number[] }
 // before the weight ratio is applied. plannedTarget: the plan item the log
@@ -27,7 +27,8 @@ export function rwiWork(actual, plannedTarget = null) {
   if (t?.kind === 'intervals' && t.rounds > 0 && t.workSec > 0) {
     return { basis: 'run time', perSet: [t.rounds * t.workSec] };
   }
-  const sec = actual?.movingSec ?? actual?.durationSec;
+  // Timed sets count every rep's time (2 × 3 × 10s = 60 s).
+  const sec = actual?.movingSec ?? (timedPerSet(actual).length ? totalTimedSec(actual) : actual?.durationSec);
   const m = actual?.distanceM;
   if (m > 0 && sec > 0) {
     const km = m / 1000;

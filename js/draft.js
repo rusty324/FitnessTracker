@@ -7,7 +7,7 @@
 //
 // Key: ft.draft.<date>.<plannedSessionId | 'adhoc'>
 // Value: { items: { [key]: { exerciseId, planId, plannedExerciseId,
-//          variantLevel, rows, showWeight, logId } } }
+//          variantLevel, rows, showWeight, timed?, logId } } }
 // ghsync coalesces rapid saves of a file into chained pushes, so a flush that
 // upserts several logs costs a few pushes at most.
 
@@ -56,7 +56,7 @@ export function flushItem(key, itemKey) {
   const item = draft.items[itemKey];
   if (!item?.rows?.some((r) => r.done)) return null;
   const date = key.slice(PREFIX.length).split('.')[0];
-  const actual = actualFromRows(item.rows, { showWeight: item.showWeight });
+  const actual = actualFromRows(item.rows, { showWeight: item.showWeight, timed: !!item.timed });
   if (item.variantLevel != null) actual.variantLevel = item.variantLevel;
   const existing = item.logId ? store.get('logs').find((l) => l.id === item.logId) : null;
   // A minimum session's logs say so, and never qualify a progression.

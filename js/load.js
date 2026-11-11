@@ -20,7 +20,7 @@
 // is ever stored, so changing the goal restates the whole history.
 
 import { LOAD_MODELS } from './config.js';
-import { repsPerSet, weightsPerSet } from './sets.js';
+import { repsPerSet, weightsPerSet, longestTimedSec } from './sets.js';
 import { isCardioExercise } from './cardio.js';
 import { allSessions, sessionItems } from './models.js';
 
@@ -199,6 +199,6 @@ export function bestReps(log) {
 }
 export function longestHold(log) {
   const a = log?.actual ?? {};
-  const sec = a.durationSec ?? a.movingSec;
+  const sec = longestTimedSec(a) ?? a.durationSec ?? a.movingSec;
   return sec > 0 ? sec : null;
 }

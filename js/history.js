@@ -1,7 +1,7 @@
 // What you did last time, for the gym floor: ghost values in the set rows,
 // and later the evidence behind progression suggestions. Pure.
 
-import { repsPerSet, weightsPerSet } from './sets.js';
+import { repsPerSet, weightsPerSet, timedPerSet } from './sets.js';
 import { variantLevelFor } from './load.js';
 
 // Most recent log of the exercise strictly before `beforeDate`. When the
@@ -9,6 +9,7 @@ import { variantLevelFor } from './load.js';
 // says nothing about level 4); the level of each log resolves as the load
 // metrics do — its own, else its plan item's.
 // -> { date, variantLevel, logId, sets: [{ reps, weightKg, durationSec }] } | null
+// (durationSec: a timed set's time per rep; null for reps × weight sets)
 export function lastPerformance({ exerciseId, variantLevel = null, logs = [], beforeDate, exercise = null, plans = [] }) {
   const hasLadder = !!exercise?.variants?.length;
   const candidates = logs
@@ -26,10 +27,8 @@ export function setsOf(log) {
   const reps = repsPerSet(a);
   const kg = weightsPerSet(a);
   if (reps.length) return reps.map((r, i) => ({ reps: r, weightKg: kg[i] ?? null, durationSec: null }));
-  if (a.durationSec != null) {
-    return Array.from({ length: Math.max(1, a.sets ?? 1) }, () => ({ reps: null, weightKg: null, durationSec: a.durationSec }));
-  }
-  return [];
+  // Timed sets: reps of a hold, and the hold's length per rep.
+  return timedPerSet(a).map((t) => ({ reps: t.reps, weightKg: null, durationSec: t.sec }));
 }
 
 // Set i of last time; with fewer sets then, the last one repeats.

@@ -20,6 +20,8 @@ import { effectiveSessionDate, isSkipped, occurrences, sessionKey } from '../sch
 import { sessionStatus, doneItemIds } from '../sessions.js';
 import { overdueCard } from './overdue.js';
 import { isDesktop } from './layout.js';
+import { timerEntry } from './cardio-form.js';
+import { parseHms, formatHms } from '../cardio.js';
 import { todayStr, addDays, toDateStr, parseDateStr, formatDate, formatDuration } from '../dates.js';
 import {
   formatWeight, formatDistance, formatPaceValue, paceUnit,
@@ -122,7 +124,7 @@ function blockSummary(block) {
   if (!items.length) return '—';
   if (items.length === 1) return targetSummary(items[0].target);
   if (['warmup', 'cooldown'].includes(block.type)) {
-    const sec = items.reduce((a, it) => a + (it.target?.durationSec ?? 0) * (it.target?.sets ?? 1), 0);
+    const sec = items.reduce((a, it) => a + (it.target?.durationSec ?? 0) * (it.target?.sets ?? 1) * (it.target?.reps ?? 1), 0);
     if (sec) return `${Math.round(sec / 60)} min`;
   }
   return `${items.length} exercises`;
@@ -137,7 +139,7 @@ function estimateMin(session) {
   for (const it of (session.blocks ?? []).flatMap((b) => b.items ?? [])) {
     const t = it.target ?? {};
     const sets = t.sets ?? 1;
-    if (t.durationSec) sec += t.durationSec * sets + (t.restSec ?? 0) * Math.max(0, sets - 1);
+    if (t.durationSec) sec += t.durationSec * (t.reps ?? 1) * sets + (t.restSec ?? 0) * Math.max(0, sets - 1);
     else if (t.distanceM) sec += (t.distanceM / 1000) * 360;
     else sec += sets * (40 + (t.restSec ?? 90));
   }
@@ -589,8 +591,11 @@ export function targetSummary(target) {
     return `${target.sets ?? 1} × ${reps}${w}${extra}`;
   }
   if (target.kind === 'duration') {
+    // sets × reps × time per rep: "2 × 20s", "3 × 5 × 10s", "30m".
     const base = target.durationSec ? formatDuration(target.durationSec) : 'duration';
-    return `${target.sets && target.sets > 1 ? `${target.sets} × ` : ''}${base}${extra}`;
+    const reps = target.reps > 1 ? `${target.reps} × ` : '';
+    const sets = target.sets > 1 ? `${target.sets} × ` : reps ? '1 × ' : '';
+    return `${sets}${reps}${base}${extra}`;
   }
   if (target.kind === 'distance') {
     const dist = target.distanceM ? formatDistance(target.distanceM) : 'distance';
@@ -639,9 +644,11 @@ function editTarget(item, ex, done) {
         ),
       );
     } else if (kind === 'duration') {
+      // Time per rep types like a timer (no colon on iPhone's number pad).
       fields.append(el('div', { class: 'field-row' },
         field('Sets', num('sets', t.sets ?? 1)),
-        field('Duration (min)', num('min', t.durationSec ? t.durationSec / 60 : 30)),
+        field('Reps per set', num('reps', t.reps ?? 1)),
+        field('Time per rep (m:ss)', timerEntry(el('input', { type: 'text', inputmode: 'numeric', value: formatHms(t.durationSec ?? 1800), dataset: { name: 'time' } }))),
       ));
     } else {
       fields.append(
@@ -691,7 +698,10 @@ function editTarget(item, ex, done) {
           if (val('pace') != null) target.paceSecPerKm = paceFromInput(val('pace'));
         } else if (kind === 'duration') {
           if (val('sets') != null && val('sets') > 1) target.sets = val('sets');
-          target.durationSec = val('min') != null ? Math.round(val('min') * 60) : null;
+          if (val('reps') != null && val('reps') > 1) target.reps = Math.round(val('reps'));
+          const sec = parseHms(fields.querySelector('[data-name="time"]')?.value);
+          if (Number.isNaN(sec)) { toast('Time per rep: use m:ss, e.g. 0:30', 'error'); return false; }
+          target.durationSec = sec;
         } else {
           target.rounds = val('rounds') ?? 6;
           target.workSec = val('work') != null ? Math.round(val('work')) : 60;

@@ -27,7 +27,7 @@ import { isDesktop } from './layout.js';
 import { librarySidebar, nextTimeCard, progressSection } from './exercise-desktop.js';
 import { editExercise, pickExercise, targetSummary, libraryUpserter, exerciseDef, slug } from './plans-tab.js';
 import { renderGear } from './gear-view.js';
-import { formatSets } from '../sets.js';
+import { formatSets, formatTimedSets, isTimedActual } from '../sets.js';
 import { rwiWork, weightOn, RWI_BASIS_LABEL } from '../rwi.js';
 import {
   loadModelOf, modelParams, modelLabel, isLoadModel, sessionLoadValue, setValues,
@@ -741,7 +741,8 @@ function rwiSection(ex) {
 function summarizeActual(actual = {}) {
   const parts = [];
   if (formatSets(actual)) parts.push(formatSets(actual));
-  if (actual.durationSec) parts.push(formatDuration(actual.durationSec));
+  if (isTimedActual(actual)) parts.push(formatTimedSets(actual));
+  else if (actual.durationSec) parts.push(formatDuration(actual.durationSec));
   if (actual.distanceM) parts.push(formatDistance(actual.distanceM));
   if (actual.movingSec && !actual.durationSec) parts.push(formatDuration(actual.movingSec));
   return parts.join(' · ') || 'no data';
