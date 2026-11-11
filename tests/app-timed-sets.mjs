@@ -139,13 +139,18 @@ step('the collapsed card says what was done', /✓ 2 sets: 2 × 35s, 3 × 30s/.t
 const ov = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
 step('390px: no horizontal overflow', ov <= 0);
 await page.click('.ex-card[data-item="pi-plank"]');
+// The owner's phone showed "0:4" with the 0 cut off: the time must show
+// whole, up to "12:30", in the real font (scrollWidth > clientWidth = clipped).
 const cols = await page.evaluate(() => {
   const r = document.querySelector('.ex-card.is-open .set-row[data-set="1"]');
-  const t = r.querySelector('[data-name="time"]').getBoundingClientRect();
+  const input = r.querySelector('[data-name="time"]');
+  const t = input.getBoundingClientRect();
   const n = r.querySelector('[data-name="reps"]').getBoundingClientRect();
-  return { side: t.right <= n.left, fits: r.getBoundingClientRect().right <= innerWidth, w: t.width };
+  const clipped = ['0:40', '1:30', '12:30'].filter((v) => { input.value = v; return input.scrollWidth > input.clientWidth; });
+  input.value = '';
+  return { side: t.right <= n.left, fits: r.getBoundingClientRect().right <= innerWidth, w: Math.round(t.width), clipped };
 });
-step('390px: time beside reps, each field wide enough for 1:30', cols.side && cols.fits && cols.w >= 36, JSON.stringify(cols));
+step('390px: time beside reps, “12:30” shows whole', cols.side && cols.fits && !cols.clipped.length, JSON.stringify(cols));
 
 // ---------- History and the log form ----------
 await page.click('.segmented button:has-text("History")');

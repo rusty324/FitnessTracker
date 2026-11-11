@@ -132,7 +132,7 @@ export function setRows({
   };
 
   // lastColumn (desktop): each row also shows what that set was last time.
-  const wrap = el('div', { class: `set-rows${lastColumn ? ' with-last' : ''}` });
+  const wrap = el('div', { class: `set-rows${lastColumn ? ' with-last' : ''}${timed ? ' timed' : ''}` });
   const lastText = (i) => {
     const g = ghostSet(perf, i);
     if (!g) return '—';
