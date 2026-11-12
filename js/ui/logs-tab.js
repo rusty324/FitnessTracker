@@ -255,9 +255,9 @@ function renderTodayMain(today, lib, logs, loggedByPe, desktop) {
     ));
   }
   root.appendChild(el('button', { class: 'btn', onclick: () => adhocLog() }, '+ Log ad-hoc activity'));
-  // Last on the page, under the ad-hoc button (and pinned above the tab bar
-  // while the session scrolls) — once any overdue session is dealt with, so
-  // it never covers that card's choices.
+  // Last on the page, under the ad-hoc button — in the flow, not pinned to
+  // the screen (pinned, it got tapped by thumbs scrolling) — and only once
+  // any overdue session is dealt with.
   if (!overdue) for (const bar of finishBars) root.appendChild(bar);
 }
 

@@ -678,12 +678,9 @@ label { display: block; font-size: 0.85rem; color: var(--text-dim); margin-botto
 .set-footer-inner { display: flex; flex-wrap: wrap; gap: 4px 10px; margin-top: 2px; }
 
 /* Finish session: in thumb reach, above the tab bar and the rest timer. */
-.finish-bar {
-  position: sticky;
-  bottom: calc(var(--tabbar-h) + var(--dock) + 10px + env(safe-area-inset-bottom));
-  z-index: 5;
-  margin-top: 16px;
-}
+/* In the page flow, not pinned: pinned above the tab bar it sat where a
+   thumb lands to scroll, and got tapped by accident. */
+.finish-bar { margin-top: 16px; }
 
 /* ---------- Rest timer (js/rest-timer.js) ---------- */
 body.resting { --dock: 76px; }
@@ -712,7 +709,6 @@ body.resting { --dock: 76px; }
 @media (min-width: 960px) and (hover: hover) and (pointer: fine) {
   .rest-bar { bottom: 0; }
   body.resting { --dock: 68px; }
-  .finish-bar { bottom: calc(var(--dock) + 16px); }
   .toast-root { bottom: calc(var(--dock) + 20px); }
   /* The page's density rules shrink inputs; keep set rows thumb-sized. */
   .stepper input { padding: 0; font-size: 1.1rem; }

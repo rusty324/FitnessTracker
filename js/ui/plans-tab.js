@@ -14,7 +14,7 @@ import {
 } from '../config.js';
 import { loadModelOf } from '../load.js';
 import { filterBar, emptyFilters, describeExercise } from './exercise-filter-bar.js';
-import { gifImage, hasGif, isUpload, uploadGif, removeUpload } from './media.js';
+import { gifImage, hasGif, isUpload, uploadGif, removeUpload, copyLinkedGif } from './media.js';
 import { muscleGroupsOf, matchesFilters, isFiltering } from '../exercise-filters.js';
 import { effectiveSessionDate, isSkipped, occurrences, sessionKey } from '../schedule.js';
 import { sessionStatus, doneItemIds } from '../sessions.js';
@@ -890,6 +890,28 @@ export function editExercise(ex, onSaved, prefillName = '') {
         : link,
       el('div', { class: 'gif-row-actions' },
         el('label', { class: 'btn small secondary gif-upload' }, isUpload(value) ? 'Replace…' : 'Upload GIF…', picker),
+        // A link -> a copy stored with your data (offline, and safe from
+        // the link breaking), when the site allows it.
+        !isUpload(value) && el('button', {
+          class: 'btn small secondary', type: 'button', dataset: { action: 'copy-gif' },
+          onclick: async (e) => {
+            const btn = e.currentTarget;
+            if (!hasGif(get())) { toast('Paste a GIF link first', 'error'); return; }
+            btn.disabled = true;
+            btn.textContent = 'Saving…';
+            try {
+              const ref = await copyLinkedGif(get());
+              fresh.add(ref);
+              set(ref);
+              drawGifs();
+              toast('Saved a copy — it no longer depends on that link');
+            } catch (err) {
+              toast(err.message, 'error');
+              btn.disabled = false;
+              btn.textContent = 'Save a copy';
+            }
+          },
+        }, 'Save a copy'),
         hasGif(value) && el('button', { class: 'btn small secondary', type: 'button', onclick: () => { set(''); drawGifs(); } }, 'Remove')));
   };
   function drawGifs() {

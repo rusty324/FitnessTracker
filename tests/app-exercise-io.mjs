@@ -12,6 +12,13 @@ page.on('pageerror', (e) => errors.push(String(e)));
 const GIF = Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64');
 // A GIF "on the web" for link tests.
 await page.route('https://gifs.example/**', (route) => route.fulfill({ status: 200, contentType: 'image/gif', body: GIF }));
+// …one whose site lets other apps read it (CORS), and a link to a web page.
+await page.route('https://cors.example/**', (route) => route.fulfill({ status: 200, contentType: 'image/gif', body: GIF, headers: { 'access-control-allow-origin': '*' } }));
+// A site that blocks it: Playwright's fulfilled responses skip the CORS check,
+// but a CORS refusal reaches the page exactly as a failed fetch (TypeError),
+// so an aborted request stands in for it.
+await page.route('https://nocors.example/**', (route) => route.abort('failed'));
+await page.route('https://page.example/**', (route) => route.fulfill({ status: 200, contentType: 'text/html', body: '<html></html>', headers: { 'access-control-allow-origin': '*' } }));
 
 await page.goto(BASE);
 await page.waitForSelector('.tabbar button');
@@ -212,6 +219,25 @@ await page.setInputFiles('[data-gif-file="exercise"]', { name: 'notes.txt', mime
 await page.waitForSelector('.toast.error:has-text("isn’t an image")');
 step('a non-image upload is refused', true);
 await page.click('.modal-actions button:has-text("Cancel")');
+
+// ---------- GIFs: save a copy of a linked one ----------
+await page.click('button:has-text("Edit")');
+await page.waitForSelector('.gif-editor');
+await page.fill('[data-gif="exercise"]', 'https://nocors.example/squat.gif');
+await page.click('.gif-row:has-text("Exercise") [data-action="copy-gif"]');
+await page.waitForSelector('.toast.error:has-text("doesn’t let other web apps")');
+step('copy: a site that blocks it says so, and how to upload instead', /Upload GIF/.test(await page.textContent('.toast.error:has-text("doesn’t let other web apps")')));
+await page.fill('[data-gif="exercise"]', 'https://page.example/squat');
+await page.click('.gif-row:has-text("Exercise") [data-action="copy-gif"]');
+await page.waitForSelector('.toast.error:has-text("web page, not an image")');
+step('copy: a link to a web page (not the image) is explained', true);
+await page.fill('[data-gif="exercise"]', 'https://cors.example/squat.gif');
+await page.click('.gif-row:has-text("Exercise") [data-action="copy-gif"]');
+await page.waitForSelector('.gif-editor .row-sub:has-text("Uploaded GIF")');
+await page.click('.modal-actions button:has-text("Save")');
+await page.waitForSelector('.gif-figure img[src^="data:image/gif"]');
+const copied = await page.evaluate(() => JSON.parse(localStorage.getItem('ft.data.data/exercises.json')).find((e) => e.id === 'ex-squat').gif);
+step('copy: the linked GIF becomes an upload, kept with your data', /^media:/.test(copied) && (await idb()).some((x) => `media:${x.id}` === copied && x.mime === 'image/gif'), copied);
 
 const ov = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
 step('390px: no horizontal overflow', ov <= 0);

@@ -182,8 +182,20 @@ step('…and leaves the plan itself untouched', (await page.evaluate(() => local
 step('the slid session is today’s now', /Session 1/.test(await page.textContent('.session-title')) && !(await page.isVisible('.overdue-card')));
 
 // Weekly dots.
-step('Today header: weekly dots and “N of M this week”', /0 of 3 this week/.test(await page.textContent('.week-dots'))
-  && (await page.locator('.wdot').count()) === 3 && !/streak/i.test(await page.textContent('.week-dots')));
+// How many of the slid sessions fall in this Mon–Sun week depends on
+// today's weekday (on a Thursday the third lands next Monday), so count
+// them from the stored data rather than assume 3.
+const inWeek = await page.evaluate(async () => {
+  const { plannedBetween } = await import('/js/schedule.js');
+  const { weekStartOf } = await import('/js/review.js');
+  const { todayStr, addDays } = await import('/js/dates.js');
+  const start = weekStartOf(todayStr(), 'mon');
+  const store = (k) => JSON.parse(localStorage.getItem(`ft.data.data/${k}.json`) ?? '[]');
+  return plannedBetween(store('plans'), start, addDays(start, 6), store('schedule')).length;
+});
+step('Today header: weekly dots and “N of M this week”', new RegExp(`0 of ${inWeek} this week`).test(await page.textContent('.week-dots'))
+  && (await page.locator('.wdot').count()) === inWeek && inWeek >= 1 && !/streak/i.test(await page.textContent('.week-dots')),
+  `${await page.textContent('.week-dots')} (expected ${inWeek})`);
 
 // Minimum session.
 await page.click('[data-mode="minimum"]');
@@ -218,7 +230,17 @@ step('Repeat this week adds the week’s sessions again', repeats.length === 3, 
 // The week counts the minimum as completed.
 await page.reload();
 await page.waitForSelector('.week-dots');
-step('a minimum session counts as completed', /1 of 3 this week/.test(await page.textContent('.week-dots')));
+// (Repeat this week added the week's sessions again, so recount.)
+const inWeek2 = await page.evaluate(async () => {
+  const { plannedBetween } = await import('/js/schedule.js');
+  const { weekStartOf } = await import('/js/review.js');
+  const { todayStr, addDays } = await import('/js/dates.js');
+  const start = weekStartOf(todayStr(), 'mon');
+  const store = (k) => JSON.parse(localStorage.getItem(`ft.data.data/${k}.json`) ?? '[]');
+  return plannedBetween(store('plans'), start, addDays(start, 6), store('schedule')).length;
+});
+step('a minimum session counts as completed', new RegExp(`1 of ${inWeek2} this week`).test(await page.textContent('.week-dots')),
+  `${await page.textContent('.week-dots')} (expected 1 of ${inWeek2})`);
 step('Metrics: “Last 8 weeks: N of M” instead of a percentage', await (async () => {
   await page.click('.segmented button:has-text("Metrics")');
   await page.waitForSelector('[data-stat="sessions8"]');

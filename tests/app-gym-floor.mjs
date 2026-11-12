@@ -191,12 +191,20 @@ const lay = await page.evaluate(() => {
 });
 step('390px: no horizontal overflow', lay.overflow <= 0, `${lay.overflow}px`);
 step('set-row controls are ≥ 44 px', lay.count > 0 && lay.small === 0, `${lay.small} of ${lay.count} too small`);
-await page.evaluate(() => scrollTo(0, 0));
-const fb = await page.evaluate(() => {
-  const r = document.querySelector('.finish-bar').getBoundingClientRect();
-  return { top: r.top, vh: innerHeight, scroll: document.documentElement.scrollHeight > innerHeight };
+// Not pinned to the screen (the owner tapped it by accident while
+// scrolling): it moves with the page, at the end of it.
+const fb = await page.evaluate(async () => {
+  const bar = document.querySelector('.finish-bar');
+  // Make the page scroll whatever this session's length.
+  document.getElementById('view').style.paddingBottom = '1200px';
+  const at = async (y) => { scrollTo(0, y); await new Promise(requestAnimationFrame); return bar.getBoundingClientRect().top + scrollY; };
+  const a = await at(0);
+  const b = await at(600);
+  scrollTo(0, 0);
+  document.getElementById('view').style.paddingBottom = '';
+  return { pos: getComputedStyle(bar).position, a, b };
 });
-step('Finish session sits in the bottom 40% of the screen', !fb.scroll || fb.top >= fb.vh * 0.6, `${fb.top} of ${fb.vh}`);
+step('Finish session scrolls with the page (not pinned over the list)', fb.pos === 'static' && Math.abs(fb.a - fb.b) < 1, JSON.stringify(fb));
 
 // ---------- Finish session ----------
 await page.click('[data-action="finish"]');

@@ -62,6 +62,26 @@ export async function uploadGif(file) {
   return `media:${await media.add(processed)}`;
 }
 
+// A linked GIF -> "media:<id>": a copy kept with your data (offline, and
+// safe from the link breaking). The browser can only read another site's
+// image when that site allows it (CORS); many do, some don't — then the way
+// is to save the image on the phone and upload it.
+export async function copyLinkedGif(url) {
+  let res;
+  try {
+    res = await fetch(url.trim(), { cache: 'no-store' });
+  } catch {
+    throw new Error('That site doesn’t let other web apps copy its images. Save the GIF to your phone (long-press it), then use Upload GIF…');
+  }
+  if (!res.ok) throw new Error(`Couldn’t get the GIF (the site answered ${res.status}). Check the link.`);
+  const blob = await res.blob();
+  if (blob.type && !blob.type.startsWith('image/')) {
+    throw new Error('That link is a web page, not an image. Open it, long-press the GIF and choose “Copy Link” or “Copy Image Address”.');
+  }
+  const name = decodeURIComponent(new URL(url.trim()).pathname.split('/').pop() || '') || 'exercise.gif';
+  return uploadGif(new File([blob], name, { type: blob.type || 'image/gif' }));
+}
+
 export function removeUpload(ref) {
   if (isUpload(ref)) media.remove(ref.slice('media:'.length));
 }

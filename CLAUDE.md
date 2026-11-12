@@ -76,7 +76,7 @@ files). `datarepo-template/scripts/crypto.js` must stay **byte-identical** to
   filters map them onto muscle groups/weight types at read time
   (`js/exercise-filters.js`, patterns in `js/config.js`). `positions` is a
   list of position ids. Optional `gif` on an exercise and on each variant:
-  an `https://` link or `media:<id>` — an upload stored by `store.media`
+  an `https://` link or `media:<id>` — an upload (or a link's "Save a copy", which needs the site to allow CORS) stored by `store.media`
   (ghsync blobs) at `data/media/<id>.json`, mirrored to IndexedDB `ft.media`.
 - **Exercise import** (`js/exercise-io.js`): a user's file *updates* what it
   matches (by `id`, else by normalised name — a name match never renames)
