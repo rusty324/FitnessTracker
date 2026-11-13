@@ -33,6 +33,7 @@ import { PAIN_REGIONS, RUN_REGIONS, CLINICIAN_LINE, effectivePain, painTwoWeeksR
 import { minimumSession, estimateMinutes } from '../minimum.js';
 import { isDesktop } from './layout.js';
 import { overdueCard } from './overdue.js';
+import { delayDialog, delayLabel } from './delay.js';
 import { pickExercise, targetSummary } from './plans-tab.js';
 
 let root = null;
@@ -243,10 +244,11 @@ function renderTodayMain(today, lib, logs, loggedByPe, desktop) {
   const finishBars = [];
   const doneIds = doneItemIds(logs, store.get('matches'));
   const records = store.get('sessions');
-  for (const { plan, session, week, date, skipped, repeat } of occurrences(store.get('plans'), store.get('schedule'))) {
+  for (const occ of occurrences(store.get('plans'), store.get('schedule'))) {
+    const { plan, session, week, date, skipped, repeat } = occ;
     if (date !== today || skipped) continue;
     anyPlanned = true;
-    const finish = renderSessionToday({ plan, session, week, today, lib, logs, loggedByPe, doneIds, records, repeat });
+    const finish = renderSessionToday({ plan, session, week, today, lib, logs, loggedByPe, doneIds, records, repeat, occ });
     if (finish) finishBars.push(finish);
   }
   if (!anyPlanned) {
@@ -440,7 +442,7 @@ function priorSets(exerciseId, date, logs) {
   return logs.filter((l) => l.exerciseId === exerciseId && l.date < date).flatMap(setsOf);
 }
 
-function renderSessionToday({ plan, session, week, today, lib, logs, loggedByPe, doneIds, records, repeat = false }) {
+function renderSessionToday({ plan, session, week, today, lib, logs, loggedByPe, doneIds, records, repeat = false, occ = null }) {
   const key = draftKey(today, session.id);
   const status = sessionStatus({ session, date: today, records, doneIds, repeat, logs });
   const draft = readDraft(key);
@@ -472,6 +474,18 @@ function renderSessionToday({ plan, session, week, today, lib, logs, loggedByPe,
         `${plan.name} · week ${week.index}${repeat ? ' (repeat)' : ''}${week.isDeload ? ' (deload)' : ''}`
         + `${session.estimatedDurationMin ? ` · ~${session.estimatedDurationMin} min` : ''}`),
       session.note && el('div', { class: 'row-sub' }, session.note),
+      // Not today after all: before anything is logged or ticked.
+      occ && !status.completed && !Object.values(draft.items).some((d) => d.rows?.some((r) => r.done))
+        && el('button', { class: 'link-btn move-btn', type: 'button', dataset: { action: 'move-tomorrow' }, onclick: () => {
+          // Ticking a set doesn't redraw this header, so check again now.
+          if (Object.values(readDraft(key).items).some((d) => d.rows?.some((r) => r.done))) {
+            toast('You’ve started this one. Untick its sets to move it.', 'error');
+            render();
+            return;
+          }
+          delayDialog(occ);
+        } },
+          delayLabel(today)),
     ),
     status.completed && el('span', { class: 'pill ok' }, status.kind === 'minimum' ? 'done · minimum' : 'done'),
   ));

@@ -140,6 +140,7 @@ files). `datarepo-template/scripts/crypto.js` must stay **byte-identical** to
 | `js/ui/exercise-filter-bar.js` | Exercise search + muscle/weights/position filters, shared by the Library list and the exercise picker |
 | `js/ui/layout.js` | `isDesktop()` (wide + mouse, the CSS's desktop query); desktop-redesigned views add `wide` to `#view` (1200px, `.two-col` → `.col-main` + `.col-side`) |
 | `js/ui/overdue.js` | The missed-session card (slide / skip / not now), shared by Today and Plans |
+| `js/ui/delay.js` | "Move to tomorrow" / "a day later" before a session's day (just it: `moveSession`, or slide the rest), on Today and Plans |
 | `js/ui/exercise-desktop.js` | Desktop exercise page: library sidebar, Next time + the rule, top set by session, what the rule said per session (replayed) |
 | `js/ui/tabbar.js` | Hash router `#/<tab>[/<path>]`; tabs may export `route(path)` |
 | `js/cardio.js`, `js/sets.js`, `js/gps.js` | Pure helpers (gear, per-set math, GPX/TCX parsing) |
@@ -155,7 +156,7 @@ files). `datarepo-template/scripts/crypto.js` must stay **byte-identical** to
 
 - **Run tests before every push:** `node tests/run.mjs` (starts its own static
   server, runs this repo's suites and ghsync's; needs `playwright` resolvable —
-  e.g. symlink the global install into `node_modules/`). ~730 checks, all
+  e.g. symlink the global install into `node_modules/`). ~750 checks, all
   should be green. Subset: `node tests/run.mjs app-sets`. The same run happens
   on every push to `main` in GitHub Actions (`.github/workflows/tests.yml`) —
   an alarm, not a gate: Pages deploys regardless. Keep its Playwright pin in

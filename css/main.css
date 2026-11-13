@@ -322,6 +322,7 @@ label { display: block; font-size: 0.85rem; color: var(--text-dim); margin-botto
 .modal-title { font-size: 1.05rem; font-weight: 650; margin: 0 0 14px; }
 .modal-actions {
   display: flex;
+  flex-wrap: wrap; /* three actions don't fit one row at 390px */
   gap: 10px;
   justify-content: flex-end;
   margin-top: 18px;
@@ -974,3 +975,5 @@ label.btn.small {
   .session-cards { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
 }
 .session-exercises { margin-top: 8px; font-size: 0.9rem; color: var(--text-dim); overflow-wrap: anywhere; }
+.move-btn { display: block; margin-top: 6px; padding: 6px 0; font-size: 0.9rem; }
+.delay-option { border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; }

@@ -98,6 +98,17 @@ export function slidePlan({ plan, fromDate, days, schedule, isDone = () => false
   return next;
 }
 
+// Move one occurrence by `days`, leaving every other session where it is.
+// `key` is the occurrence's key (occurrences()): a repeat moves its own
+// repeat record; a plan session gets a 'move' record (the plan is never
+// edited).
+export function moveSession({ plan, session, key, date, days, schedule }) {
+  const to = addDays(date, days);
+  const rep = schedule.find((r) => r.id === key && r.kind === 'repeat');
+  if (rep) return upsert(schedule, { ...rep, date: to });
+  return upsert(schedule, { id: sessionKey(plan.id, session.id), kind: 'move', planId: plan.id, sessionId: session.id, date: to });
+}
+
 export function skipSession({ plan, session, schedule }) {
   const key = sessionKey(plan.id, session.id);
   return upsert(schedule, { id: key, kind: 'skip', planId: plan.id, sessionId: session.id, date: effectiveSessionDate(plan, session, schedule) });

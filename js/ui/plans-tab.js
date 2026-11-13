@@ -19,6 +19,7 @@ import { muscleGroupsOf, matchesFilters, isFiltering } from '../exercise-filters
 import { effectiveSessionDate, isSkipped, occurrences, sessionKey } from '../schedule.js';
 import { sessionStatus, doneItemIds } from '../sessions.js';
 import { overdueCard } from './overdue.js';
+import { delayDialog, delayLabel } from './delay.js';
 import { isDesktop } from './layout.js';
 import { timerEntry } from './cardio-form.js';
 import { parseHms, formatHms } from '../cardio.js';
@@ -210,7 +211,12 @@ function renderOverview(plan) {
   el('div', { class: 'session-blocks' }, (o.session.blocks ?? []).map((b) => el('div', { class: 'block-row' },
     el('span', {}, b.name || blockTypeLabel(b.type)),
     el('span', { class: 'muted' }, blockSummary(b))))),
-  exerciseLinks(sessionItems(o.session).map(({ item }) => item.exerciseId), lib, 'session-exercises')))));
+  exerciseLinks(sessionItems(o.session).map(({ item }) => item.exerciseId), lib, 'session-exercises'),
+  // Today's or a later one, not yet done: push it back a day.
+  ['today', 'planned'].includes(o.state) && el('button', {
+    class: 'link-btn move-btn', type: 'button', dataset: { action: 'move-later' },
+    onclick: (e) => { e.stopPropagation(); delayDialog(o); },
+  }, delayLabel(o.date))))));
   const after = weeks[shownIdx + 1];
   if (after) {
     const ds = after.sessions.map((x) => x.date).sort();
