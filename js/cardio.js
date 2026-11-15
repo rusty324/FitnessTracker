@@ -6,7 +6,8 @@
 //   movingSec, distanceM, avgHr, maxHr, calories, elevationM (gain, meters),
 //   environment ('outdoor' | 'indoor'), gearId (see below).
 
-import { CARDIO_SPORTS, sportMapping } from './config.js';
+import { CARDIO_SPORTS, sportMapping, MATCH_WINDOW_DAYS } from './config.js';
+import { diffDays } from './dates.js';
 
 const CARDIO_IDS = CARDIO_SPORTS.map((s) => s.id);
 
@@ -38,9 +39,10 @@ export function parseHms(v) {
 }
 export function formatHms(sec) {
   if (sec == null) return '';
+  sec = Math.round(sec); // first, or 3599.6 reads "59:60"
   const h = Math.floor(sec / 3600);
   const m = Math.floor((sec % 3600) / 60);
-  const s = Math.round(sec % 60);
+  const s = sec % 60;
   const pad = (n) => String(n).padStart(2, '0');
   return h ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`;
 }
@@ -103,15 +105,25 @@ export function sportOf(item, exercise) {
 // would double.
 export function cardioItems({ logs = [], activities = [], exercises = [], matches = [] }) {
   const lib = new Map(exercises.map((e) => [e.id, e]));
-  const coveredByActivity = new Set(matches
-    .filter((m) => m.status === 'confirmed' && m.plannedExerciseId)
-    .map((m) => m.plannedExerciseId));
+  // planned item id -> dates of the activities confirmed against it. A log
+  // counts as the same workout only near one of them: a repeated week reuses
+  // the plan's items, and a run logged by hand in the repeat is its own run.
+  const actDate = new Map(activities.map((e) => [e.id, e.date]));
+  const coveredByActivity = new Map();
+  for (const m of matches) {
+    if (m.status !== 'confirmed' || !m.plannedExerciseId) continue;
+    if (!coveredByActivity.has(m.plannedExerciseId)) coveredByActivity.set(m.plannedExerciseId, []);
+    coveredByActivity.get(m.plannedExerciseId).push(actDate.get(m.activityId) ?? null);
+  }
+  const sameWorkout = (l) => (coveredByActivity.get(l.plannedExerciseId) ?? [])
+    // An activity that isn't loaded (hidden, shard not synced) can't be dated: assume it's the one.
+    .some((d) => d == null || !l.date || Math.abs(diffDays(d, l.date)) <= MATCH_WINDOW_DAYS + 1);
   const out = [];
   for (const l of logs) {
     const ex = lib.get(l.exerciseId);
     const a = l.actual ?? {};
     if (!isCardioExercise(ex) && !hasCardioData(a)) continue;
-    if (l.plannedExerciseId && coveredByActivity.has(l.plannedExerciseId)) continue;
+    if (l.plannedExerciseId && sameWorkout(l)) continue;
     out.push({ ...a, ref: { kind: 'log', id: l.id }, date: l.date, name: ex?.name ?? 'Activity', sport: sportOf(l, ex) });
   }
   for (const e of activities) {

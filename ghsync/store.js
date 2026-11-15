@@ -10,9 +10,9 @@
 // in `files`; if a workflow in the data repo writes other paths, keep those
 // paths out of `files` and read them through readFile()/refreshDir().
 // The merge path below only ever handles browser-vs-browser (second device
-// or tab) conflicts, merged per record id with local dirty records winning.
-// Note: a record deleted locally can resurrect from such a merge; accepted
-// for a single-user tool.
+// or tab) conflicts, merged per record id: the records this device edited
+// since its last push win, everything else is taken from the repo (see
+// mergeRemote()).
 
 import { createCache } from './cache.js';
 import {
@@ -29,7 +29,7 @@ export {
 
 // Keep in step with CHANGELOG.md. Shown in error reports, so a report says
 // which copy of ghsync produced it.
-export const VERSION = '1.2';
+export const VERSION = '1.3';
 
 // Failures that clear on their own: the write stays queued and the status is
 // 'pending'. Everything else is 'error' — it needs a person — even though the
@@ -272,10 +272,37 @@ export function createStore(opts) {
 
   // ---------- writes ----------
 
+  // Which record ids differ between two versions of a collection: added,
+  // changed or removed. null when a record has no id to track it by.
+  function changedIds(before, after) {
+    const key = (list) => {
+      const m = new Map();
+      for (const r of Array.isArray(list) ? list : []) {
+        if (!r || typeof r !== 'object' || r.id == null || r.id === '') return null;
+        m.set(r.id, JSON.stringify(r));
+      }
+      return m;
+    };
+    const a = key(before);
+    const b = key(after);
+    if (!a || !b) return null;
+    const out = [];
+    for (const [id, json] of b) if (a.get(id) !== json) out.push(id);
+    for (const id of a.keys()) if (!b.has(id)) out.push(id);
+    return out;
+  }
+
   async function save(collection, records) {
     const path = files[collection];
+    // Remember which records this save touched, so a conflict merge lets
+    // only those win (mergeRemote). A path that is already queued without a
+    // list — from an older version, or a reseed — stays untracked.
+    const wasDirty = cache.isDirty(path);
+    const tracked = wasDirty ? cache.getDirtyIds(path) : [];
+    const changed = tracked ? changedIds(cache.getData(path), records) : null;
     writeCache(path, records);
     cache.markDirty(path);
+    cache.setDirtyIds(path, tracked && changed ? [...new Set([...tracked, ...changed])] : null);
     emit({ type: 'changed', collection });
     await push(path, collection);
   }
@@ -349,8 +376,19 @@ export function createStore(opts) {
     }
   }
 
+  // A push was refused because the repo's file moved on (another device or
+  // tab). Combine the two by record id:
+  //   - a record this device edited since its last push (cache.getDirtyIds)
+  //     wins, and one it deleted stays deleted;
+  //   - every other record is the repo's: its newer version is kept, and a
+  //     record the other device deleted goes here too.
+  // Before 1.3 every local record won, so a device with a stale copy quietly
+  // reverted whatever had been changed elsewhere since it last synced.
+  // When the edited ids aren't known (queued by an older version, a reseed,
+  // a whole-file write) or the repo has no such file, it falls back to that
+  // union with local winning — nothing local is ever dropped on a guess.
   async function mergeRemote(path, collection) {
-    let remote = [];
+    let remote = null;
     let sha = null;
     try {
       const f = await client.getFile(path);
@@ -366,9 +404,18 @@ export function createStore(opts) {
       if (!(e instanceof NotFoundError)) throw e;
     }
     const local = records(path, cache.getData(path), { requireIds: true, where: 'in this browser' });
+    const edited = remote ? cache.getDirtyIds(path) : null;
     const byId = new Map();
-    for (const r of remote) byId.set(r.id, r);
-    for (const r of local) byId.set(r.id, r); // local dirty records win
+    for (const r of remote ?? []) byId.set(r.id, r);
+    if (edited) {
+      const mine = new Map(local.map((r) => [r.id, r]));
+      for (const id of edited) {
+        if (mine.has(id)) byId.set(id, mine.get(id));
+        else byId.delete(id); // deleted here
+      }
+    } else {
+      for (const r of local) byId.set(r.id, r);
+    }
     writeCache(path, [...byId.values()]);
     cache.setSha(path, sha);
     if (collection) emit({ type: 'changed', collection });
@@ -504,12 +551,16 @@ export function createStore(opts) {
   // extraPaths() are rewritten too; when one of them is Actions-owned these
   // migration writes are the documented exception, and a conflict is ignored
   // because the workflow will reconverge on its next run.
-  async function rewriteEncryptedFiles(collections = encrypted) {
+  async function rewriteEncryptedFiles(collections = encrypted, reseed = false) {
     if (!canSync()) return; // local mode, or no repo configured yet
     await settled();
     for (const collection of collections) {
       const path = files[collection];
       if (cache.getData(path) == null) continue; // never loaded here: nothing to (re)write
+      // Re-encrypting edits no record: if the repo moved on meanwhile, its
+      // records are the ones to keep. A reseed (pushAllData) is the opposite.
+      if (!cache.isDirty(path)) cache.setDirtyIds(path, reseed ? null : []);
+      else if (reseed) cache.setDirtyIds(path, null);
       cache.markDirty(path);
       await push(path, collection);
     }
@@ -534,7 +585,7 @@ export function createStore(opts) {
     await settled();
     for (const path of Object.values(files)) cache.setSha(path, null);
     for (const path of extraPaths()) cache.setSha(path, null);
-    await rewriteEncryptedFiles(Object.keys(files));
+    await rewriteEncryptedFiles(Object.keys(files), true);
   }
 
   // ---------- lifecycle ----------

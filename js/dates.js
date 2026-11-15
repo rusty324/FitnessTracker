@@ -43,9 +43,10 @@ export function monthKey(dateStr) {
 
 export function formatDuration(seconds) {
   if (seconds == null || isNaN(seconds)) return '';
+  seconds = Math.round(seconds); // first, or 359.6 reads "5m 60s"
   const h = Math.floor(seconds / 3600);
   const m = Math.floor((seconds % 3600) / 60);
-  const s = Math.round(seconds % 60);
+  const s = seconds % 60;
   if (h > 0) return `${h}h ${String(m).padStart(2, '0')}m`;
   if (m > 0) return s ? `${m}m ${String(s).padStart(2, '0')}s` : `${m}m`;
   return `${s}s`;

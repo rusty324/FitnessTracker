@@ -53,7 +53,9 @@ export function initTabbar({ tabs, defaultTab, navEl, viewEl, ctx, onTabChange }
     }
     active = { id: tab.id, module: mod };
     onTabChange?.(tab);
-    await mod.mount(viewEl, ctx);
+    // The path goes to mount too, so a tab can open straight on it rather
+    // than draw its default view first and correct itself in route().
+    await mod.mount(viewEl, ctx, path);
     mod.route?.(path, { navigated });
   }
 

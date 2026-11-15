@@ -23,7 +23,7 @@ import { variantLevelFor } from '../load.js';
 import { setRows, rowsFromActual } from './set-rows.js';
 import { lastPerformance, setsOf, ghostSet } from '../history.js';
 import { suggestionFor, suggestionChip, suggestionTitle, arrowOf, CHANGES_GHOSTS } from './suggestion.js';
-import { draftKey, readDraft, updateDraftItem, removeDraftItem, flushItem, flushDraft, clearDraft, setDraftMode } from '../draft.js';
+import { draftKey, readDraft, updateDraftItem, removeDraftItem, flushItem, flushDraft, clearDraft, setDraftMode, forgetLog } from '../draft.js';
 import { sessionRecordId, sessionStatus, doneItemIds } from '../sessions.js';
 import { startRest, skipRest, restSecondsFor, restSettings, setSessionActive, restEndsAt } from '../rest-timer.js';
 import { trendSeries, trendSlope, rateLabel, etaToGoal, weightPoints } from '../trend.js';
@@ -923,6 +923,7 @@ function logEntryModal({ existing = null, plan = null, session = null, pe = null
       // No "are you sure": it goes, with a few seconds to Undo.
       onClick: () => {
         const pending = store.removeLater('logs', entry.id);
+        forgetLog(entry.id);
         undoToast('Log entry deleted', { onUndo: pending.undo, onCommit: pending.commit });
       },
     });

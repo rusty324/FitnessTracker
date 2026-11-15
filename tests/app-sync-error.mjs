@@ -50,7 +50,7 @@ const text = await report();
 step('the pop-up shows GitHub’s message', /RequestError: GitHub rejected data\/metrics\.json \(400\): Problems parsing JSON/.test(text), text.split('\n')[2]);
 step('with the file, HTTP status, repo and version',
   /File:\s+data\/metrics\.json/.test(text) && /HTTP:\s+400/.test(text)
-  && /rusty324\/fitness-data\/data \(branch main\)/.test(text) && /^ghsync 1\.2 /.test(text));
+  && /rusty324\/fitness-data\/data \(branch main\)/.test(text) && /^ghsync 1\.3 /.test(text));
 step('and what is still queued', /Queued:\s+data\/metrics\.json/.test(text));
 step('the token is never in the report', !text.includes(TOKEN) && /Token:\s+saved \(not shown\)/.test(text));
 step('the token is nowhere in the page either',

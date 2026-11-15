@@ -82,6 +82,17 @@ export function flushItem(key, itemKey) {
   return log.id;
 }
 
+// The log a draft made was deleted: drop the draft item too, or the next
+// flush (page hidden, next load) would write the log again under its old id.
+export function forgetLog(logId) {
+  for (const key of allDraftKeys()) {
+    const draft = readDraft(key);
+    for (const [itemKey, item] of Object.entries(draft.items ?? {})) {
+      if (item?.logId === logId) removeDraftItem(key, itemKey);
+    }
+  }
+}
+
 export function flushDraft(key) {
   for (const itemKey of Object.keys(readDraft(key).items)) flushItem(key, itemKey);
 }
