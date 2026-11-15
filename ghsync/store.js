@@ -385,7 +385,7 @@ export function createStore(opts) {
   // Before 1.3 every local record won, so a device with a stale copy quietly
   // reverted whatever had been changed elsewhere since it last synced.
   // When the edited ids aren't known (queued by an older version, a reseed,
-  // a whole-file write) or the repo has no such file, it falls back to that
+  // a whole-file write) or the repo has no such file (or a bare `null`), it falls back to that
   // union with local winning — nothing local is ever dropped on a guess.
   async function mergeRemote(path, collection) {
     let remote = null;
@@ -398,7 +398,9 @@ export function createStore(opts) {
       if (res.locked) throw new Error(`Cannot merge ${path}: encrypted with an unknown password`);
       // Anything but a list of records with ids is refused, never treated as
       // empty — treating it as empty is what overwrote other data.
-      remote = records(path, res.data, { requireIds: true });
+      // A bare `null` is what pre-1.1 copies wrote for a collection nobody
+      // had used: it says nothing about deletions, so it counts as no file.
+      remote = res.data == null ? null : records(path, res.data, { requireIds: true });
       sha = f.sha;
     } catch (e) {
       if (!(e instanceof NotFoundError)) throw e;

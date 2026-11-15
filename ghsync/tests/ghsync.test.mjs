@@ -238,6 +238,14 @@ await test('a queued path with no edit list (older version) still merges as a un
   expect(ids('data/notes.json') === 'a,b,other', `remote has ${ids('data/notes.json')}`);
 });
 
+await test('a legacy "null" file in the repo drops nothing local', async ({ page }) => {
+  await page.evaluate(() => window.mk('nullfile', { notes: 'data/notes.json' }));
+  await page.evaluate(() => S.save('notes', [{ id: 'a' }, { id: 'b' }]));
+  setRemote('data/notes.json', 'null\n');
+  await page.evaluate(() => S.upsert('notes', { id: 'c' }));
+  expect(ids('data/notes.json') === 'a,b,c', `remote has ${ids('data/notes.json')}`);
+});
+
 await test('edits made before the repo file exists all upload', async ({ page }) => {
   await page.evaluate(() => window.mk('fresh', { notes: 'data/notes.json' }));
   await page.evaluate(() => S.save('notes', [{ id: 'a' }, { id: 'b' }]));
