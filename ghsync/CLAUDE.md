@@ -123,7 +123,8 @@ actionable}`, `errorReport(store)` → plain-text diagnostics (no token, no
 password), and `errorPanel(store, { toast, onRetry })` → that report in a
 read-only box with Copy and Retry now, for the host's own modal.
 
-`blobs.js` exports `createBlobStore(store, { dbName, dir, kind })` and the
+`blobs.js` exports `createBlobStore(store, { dbName, dir, kind })` (its store
+has `add`, `restore(id, processed)` (1.4), `remove`, `load`, `urls`, `blob`) and the
 input helpers `processImage(file)` (downscale to JPEG + thumbnail),
 `processDocument(file)`, `MAX_DOC_BYTES`.
 
