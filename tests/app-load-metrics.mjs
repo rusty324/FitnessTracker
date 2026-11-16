@@ -2,12 +2,13 @@
 // for old logs, inference for exercises with no loadModel, presets carrying
 // fractions, the Push-Up ladder migration, the goal-weight toggle (display
 // only), and phone layout. The math itself is in app-load.mjs.
-import { BASE, chromium, reporter } from './lib.mjs';
+import { BASE, chromium, reporter, sessionsStartOpen } from './lib.mjs';
 import { readFile } from 'node:fs/promises';
 
 const { step, done } = reporter();
 const browser = await (await chromium()).launch();
 const page = await browser.newPage({ viewport: { width: 390, height: 820 } });
+await sessionsStartOpen(page);
 const errors = [];
 page.on('pageerror', (e) => errors.push(String(e)));
 
@@ -113,7 +114,9 @@ step('saving it untouched writes no variantLevel',
 
 // A new ad-hoc log (no plan target) prefills the last level logged.
 await page.click('.segmented button:has-text("Today")');
-await page.click('button:has-text("Log ad-hoc")');
+// The stand-alone ad-hoc button shows while no session is open.
+for (const t of await page.locator('.session-toggle[aria-expanded="true"]').all()) { await t.click(); await page.waitForTimeout(100); }
+await page.click('.today-adhoc');
 await page.fill('.modal input[placeholder^="Search"]', 'Push-Up');
 await page.click('.modal .list-row:has-text("Push-Up")');
 await page.waitForSelector('.modal [data-name="variant"]');
@@ -173,6 +176,7 @@ step('…with the reason', /Over the 12-rep cap, so showing reps\./.test(text));
 
 // ---------- an edited ladder is left alone, once-only notice ----------
 const page2 = await browser.newPage({ viewport: { width: 390, height: 820 } });
+await sessionsStartOpen(page2);
 page2.on('pageerror', (e) => errors.push(String(e)));
 await page2.goto(BASE);
 await page2.waitForSelector('.tabbar button');

@@ -28,7 +28,7 @@ const openGear = async () => {
 const pick = async (exercise) => {
   await page.click('.tabbar button[data-tab="logs"]');
   await page.click('.segmented button:has-text("Today")');
-  await page.click('button:has-text("Log ad-hoc activity")');
+  await page.click('.today-adhoc');
   await page.fill('.modal input[placeholder="Search exercises…"]', exercise);
   await page.click(`.modal .list-row.tappable:has-text("${exercise}")`);
 };

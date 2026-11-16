@@ -977,3 +977,24 @@ label.btn.small {
 .session-exercises { margin-top: 8px; font-size: 0.9rem; color: var(--text-dim); overflow-wrap: anywhere; }
 .move-btn { display: block; margin-top: 6px; padding: 6px 0; font-size: 0.9rem; }
 .delay-option { border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; }
+
+/* ---------- Today: a session is a button that opens to the full session ---------- */
+.session-card-today { margin: 0 0 12px; }
+.session-card-today > .session-toggle { border: 1px solid var(--border); border-radius: 14px; background: var(--surface); }
+.session-card-today.open > .session-toggle { border-radius: 14px; margin-bottom: 8px; }
+.session-toggle {
+  width: 100%; display: flex; align-items: center; gap: 10px; padding: 14px 14px; min-height: 56px;
+  background: none; border: 0; color: inherit; font: inherit; text-align: left; cursor: pointer;
+}
+.session-toggle:hover { background: var(--surface-2, rgba(0,0,0,.03)); }
+.session-toggle-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.session-toggle .session-title { overflow-wrap: anywhere; }
+.session-chevron { font-size: 1.1rem; color: var(--muted); width: 1em; text-align: center; }
+.session-body { padding: 4px 0 10px; } /* no side padding: set rows need the full phone width (a 12:30 time clipped) */
+.session-body .session-head:empty { display: none; }
+.session-body .session-head { margin: 0 2px 8px; }
+/* The session's own ending: its ad-hoc button, then Finish, then a rule so
+   the stand-alone ad-hoc button below reads as outside it. */
+.session-card-today.open { border-bottom: 1px solid var(--border); padding-bottom: 12px; margin-bottom: 14px; }
+.session-body .finish-bar { margin-top: 12px; }
+.session-adhoc { margin-top: 6px; }

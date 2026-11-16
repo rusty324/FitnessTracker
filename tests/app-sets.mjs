@@ -3,11 +3,12 @@
 // { sets, reps, weight } shape, differing ones setReps / setWeights;
 // bodyweight is 0 kg; an untouched old log saves back exactly; an untouched
 // converted weight keeps its exact kg; a typed pound value round-trips.
-import { BASE, chromium, reporter } from './lib.mjs';
+import { BASE, chromium, reporter, sessionsStartOpen } from './lib.mjs';
 
 const { step, done } = reporter();
 const browser = await (await chromium()).launch();
 const page = await browser.newPage({ viewport: { width: 390, height: 900 } });
+await sessionsStartOpen(page);
 const errors = [];
 page.on('pageerror', (e) => errors.push(String(e)));
 

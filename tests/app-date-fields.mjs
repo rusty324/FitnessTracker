@@ -45,7 +45,7 @@ await page.evaluate(async () => {
 await page.reload();
 await page.waitForSelector('.tabbar button');
 
-await page.click('button:has-text("Log ad-hoc activity")');
+await page.click('.today-adhoc');
 await page.click('.modal .list-row.tappable:has-text("Push-Up")');
 await page.waitForSelector('.modal input[type="date"]');
 await check('log form');

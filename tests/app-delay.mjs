@@ -1,11 +1,12 @@
 // "Move to tomorrow": push a session back a day before its day is over —
 // just that session, or it and every later one (a slide). Writes schedule
 // records only; the plan and logs are untouched. On Today and on Plans.
-import { BASE, chromium, reporter } from './lib.mjs';
+import { BASE, chromium, reporter, sessionsStartOpen } from './lib.mjs';
 
 const { step, done } = reporter();
 const browser = await (await chromium()).launch();
 const page = await browser.newPage({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+await sessionsStartOpen(page);
 const errors = [];
 page.on('pageerror', (e) => errors.push(String(e)));
 await page.goto(BASE);

@@ -2,11 +2,12 @@
 // pure js/progression.js, then how they show: the chip on Today, suggested
 // ghosts (✓ logs the suggestion; ✕ goes back to last time), an advance that
 // logs at the next level, and the exercise page's "Next time" card.
-import { BASE, chromium, reporter } from './lib.mjs';
+import { BASE, chromium, reporter, sessionsStartOpen } from './lib.mjs';
 
 const { step, done } = reporter();
 const browser = await (await chromium()).launch();
 const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+await sessionsStartOpen(page);
 const errors = [];
 page.on('pageerror', (e) => errors.push(String(e)));
 await page.goto(BASE);

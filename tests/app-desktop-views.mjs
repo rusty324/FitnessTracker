@@ -2,7 +2,7 @@
 // columns with a side panel, the "Last" column in set rows, keyboard
 // shortcuts, and Metrics with a metric switcher and recent-entries tables.
 // Phones keep their layout.
-import { BASE, chromium, reporter } from './lib.mjs';
+import { BASE, chromium, reporter, sessionsStartOpen } from './lib.mjs';
 
 const { step, done } = reporter();
 const browser = await (await chromium()).launch();
@@ -10,7 +10,9 @@ const errors = [];
 
 async function open(viewport, opts = {}) {
   const ctx = await browser.newContext({ viewport, ...opts });
+  await sessionsStartOpen(ctx);
   const page = await ctx.newPage();
+  await sessionsStartOpen(page);
   page.on('pageerror', (e) => errors.push(String(e)));
   await page.goto(BASE);
   await page.waitForSelector('.tabbar button');

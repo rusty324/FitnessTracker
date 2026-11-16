@@ -37,7 +37,7 @@ const metrics = await stored('ft.data.data/metrics.json');
 step('the weigh-in is stored in canonical kg', metrics[0]?.weight === 80, JSON.stringify(metrics));
 
 // ---- ad-hoc log ----
-await page.click('button:has-text("Log ad-hoc activity")');
+await page.click('.today-adhoc');
 await page.waitForSelector('.modal-title:has-text("Pick exercise")');
 step('ad-hoc logging opens the exercise picker', true);
 await page.click('.modal-actions button:has-text("Cancel")');

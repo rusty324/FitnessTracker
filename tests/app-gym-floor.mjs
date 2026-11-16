@@ -2,11 +2,12 @@
 // one-tap ✓), drafts that survive a reload and flush on pagehide, the rest
 // timer (timestamp-based, fake clock), Finish session, sanity checks, Undo
 // instead of confirm, and the 390px layout.
-import { BASE, chromium, reporter } from './lib.mjs';
+import { BASE, chromium, reporter, sessionsStartOpen } from './lib.mjs';
 
 const { step, done } = reporter();
 const browser = await (await chromium()).launch();
 const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+await sessionsStartOpen(page);
 const errors = [];
 page.on('pageerror', (e) => errors.push(String(e)));
 await page.goto(BASE);
@@ -219,7 +220,7 @@ await page.waitForSelector('.modal-title:has-text("Any pain today?")');
 await page.click('[data-action="pain-close"]');
 step('closing the pain question unanswered stores nothing',
   !(await page.evaluate(() => JSON.parse(localStorage.getItem('ft.data.data/sessions.json'))[0].pain)));
-step('the session shows as done', await page.isVisible('.session-head .pill:has-text("done")') && !(await page.isVisible('[data-action="finish"]')));
+step('the session shows as done', await page.isVisible('.session-toggle .pill:has-text("done")') && !(await page.isVisible('[data-action="finish"]')));
 
 // ---------- Undo instead of confirm ----------
 await page.click('.segmented button:has-text("History")');
