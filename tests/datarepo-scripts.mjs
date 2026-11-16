@@ -91,6 +91,27 @@ const { encryptJson } = await import(resolve('datarepo-template/scripts/crypto.j
   const r = await run(dir);
   step('an unreadable shard is refused, not replaced', r.code === 1 && (await readFile(shard, 'utf8')).includes('polar-old'), r.out.trim().split('\n')[0]);
 }
+{
+  // The state keeps ids by date and drops the ones too old to come back.
+  const dir = await mkdtemp(join(tmpdir(), 'polar-'));
+  await mkdir(join(dir, 'data/activities'), { recursive: true });
+  const state = join(dir, 'data/activities/sync-state.json');
+  const old = new Date(Date.now() - 200 * 86400000).toISOString().slice(0, 10);
+  await writeFile(state, JSON.stringify({ seen: { ancient: old }, lastRunISO: null }));
+  listed = [exercise('d1', '2026-11-10T07:00:00')];
+  const r = await run(dir);
+  const s = JSON.parse(await readFile(state, 'utf8'));
+  step('ids are kept with their date, and old ones are dropped',
+    r.code === 0 && s.seen.d1 === '2026-11-10' && !('ancient' in s.seen) && !('seenIds' in s), JSON.stringify(s));
+  // An old-format file converts, keeping its ids.
+  await writeFile(state, JSON.stringify({ seenIds: ['d1', 'x9'], lastRunISO: null }));
+  const r2 = await run(dir);
+  const s2 = JSON.parse(await readFile(state, 'utf8'));
+  step('an old seenIds file converts and keeps its ids', r2.code === 0 && 'x9' in s2.seen && 'd1' in s2.seen && !('seenIds' in s2), JSON.stringify(s2));
+  const before = await readFile(state, 'utf8');
+  await run(dir);
+  step('and is then left alone when nothing is new', (await readFile(state, 'utf8')) === before);
+}
 polar.close();
 
 process.exit(failed ? 1 : 0);

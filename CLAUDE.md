@@ -33,7 +33,7 @@ browser through the GitHub Contents API with a fine-grained PAT, cached in
 goals, gear, activity edits and activity shards (plans/exercises/matches stay
 plaintext).
 
-This sync layer is a reusable package, **`ghsync/`** (v1.3), shared with a
+This sync layer is a reusable package, **`ghsync/`** (v1.4), shared with a
 sibling repo `rusty324/homeInventory`. **Read `ghsync/CLAUDE.md`** before
 touching sync, storage, or the settings sections. Key invariants: one writer
 per repo file; never write a bare `null`; never guess a file's shape (refuse
@@ -130,7 +130,7 @@ files). `datarepo-template/scripts/crypto.js` must stay **byte-identical** to
 | `js/config.js` | Tabs, data paths, taxonomies, sport map, gear kinds, muscle/position lists |
 | `js/models.js` | Record factories and v1→v2 migrations |
 | `js/storage/store.js` | App layer over ghsync |
-| `js/ui/*-tab.js`, `gear-view.js` | The tabs; `cardio-form.js` and `set-rows.js` (stepper set rows — weight × reps, or time × reps for timed work — Today + log form) are the shared entry forms |
+| `js/ui/*-tab.js`, `gear-view.js` | The tabs. Each `*-tab.js` is the tab itself (mount, routing, the view switch); its views live in `js/ui/logs/`, `js/ui/plans/`, `js/ui/library/`, and its mutable state is one object `S` in that folder's `state.js`. Public helpers (`pickExercise`, `targetSummary`, `importPlan`, …) are still re-exported from the `*-tab.js` files. `cardio-form.js` and `set-rows.js` (stepper set rows — weight × reps, or time × reps for timed work — Today + log form) are the shared entry forms |
 | `js/history.js`, `js/sanity.js`, `js/sessions.js` | Pure: last performance / ghosts, inline set warnings, the one "completed session" rule |
 | `js/progression.js`, `js/ui/suggestion.js` | Pure next-time suggestions (double / variant progression, `PROGRESSION` in config) and their chip / Next time card |
 | `js/trend.js`, `js/review.js` | Pure weight trend (time-aware EMA; rate/ETA from OLS on raw weights) and the weekly review (sessions, PRs, volume, one recommendation) |
@@ -203,7 +203,8 @@ files). `datarepo-template/scripts/crypto.js` must stay **byte-identical** to
    overlay; Settings rebuilt as a checklist with collapsible sections.
 5. Extracted the sync layer into **ghsync**; upgraded to 1.1 (from homeInventory),
    then 1.2 (refuse unknown file shapes; "sync error" with copyable report),
-   then 1.3 (a conflict merge lets only the records edited here win).
+   then 1.3 (a conflict merge lets only the records edited here win), then 1.4
+   (a 'merged' event; the app toasts it).
 6. Cardio logging (duration, distance, HR, calories, elevation,
    treadmill/outside, gear) and Gear mileage tracking.
 7. Library search/filters; exercise names link to library pages; reps and

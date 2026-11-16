@@ -49,6 +49,9 @@ await context.setOffline(true);
 await page.reload();
 await page.waitForSelector('.tabbar button', { timeout: 15000 }).catch(() => {});
 step('the app opens with no connection', (await page.locator('.tabbar button').count()) >= 3);
+// The title is set once the tab has mounted; under load that is a moment
+// after the tab bar appears.
+await page.waitForFunction(() => document.getElementById('page-title')?.textContent === 'Today', null, { timeout: 10000 }).catch(() => {});
 step('on Today', (await page.textContent('#page-title')) === 'Today', await page.textContent('#page-title').catch(() => ''));
 await page.click('.tabbar button:has-text("Library")');
 await page.waitForTimeout(400);
