@@ -130,7 +130,7 @@ files). `datarepo-template/scripts/crypto.js` must stay **byte-identical** to
 | `js/config.js` | Tabs, data paths, taxonomies, sport map, gear kinds, muscle/position lists |
 | `js/models.js` | Record factories and v1→v2 migrations |
 | `js/storage/store.js` | App layer over ghsync |
-| `js/ui/*-tab.js`, `gear-view.js` | The tabs; `cardio-form.js` and `set-rows.js` (stepper set rows — weight × reps, or time × reps for timed work — Today + log form) are the shared entry forms |
+| `js/ui/*-tab.js`, `gear-view.js` | The tabs. Each `*-tab.js` is the tab itself (mount, routing, the view switch); its views live in `js/ui/logs/`, `js/ui/plans/`, `js/ui/library/`, and its mutable state is one object `S` in that folder's `state.js`. Public helpers (`pickExercise`, `targetSummary`, `importPlan`, …) are still re-exported from the `*-tab.js` files. `cardio-form.js` and `set-rows.js` (stepper set rows — weight × reps, or time × reps for timed work — Today + log form) are the shared entry forms |
 | `js/history.js`, `js/sanity.js`, `js/sessions.js` | Pure: last performance / ghosts, inline set warnings, the one "completed session" rule |
 | `js/progression.js`, `js/ui/suggestion.js` | Pure next-time suggestions (double / variant progression, `PROGRESSION` in config) and their chip / Next time card |
 | `js/trend.js`, `js/review.js` | Pure weight trend (time-aware EMA; rate/ETA from OLS on raw weights) and the weekly review (sessions, PRs, volume, one recommendation) |
