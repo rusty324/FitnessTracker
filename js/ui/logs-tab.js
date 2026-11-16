@@ -163,8 +163,13 @@ export function actualSummary(actual) {
   const timed = isTimedActual(actual) ? formatTimedSets(actual) : '';
   if (timed) parts.push(timed);
   if (actual.distanceM) parts.push(formatDistance(actual.distanceM));
-  if (actual.movingSec) parts.push(formatDuration(actual.movingSec));
-  if (actual.distanceM && actual.movingSec) parts.push(formatPace(actual.distanceM, actual.movingSec));
+  // Polar's AccessLink reports one time for a session — its whole duration,
+  // stops included — and the sync stores it in movingSec. Say so, rather
+  // than pass it off as moving time: the pace from it is slower than the
+  // watch's own moving pace.
+  const elapsed = actual.source === 'polar' && !actual.edited;
+  if (actual.movingSec) parts.push(elapsed ? `${formatDuration(actual.movingSec)} total` : formatDuration(actual.movingSec));
+  if (actual.distanceM && actual.movingSec) parts.push(elapsed ? `${formatPace(actual.distanceM, actual.movingSec)} incl. stops` : formatPace(actual.distanceM, actual.movingSec));
   if (actual.durationSec && !timed) parts.push(formatDuration(actual.durationSec));
   if (actual.avgHr) parts.push(`${Math.round(actual.avgHr)} bpm`);
   return parts.join(' · ');

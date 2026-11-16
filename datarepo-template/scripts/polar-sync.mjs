@@ -267,8 +267,25 @@ async function fetchRoute(exerciseId) {
 
 // ---------- main ----------
 
-const state = await readJson(STATE_PATH, { seenIds: [], lastRunISO: null });
-const seen = new Set(state.seenIds ?? []);
+// seen: Polar exercise id -> the activity's date. The list used to be every
+// id ever synced (seenIds), growing forever, though Polar only offers about
+// the last 30 days. Ids older than SEEN_KEEP_DAYS can't come back, so they
+// are dropped; and if one somehow did, its shard entry is replaced in place
+// by id, not duplicated.
+const SEEN_KEEP_DAYS = 90;
+const state = await readJson(STATE_PATH, { seen: {}, lastRunISO: null });
+const todayIso = new Date().toISOString().slice(0, 10);
+const seenDates = new Map(Object.entries(state.seen ?? {}));
+// An older state file: ids with no date. Keep them for one window from now.
+for (const id of state.seenIds ?? []) if (!seenDates.has(String(id))) seenDates.set(String(id), todayIso);
+const seen = { has: (id) => seenDates.has(String(id)) };
+const cutoff = new Date(Date.now() - SEEN_KEEP_DAYS * 86400000).toISOString().slice(0, 10);
+const trimmed = [...seenDates].filter(([, d]) => d < cutoff).length;
+for (const [id, d] of [...seenDates]) if (d < cutoff) seenDates.delete(id);
+const writeState = () => writeFile(STATE_PATH, JSON.stringify({
+  seen: Object.fromEntries([...seenDates].sort((a, b) => (a[1] < b[1] ? -1 : a[1] > b[1] ? 1 : 0))),
+  lastRunISO: new Date().toISOString(),
+}, null, 2) + '\n');
 
 // Non-transactional list: safe to call repeatedly, nothing is discarded.
 const listed = (await polar('/v3/exercises')) ?? [];
@@ -295,6 +312,13 @@ if (!batch.length) {
   // commit a change with no activities in it. The run time is in the
   // workflow's own history.
   console.log('No new activities.');
+  // Write only to convert or trim the state file: a fresh lastRunISO alone
+  // is not worth a commit.
+  if (trimmed || state.seenIds) {
+    await mkdir(ACTIVITY_DIR, { recursive: true });
+    await writeState();
+    console.log(`Trimmed the sync state (${trimmed} old id${trimmed === 1 ? '' : 's'} dropped).`);
+  }
   process.exit(0);
 }
 await refuseIfEncryptedElsewhere();
@@ -339,11 +363,8 @@ for (const [month, monthEntries] of byMonth) {
   console.log(`Wrote ${shardPath} (${merged.length} entries)`);
 }
 
-for (const e of entries) seen.add(e.sourceId);
-await writeFile(STATE_PATH, JSON.stringify({
-  seenIds: [...seen],
-  lastRunISO: new Date().toISOString(),
-}, null, 2) + '\n');
+for (const e of entries) seenDates.set(String(e.sourceId), e.date);
+await writeState();
 
 // ONLY NOW commit any transaction. Polar discards transactional data on
 // commit, so committing earlier would lose activities if a write failed.
@@ -355,4 +376,4 @@ for (const transactionId of pendingTransactions) {
   }
 }
 
-console.log(`Done: ${added} new activities; ${seen.size} known`);
+console.log(`Done: ${added} new activities; ${seenDates.size} known`);

@@ -1,6 +1,6 @@
 // Logs → Today: the planned session with its set rows, Finish and the pain
 // question, the weigh-in, ad-hoc logging, and the log-entry form.
-import { addDays, formatDate, formatDateLong, parseDateStr, todayStr } from '../../dates.js';
+import { addDays, diffDays, formatDate, formatDateLong, parseDateStr, todayStr } from '../../dates.js';
 import { actualSummary, dismissedSug, exById, render } from '../logs-tab.js';
 import * as store from '../../storage/store.js';
 import { isDesktop } from '../layout.js';
@@ -83,11 +83,7 @@ export function renderTodayMain(today, lib, logs, loggedByPe, desktop) {
     const finish = renderSessionToday({ plan, session, week, today, lib, logs, loggedByPe, doneIds, records, repeat, occ });
     if (finish) finishBars.push(finish);
   }
-  if (!anyPlanned) {
-    S.root.appendChild(el('div', { class: 'card' },
-      el('p', { class: 'muted', style: 'margin:0' }, 'Nothing planned for today.'),
-    ));
-  }
+  if (!anyPlanned) S.root.appendChild(nextSessionCard(today));
   S.root.appendChild(el('button', { class: 'btn', onclick: () => adhocLog() }, '+ Log ad-hoc activity'));
   // Last on the page, under the ad-hoc button — in the flow, not pinned to
   // the screen (pinned, it got tapped by thumbs scrolling) — and only once
@@ -764,4 +760,24 @@ export function logEntryModal({ existing = null, plan = null, session = null, pe
     actions.unshift({ label: '‹ Back', class: 'btn secondary', onClick: () => onBack() });
   }
   openModal(ex?.name ?? 'Log activity', body, actions);
+}
+
+// Today with nothing planned: say what's next rather than only "nothing".
+export function nextSessionCard(today) {
+  const next = occurrences(store.get('plans'), store.get('schedule'))
+    .find((o) => !o.skipped && o.date > today);
+  if (!next) {
+    return el('div', { class: 'card next-session' },
+      el('p', { class: 'muted', style: 'margin:0' }, 'Nothing planned for today, and no plan has a session coming up.'));
+  }
+  const days = diffDays(today, next.date);
+  const when = days === 1 ? 'Tomorrow' : `${formatDate(next.date, { weekday: 'long' })}, in ${days} days`;
+  const blocks = (next.session.blocks ?? []).flatMap((b) => b.items ?? []).length;
+  return el('div', { class: 'card next-session' },
+    el('p', { class: 'muted', style: 'margin:0 0 6px' }, 'Nothing planned for today.'),
+    el('div', { class: 'row-title' }, `Next: ${next.session.label || 'Session'}`),
+    el('div', { class: 'row-sub' },
+      [when, formatDate(next.date, { month: 'short', day: 'numeric' }), next.plan.name, blocks ? `${blocks} exercise${blocks === 1 ? '' : 's'}` : '']
+        .filter(Boolean).join(' · ')),
+  );
 }

@@ -273,7 +273,14 @@ document.getElementById('settings-btn').addEventListener('click', openSettings);
 
 store.onChange((e) => {
   if (e.type === 'sync-status') renderBadge();
+  // Another device's edits were folded in (ghsync 1.4). Said once per burst:
+  // a merge of several files arrives as several events.
+  if (e.type === 'merged') {
+    clearTimeout(mergedToast);
+    mergedToast = setTimeout(() => toast('Merged changes from another device'), 300);
+  }
 });
+let mergedToast = null;
 store.init();
 store.media.init(); // uploaded exercise GIFs: retry queued uploads
 // Once the first screen is up: fetch the rest of the app so it is all there

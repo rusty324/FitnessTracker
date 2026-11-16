@@ -96,7 +96,9 @@ Returned:
   `{status, error, errorAt, connected, queued}` where status is `'local' |
   'ok' | 'pending' | 'error'` and `queued` lists paths not yet uploaded;
   `refreshStatus()`, `canSync()`, `emit(event)`.
-  Events: `{type:'changed', collection}` and `{type:'sync-status', status, error}`.
+  Events: `{type:'changed', collection}`, `{type:'sync-status', status, error}`
+  and `{type:'merged', collection, path}` (a conflict merged another device's
+  changes in; 1.4).
   `'pending'` = queued, will retry by itself: only `NetworkError`,
   `ServerError` (5xx) and `RateLimitError`. `'error'` = everything else —
   needs the user. Either way the write stays queued and keeps retrying.
