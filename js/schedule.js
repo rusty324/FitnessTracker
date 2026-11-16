@@ -92,7 +92,14 @@ const upsert = (list, rec) => [...list.filter((r) => r.id !== rec.id), rec];
 export function slidePlan({ plan, fromDate, days, schedule, isDone = () => false }) {
   let next = schedule;
   for (const o of occurrences([plan], schedule, { activeOnly: false })) {
-    if (o.repeat || o.skipped || o.date < fromDate || isDone(o)) continue;
+    if (o.skipped || o.date < fromDate || isDone(o)) continue;
+    if (o.repeat) {
+      // A repeated week's sessions move with the rest, or the plan would
+      // slide past them. Its record carries its own date (and keeps its id).
+      const rec = next.find((r) => r.id === o.key);
+      if (rec) next = upsert(next, { ...rec, date: addDays(o.date, days) });
+      continue;
+    }
     next = upsert(next, { id: o.key, kind: 'move', planId: plan.id, sessionId: o.session.id, date: addDays(o.date, days) });
   }
   return next;
@@ -118,15 +125,21 @@ export function skipSession({ plan, session, schedule }) {
 // week's sessions run again in the week that frees up (same weekdays, so
 // spacing is kept). The plan isn't changed; a repeat is its own occurrence.
 export function repeatWeek({ plan, weekIndex, schedule, isDone = () => false }) {
-  const all = occurrences([plan], schedule, { activeOnly: false }).filter((o) => !o.repeat);
+  const every = occurrences([plan], schedule, { activeOnly: false });
+  const all = every.filter((o) => !o.repeat);
   const thisWeek = all.filter((o) => o.week.index === weekIndex && !o.skipped);
+  // Already repeated n times: this repeat runs the week after those, in the
+  // week the slide below frees up — not on top of the last repeat.
+  const repeatsOf = (sessionId) => every.filter((o) => o.repeat && o.session.id === sessionId);
+  const n = Math.max(0, ...thisWeek.map((o) => repeatsOf(o.session.id).length));
   const later = all.filter((o) => o.week.index > weekIndex);
   if (!thisWeek.length) return schedule;
   let next = schedule;
   const firstLater = later.filter((o) => !o.skipped && !isDone(o)).map((o) => o.date).sort()[0];
   if (firstLater) next = slidePlan({ plan, fromDate: firstLater, days: 7, schedule: next, isDone });
   for (const o of thisWeek) {
-    const date = addDays(o.date, 7);
+    const last = repeatsOf(o.session.id).map((r) => r.date).sort().pop();
+    const date = last && n ? addDays(last, 7) : addDays(o.date, 7 * (n + 1));
     next = upsert(next, { id: `repeat:${plan.id}:${o.session.id}:${date}`, kind: 'repeat', planId: plan.id, sessionId: o.session.id, date });
   }
   return next;

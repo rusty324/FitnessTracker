@@ -118,10 +118,11 @@ export const longestTimedSec = (actual) => Math.max(0, ...timedPerSet(actual).ma
 // 20 -> "20s", 90 -> "1:30", 3600 -> "1:00:00": short, for set lists.
 export function holdText(sec) {
   if (sec == null) return '—';
-  if (sec < 60) return `${sec}s`;
+  if (sec < 59.5) return `${sec}s`;
+  sec = Math.round(sec); // first, or 119.7 reads "1:60"
   const h = Math.floor(sec / 3600);
   const m = Math.floor((sec % 3600) / 60);
-  const s = Math.round(sec % 60);
+  const s = sec % 60;
   const pad = (n) => String(n).padStart(2, '0');
   return h ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`;
 }

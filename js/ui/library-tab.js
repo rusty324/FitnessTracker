@@ -43,8 +43,13 @@ let unsub = null;
 // `linked`: opened from a link elsewhere in the app, so "Back" returns there.
 let view = { name: 'exercises' };
 
-export function mount(elRoot) {
+export function mount(elRoot, ctx, path = '') {
   root = elRoot;
+  // Opened on #/library/exercise/<id>: start there. Rendering the list first
+  // rewrote the hash to #/library until route() put it back, and a reload in
+  // that moment landed on the list.
+  const m = /^exercise\/(.+)$/.exec(path);
+  if (m) view = { name: 'exercise', id: decodeURIComponent(m[1]) };
   unsub = store.onChange((e) => {
     if (e.type === 'changed') render();
   });

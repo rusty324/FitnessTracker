@@ -242,10 +242,12 @@ PUT body.
   badge and paste the report; it names the class, file and HTTP status. In
   the file cases the local copy is kept and the other files still load — fix,
   move or delete the file in the repo, then Retry now.
-- **A deleted record reappearing** — the merge is per id with local winning, so
-  a delete on one device can be resurrected by another device's stale copy.
-  Accepted trade-off for a single-user tool; use a tombstone field if it
-  matters.
+- **Two devices edit the same record** — the merge is per record id, not per
+  field: whichever device pushes second wins that whole record. Records only
+  one of them touched are kept from each side, and a delete on either side
+  sticks (1.3; before that every local record won, so a stale device reverted
+  the other's edits and resurrected its deletes). A path queued by an older
+  version has no list of edited ids and still merges as "local wins" once.
 - **Large files** — the Contents API only inlines content below 1 MB;
   `getFile` falls back to the raw media type above that (up to 100 MB), but
   every write still re-uploads the whole file. Shard a collection by month or

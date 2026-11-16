@@ -1,5 +1,21 @@
 # ghsync changelog
 
+## 1.3 — 2026-11-15
+
+- **A conflict merge let every local record win, not just the edited ones.**
+  A device holding a stale copy (offline for a while, or editing before its
+  startup refresh landed) therefore reverted whatever another device had
+  changed since, and brought back what it had deleted — silently, with a
+  green badge. `save()` now records which record ids it added, changed or
+  removed (`cache.getDirtyIds(path)`, cleared when the push lands), and the
+  merge lets only those win; a record deleted here stays deleted, and one
+  deleted elsewhere is no longer resurrected. A path with no such list —
+  queued by 1.2, written whole with `writeFile`, or reseeded with
+  `pushAllData()` — and a repo with no such file still merge as before
+  (union, local wins), so nothing local is dropped on a guess.
+- Re-encrypting (`rewriteEncryptedFiles`) edits no record, so on a conflict
+  it now keeps the repo's records rather than overwriting them.
+
 ## 1.2 — 2026-11-03
 
 Every change below has a test in `tests/ghsync.test.mjs` that fails on 1.1.

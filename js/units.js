@@ -93,9 +93,10 @@ export function paceFromInput(minutes) {
   return Math.round(distanceUnit() === 'mi' ? sec / (M_PER_MI / 1000) : sec);
 }
 export function formatPaceValue(secPerKm) {
-  const s = paceDisplaySec(secPerKm);
+  // Round the whole first: rounding the leftover seconds gave "5:60".
+  const s = Math.round(paceDisplaySec(secPerKm));
   const m = Math.floor(s / 60);
-  const r = Math.round(s % 60);
+  const r = s % 60;
   return `${m}:${String(r).padStart(2, '0')}${paceUnit()}`;
 }
 export function formatPace(meters, seconds) {

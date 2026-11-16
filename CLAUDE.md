@@ -33,7 +33,7 @@ browser through the GitHub Contents API with a fine-grained PAT, cached in
 goals, gear, activity edits and activity shards (plans/exercises/matches stay
 plaintext).
 
-This sync layer is a reusable package, **`ghsync/`** (v1.2), shared with a
+This sync layer is a reusable package, **`ghsync/`** (v1.3), shared with a
 sibling repo `rusty324/homeInventory`. **Read `ghsync/CLAUDE.md`** before
 touching sync, storage, or the settings sections. Key invariants: one writer
 per repo file; never write a bare `null`; never guess a file's shape (refuse
@@ -146,6 +146,7 @@ files). `datarepo-template/scripts/crypto.js` must stay **byte-identical** to
 | `js/cardio.js`, `js/sets.js`, `js/gps.js` | Pure helpers (gear, per-set math, GPX/TCX parsing) |
 | `js/load.js`, `js/rwi.js` | Pure strength-load (Brzycki eRM) and RWI math |
 | `js/preset-sync.js` | Once per load: fill empty library fields from `presets/`, ladder migrations |
+| `sw.js`, `js/offline.js` | Offline start: a network-first service worker over the app's own files (never the GitHub API), warmed with every tab after load |
 | `ghsync/` | The sync package (own README, CLAUDE.md, tests) |
 | `datarepo-template/` | Files the owner copies into the private data repo |
 | `presets/` | Bundled plans + exercise packs |
@@ -156,7 +157,7 @@ files). `datarepo-template/scripts/crypto.js` must stay **byte-identical** to
 
 - **Run tests before every push:** `node tests/run.mjs` (starts its own static
   server, runs this repo's suites and ghsync's; needs `playwright` resolvable —
-  e.g. symlink the global install into `node_modules/`). ~750 checks, all
+  e.g. symlink the global install into `node_modules/`). ~780 checks, all
   should be green. Subset: `node tests/run.mjs app-sets`. The same run happens
   on every push to `main` in GitHub Actions (`.github/workflows/tests.yml`) —
   an alarm, not a gate: Pages deploys regardless. Keep its Playwright pin in
@@ -184,6 +185,10 @@ files). `datarepo-template/scripts/crypto.js` must stay **byte-identical** to
 - Polar only exposes ~30 days and its transactional endpoints discard data on
   commit, so the sync script commits only *after* writing shards.
 - Imported/synced names can be long unbroken strings — row titles wrap and clamp.
+- Format a time by rounding the total seconds first, then splitting — rounding
+  the leftover seconds gives `5:60`.
+- Data is pulled at load **and** when the app returns to the foreground (at
+  most once a minute): a home-screen app is resumed, not reloaded.
 
 ## History (what was built, roughly in order)
 
@@ -197,7 +202,8 @@ files). `datarepo-template/scripts/crypto.js` must stay **byte-identical** to
 4. Strava → Polar AccessLink + GPX/TCX import; activity editing/hiding via an
    overlay; Settings rebuilt as a checklist with collapsible sections.
 5. Extracted the sync layer into **ghsync**; upgraded to 1.1 (from homeInventory),
-   then 1.2 (refuse unknown file shapes; "sync error" with copyable report).
+   then 1.2 (refuse unknown file shapes; "sync error" with copyable report),
+   then 1.3 (a conflict merge lets only the records edited here win).
 6. Cardio logging (duration, distance, HR, calories, elevation,
    treadmill/outside, gear) and Gear mileage tracking.
 7. Library search/filters; exercise names link to library pages; reps and
@@ -231,5 +237,4 @@ files). `datarepo-template/scripts/crypto.js` must stay **byte-identical** to
 
 Editing
 variant ladders (and their fractions) in the UI; RIR logging; a Google Drive
-backup (owner prefers a visible folder via `drive.file`, plaintext); copying
-ghsync 1.2 back to homeInventory.
+backup (owner prefers a visible folder via `drive.file`, plaintext).

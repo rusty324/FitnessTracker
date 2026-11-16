@@ -1,3 +1,4 @@
+import { installOffline } from './offline.js';
 import { TABS, DEFAULT_TAB, APP_REPO, SYNC_WORKFLOW_FILE } from './config.js';
 import { getUnits, setUnits } from './units.js';
 import * as store from './storage/store.js';
@@ -275,6 +276,23 @@ store.onChange((e) => {
 });
 store.init();
 store.media.init(); // uploaded exercise GIFs: retry queued uploads
+// Once the first screen is up: fetch the rest of the app so it is all there
+// with no signal, not just the tab that happened to be open.
+setTimeout(() => installOffline({
+  warm: [...TABS.map((t) => t.module), new URL('./gps.js', import.meta.url).href, new URL('./ui/heatmap-view.js', import.meta.url).href],
+  extra: ['vendor/leaflet/leaflet.css', 'vendor/leaflet/leaflet.js', 'vendor/leaflet-heat.js'],
+}), 1500);
+
+// A home-screen app is resumed, not reloaded, so "load once at startup"
+// could mean days ago: synced activities never showed up, and this device
+// went on editing a stale copy. Pull (and retry anything queued) whenever
+// the app comes back to the front, at most once a minute.
+let lastForegroundSync = Date.now();
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'visible' || Date.now() - lastForegroundSync < 60000) return;
+  lastForegroundSync = Date.now();
+  store.flushQueue().then(() => store.refresh()).catch(() => {});
+});
 renderBadge();
 
 // Bring the exercise library up to date with the bundled packs (fills empty

@@ -152,6 +152,10 @@ function variant({ exercise, plannedTarget, history, weekIsDeload, painHold }) {
   const [lo, hi] = range;
   const ladder = [...exercise.variants].sort((a, b) => a.level - b.level);
   const nameOf = (lvl) => ladder.find((v) => v.level === lvl)?.name ?? `level ${lvl}`;
+  // The rungs either side of L. Levels are usually 1, 2, 3… but nothing
+  // requires it, so step to the nearest one that exists.
+  const below = (lvl) => ladder.filter((v) => v.level < lvl).pop()?.level ?? null;
+  const above = (lvl) => ladder.find((v) => v.level > lvl)?.level ?? null;
   const last = history[0];
   const L = last.variantLevel ?? plannedTarget?.variantLevel;
   if (L == null) return null;
@@ -169,18 +173,18 @@ function variant({ exercise, plannedTarget, history, weekIsDeload, painHold }) {
   }
   const best = Math.max(...last.sets.map((s) => s.reps));
 
-  if (L > ladder[0].level && atL.length >= 2 && atL.slice(0, 2).every((s) => (s.sets[0]?.reps ?? Infinity) < lo)) {
-    return { kind: 'regress', variantLevel: L - 1, repsMin: lo, repsMax: hi, basis,
-      reason: `First set under ${lo} in your last two sessions at ${nameOf(L)}. Step back to ${nameOf(L - 1)}.` };
+  if (below(L) != null && atL.length >= 2 && atL.slice(0, 2).every((s) => (s.sets[0]?.reps ?? Infinity) < lo)) {
+    return { kind: 'regress', variantLevel: below(L), repsMin: lo, repsMax: hi, basis,
+      reason: `First set under ${lo} in your last two sessions at ${nameOf(L)}. Step back to ${nameOf(below(L))}.` };
   }
   const n = PROGRESSION.variantAdvanceAfter;
   const topAll = (s) => s.sets.length >= planned && s.sets.every((x) => x.reps >= hi);
   if (atL.length >= n && atL.slice(0, n).every(topAll)) {
-    if (!ladder.some((v) => v.level === L + 1)) {
+    if (above(L) == null) {
       return { kind: 'hold', variantLevel: L, repsMin: lo, repsMax: hi, basis, reason: 'Top of the ladder.' };
     }
-    return { kind: 'advance', variantLevel: L + 1, repsMin: lo, repsMax: hi, basis,
-      reason: `${n} sessions in a row at ${nameOf(L)} with every set at ${hi}+ (last: ${repList(last.sets)} on ${fmtDate(last.date)}). Move up to ${nameOf(L + 1)}.` };
+    return { kind: 'advance', variantLevel: above(L), repsMin: lo, repsMax: hi, basis,
+      reason: `${n} sessions in a row at ${nameOf(L)} with every set at ${hi}+ (last: ${repList(last.sets)} on ${fmtDate(last.date)}). Move up to ${nameOf(above(L))}.` };
   }
   const pl = plannedTarget?.variantLevel;
   if (pl != null && pl >= L + 2) {
@@ -188,7 +192,7 @@ function variant({ exercise, plannedTarget, history, weekIsDeload, painHold }) {
       reason: `Plan asks for level ${pl}; you last did level ${L} (best ${best} reps). Consider staying at ${L}.` };
   }
   return { kind: 'hold', variantLevel: L, repsMin: lo, repsMax: hi, basis,
-    reason: atL.length && atL.slice(0, 1).every(topAll) && !ladder.some((v) => v.level === L + 1)
+    reason: atL.length && atL.slice(0, 1).every(topAll) && above(L) == null
       ? 'Top of the ladder.'
       : `Last time ${repList(last.sets)} at ${nameOf(L)}. Move up after ${n} sessions in a row with every set at ${hi}.` };
 }

@@ -195,6 +195,65 @@ await test('a 409 merges both devices’ records by id', async ({ page }) => {
   expect(ids('data/notes.json') === 'a,b,other-device', `remote has ${ids('data/notes.json')}`);
 });
 
+// ---------- 1.3: only the records this device edited win a merge ----------
+
+await test('a conflict does not revert a record another device changed', async ({ page }) => {
+  await page.evaluate(() => window.mk('stale', { notes: 'data/notes.json' }));
+  await page.evaluate(() => S.save('notes', [{ id: 'a', v: 1 }, { id: 'b', v: 1 }]));
+  // Another device edits a; this one, still holding a v1, edits b.
+  setRemote('data/notes.json', JSON.stringify([{ id: 'a', v: 2 }, { id: 'b', v: 1 }]));
+  await page.evaluate(() => S.upsert('notes', { id: 'b', v: 3 }));
+  const remote = Object.fromEntries(remoteJson('data/notes.json').map((r) => [r.id, r.v]));
+  expect(remote.a === 2, `the other device's edit to a was reverted to v${remote.a}`);
+  expect(remote.b === 3, `this device's edit to b was lost (v${remote.b})`);
+  const local = await page.evaluate(() => Object.fromEntries(S.get('notes').map((r) => [r.id, r.v])));
+  expect(local.a === 2 && local.b === 3, `local copy is ${JSON.stringify(local)}`);
+});
+
+await test('a record deleted on another device stays deleted after a conflict', async ({ page }) => {
+  await page.evaluate(() => window.mk('gone', { notes: 'data/notes.json' }));
+  await page.evaluate(() => S.save('notes', [{ id: 'a' }, { id: 'b' }]));
+  setRemote('data/notes.json', JSON.stringify([{ id: 'b' }]));
+  await page.evaluate(() => S.upsert('notes', { id: 'c' }));
+  expect(ids('data/notes.json') === 'b,c', `remote has ${ids('data/notes.json')} (a came back)`);
+});
+
+await test('a record deleted here stays deleted after a conflict', async ({ page }) => {
+  await page.evaluate(() => window.mk('mine', { notes: 'data/notes.json' }));
+  await page.evaluate(() => S.save('notes', [{ id: 'a' }, { id: 'b' }]));
+  setRemote('data/notes.json', JSON.stringify([{ id: 'a' }, { id: 'b' }, { id: 'x' }]));
+  await page.evaluate(() => S.remove('notes', 'a'));
+  expect(ids('data/notes.json') === 'b,x', `remote has ${ids('data/notes.json')}`);
+});
+
+await test('a queued path with no edit list (older version) still merges as a union', async ({ page }) => {
+  await page.evaluate(() => window.mk('legacy', { notes: 'data/notes.json' }));
+  await page.evaluate(() => S.save('notes', [{ id: 'a' }]));
+  setRemote('data/notes.json', JSON.stringify([{ id: 'other' }]));
+  await page.evaluate(() => {
+    S.cache.setData('data/notes.json', [{ id: 'a' }, { id: 'b' }]);
+    S.cache.markDirty('data/notes.json'); // as 1.2 queued it: no list of edited ids
+    return S.flushQueue();
+  });
+  expect(ids('data/notes.json') === 'a,b,other', `remote has ${ids('data/notes.json')}`);
+});
+
+await test('a legacy "null" file in the repo drops nothing local', async ({ page }) => {
+  await page.evaluate(() => window.mk('nullfile', { notes: 'data/notes.json' }));
+  await page.evaluate(() => S.save('notes', [{ id: 'a' }, { id: 'b' }]));
+  setRemote('data/notes.json', 'null\n');
+  await page.evaluate(() => S.upsert('notes', { id: 'c' }));
+  expect(ids('data/notes.json') === 'a,b,c', `remote has ${ids('data/notes.json')}`);
+});
+
+await test('edits made before the repo file exists all upload', async ({ page }) => {
+  await page.evaluate(() => window.mk('fresh', { notes: 'data/notes.json' }));
+  await page.evaluate(() => S.save('notes', [{ id: 'a' }, { id: 'b' }]));
+  repo.delete('data/notes.json'); // the file vanished (repo switched, folder moved)
+  await page.evaluate(() => S.upsert('notes', { id: 'c' }));
+  expect(ids('data/notes.json') === 'a,b,c', `remote has ${ids('data/notes.json')}`);
+});
+
 await test('offline edits queue and flush when back online', async ({ ctx, page }) => {
   await page.evaluate(() => { window.mk('offline', { notes: 'data/notes.json' }); });
   await page.evaluate(() => S.init());
@@ -471,7 +530,7 @@ await test('the error report explains the failure and never contains the token o
     return { report: errorReport(S), st: S.syncStatus() };
   });
   expect(out.st.status === 'error' && out.st.error?.name === 'AuthError', `expected an auth error, got ${out.st.status}`);
-  for (const want of [/AuthError/, /401/, /me\/data-repo\/data/, /data\/notes\.json/, /ghsync 1\.2/]) {
+  for (const want of [/AuthError/, /401/, /me\/data-repo\/data/, /data\/notes\.json/, /ghsync 1\.3/]) {
     expect(want.test(out.report), `report should match ${want}:\n${out.report}`);
   }
   expect(!/DO_NOT_LEAK/.test(out.report), `report leaked a secret:\n${out.report}`);

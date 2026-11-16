@@ -25,11 +25,13 @@
 //      non-transactional list is used where possible, and any transaction is
 //      committed only AFTER the shards are written — see syncOnce() below.
 
-import { readFile, writeFile, mkdir } from 'node:fs/promises';
+import { readFile, writeFile, mkdir, readdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { encryptJson, decryptJson, isEnvelope, DecryptError } from './crypto.js';
 
-const API = 'https://www.polaraccesslink.com';
+// POLAR_API_BASE exists for the tests (tests/datarepo-scripts.mjs), which run
+// this script against a local fake. The workflow never sets it.
+const API = process.env.POLAR_API_BASE || 'https://www.polaraccesslink.com';
 // Must match "Folder in the repo" in the app's Settings, set here as the repo
 // variable DATA_DIR: unset means `data`, `/` means the repo root.
 const DATA_DIR = String(process.env.DATA_DIR || 'data').trim().replace(/^\/+|\/+$/g, '');
@@ -93,8 +95,29 @@ async function readJson(path, fallback) {
 // Shards may be encrypted (the app's optional password). Never write a
 // plaintext shard next to encrypted ones — fail loudly instead.
 async function readShard(path) {
-  const parsed = await readJson(path, []);
-  if (!isEnvelope(parsed)) return parsed;
+  // Missing is an empty month. Present but unreadable is not: treating it as
+  // empty would replace a month of activities with just the new ones.
+  let text = null;
+  try {
+    text = await readFile(path, 'utf8');
+  } catch (e) {
+    if (e.code !== 'ENOENT') throw e;
+  }
+  if (text == null) return [];
+  let parsed;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    console.error(`${path} is not valid JSON. Fix or delete it in the repo; nothing was written.`);
+    process.exit(1);
+  }
+  if (!isEnvelope(parsed)) {
+    if (!Array.isArray(parsed)) {
+      console.error(`${path} does not hold a list of activities. Fix or delete it in the repo; nothing was written.`);
+      process.exit(1);
+    }
+    return parsed;
+  }
   if (!ENCRYPTION_PASSWORD) {
     console.error(`${path} is encrypted but the ENCRYPTION_PASSWORD secret is not set.`);
     console.error('Add the same password used in the app as a repo secret named ENCRYPTION_PASSWORD.');
@@ -108,6 +131,27 @@ async function readShard(path) {
       process.exit(1);
     }
     throw e;
+  }
+}
+
+// The check in readShard only sees a month that already has a file. A new
+// month has none, so without this a missing ENCRYPTION_PASSWORD would start
+// writing plaintext shards (routes included) beside the encrypted ones.
+async function refuseIfEncryptedElsewhere() {
+  if (ENCRYPTION_PASSWORD) return;
+  let names = [];
+  try {
+    names = await readdir(ACTIVITY_DIR);
+  } catch {
+    return; // no activity folder yet: nothing is encrypted
+  }
+  for (const name of names) {
+    if (!/^activities-\d{4}-\d{2}\.json$/.test(name)) continue;
+    if (isEnvelope(await readJson(join(ACTIVITY_DIR, name), null))) {
+      console.error(`${name} is encrypted but the ENCRYPTION_PASSWORD secret is not set, so new activities`);
+      console.error('would be written unencrypted. Add the app\'s password as a repo secret named ENCRYPTION_PASSWORD.');
+      process.exit(1);
+    }
   }
 }
 
@@ -247,13 +291,13 @@ const batch = fresh
   .slice(-maxActivities);
 
 if (!batch.length) {
+  // Nothing is written: a fresh lastRunISO alone made every run (six a day)
+  // commit a change with no activities in it. The run time is in the
+  // workflow's own history.
   console.log('No new activities.');
-  await mkdir(ACTIVITY_DIR, { recursive: true });
-  await writeFile(STATE_PATH, JSON.stringify({
-    seenIds: [...seen], lastRunISO: new Date().toISOString(),
-  }, null, 2) + '\n');
   process.exit(0);
 }
+await refuseIfEncryptedElsewhere();
 
 await mkdir(ACTIVITY_DIR, { recursive: true });
 
