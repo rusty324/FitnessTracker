@@ -110,6 +110,13 @@ files). `datarepo-template/scripts/crypto.js` must stay **byte-identical** to
   at least one of its items has a linked log / confirmed match (lenient on
   purpose: old sessions were logged piecemeal)
   (`js/sessions.js` — the only definition; reuse it).
+- **Today's sessions are collapsible**: each is a button (`.session-toggle`:
+  name, plan, "N of M done") that opens to the full session — Full/Minimum,
+  exercises, its own "+ Log ad-hoc activity" (tags the log with the plan,
+  no planned exercise) and Finish. Open/closed is `ft.sessionOpen.<date>.<id>`
+  in localStorage. The stand-alone ad-hoc button shows only while no session
+  is open. Suites about session contents call `sessionsStartOpen()` from
+  `tests/lib.mjs`; `tests/app-today-sessions.mjs` tests the real default.
 - **Gym-floor drafts**: ticking a set writes `localStorage`
   `ft.draft.<date>.<sessionId|adhoc>`, never the repo; drafts become logs when an
   exercise's sets are all ticked, on Finish, and on pagehide/hidden (and on the

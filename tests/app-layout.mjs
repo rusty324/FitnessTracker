@@ -2,11 +2,12 @@
 // "false"/"null" text in set rows, Finish session below the ad-hoc button,
 // no weight column on mobility work, and nothing pushing the page sideways
 // (the calendar's long session labels, a long data-repo path in Settings).
-import { BASE, chromium, reporter } from './lib.mjs';
+import { BASE, chromium, reporter, sessionsStartOpen } from './lib.mjs';
 
 const { step, done } = reporter();
 const browser = await (await chromium()).launch();
 const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+await sessionsStartOpen(page);
 const errors = [];
 page.on('pageerror', (e) => errors.push(String(e)));
 const overflow = () => page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
@@ -56,14 +57,19 @@ step('…even when its last log stored the bodyweight 0', /Last time/.test(await
 // ---------- Finish session sits last ----------
 const order = await page.evaluate(() => {
   const all = [...document.querySelectorAll('#view button')];
+  const body = document.querySelector('.session-body');
   return {
     finish: all.findIndex((b) => b.dataset.action === 'finish'),
-    adhoc: all.findIndex((b) => /Log ad-hoc/.test(b.textContent)),
-    last: document.querySelector('#view').lastElementChild?.classList.contains('finish-bar'),
+    inAdhoc: all.findIndex((b) => b.classList.contains('session-adhoc')),
+    outAdhoc: all.findIndex((b) => b.classList.contains('today-adhoc')),
+    lastInSession: body?.lastElementChild?.classList.contains('finish-bar'),
   };
 });
-step('Finish session comes after “+ Log ad-hoc activity”', order.finish > order.adhoc && order.adhoc >= 0, JSON.stringify(order));
-step('…as the last thing on the page', order.last);
+// Each session ends with its own ad-hoc button and then Finish; the
+// stand-alone ad-hoc button comes after the session.
+step('Finish session comes after the session’s “+ Log ad-hoc activity”', order.finish > order.inAdhoc && order.inAdhoc >= 0, JSON.stringify(order));
+step('…as the last thing in the session', order.lastInSession);
+step('…and the stand-alone ad-hoc button is hidden while the session is open', order.outAdhoc === -1, JSON.stringify(order));
 step('Today: no sideways scroll', (await overflow()) <= 0, `${await overflow()}px`);
 
 // ---------- the calendar ----------

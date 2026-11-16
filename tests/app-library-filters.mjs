@@ -192,7 +192,7 @@ await clear();
 // ---------- the same filters when picking an exercise to log ----------
 await page.click('.tabbar button[data-tab="logs"]');
 await page.click('.segmented button:has-text("Today")');
-await page.click('button:has-text("Log ad-hoc")');
+await page.click('.today-adhoc');
 await page.waitForSelector('.modal select[data-filter="muscle"]');
 const modalNames = () => page.locator('.modal .list-row .row-title').allTextContents();
 step('the picker has the library’s search and three filters', (await page.locator('.modal select[data-filter]').count()) === 3

@@ -3,11 +3,12 @@
 // of weight (ghosts from last time, timer-style typing, ±5 s steppers), the
 // log form, History, the plan's target editor, the weekly "longest hold",
 // and the 390px layout.
-import { BASE, chromium, reporter } from './lib.mjs';
+import { BASE, chromium, reporter, sessionsStartOpen } from './lib.mjs';
 
 const { step, done } = reporter();
 const browser = await (await chromium()).launch();
 const page = await browser.newPage({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+await sessionsStartOpen(page);
 const errors = [];
 page.on('pageerror', (e) => errors.push(String(e)));
 await page.goto(BASE);

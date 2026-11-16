@@ -1,7 +1,7 @@
 // Phase D — the adaptive schedule, minimum sessions, pain flags and weekly
 // dots. The schedule wrapper (js/schedule.js) is the only place a session's
 // date is computed: a source scan below fails if any other module does it.
-import { BASE, chromium, reporter, stubGithub } from './lib.mjs';
+import { BASE, chromium, reporter, stubGithub, sessionsStartOpen } from './lib.mjs';
 import { readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -10,6 +10,7 @@ const { step, done } = reporter();
 const root = fileURLToPath(new URL('..', import.meta.url));
 const browser = await (await chromium()).launch();
 const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+await sessionsStartOpen(page);
 const errors = [];
 page.on('pageerror', (e) => errors.push(String(e)));
 
@@ -278,6 +279,7 @@ step('two consecutive weeks of pain → the stop line replaces the repeat offer 
 
 // ---------- sessions.json: encrypted, and refused when malformed ----------
 const page2 = await browser.newPage({ viewport: { width: 390, height: 844 } });
+await sessionsStartOpen(page2);
 page2.on('pageerror', (e) => errors.push(String(e)));
 const gh = await stubGithub(page2, {
   dirs: { 'data/activities': [], 'data/imported': [], 'data/strava': [] },

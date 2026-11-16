@@ -73,22 +73,21 @@ export function renderTodayMain(today, lib, logs, loggedByPe, desktop) {
   if (!desktop) S.root.appendChild(weighInCard(today));
 
   let anyPlanned = false;
-  const finishBars = [];
   const doneIds = doneItemIds(logs, store.get('matches'));
   const records = store.get('sessions');
   for (const occ of occurrences(store.get('plans'), store.get('schedule'))) {
     const { plan, session, week, date, skipped, repeat } = occ;
     if (date !== today || skipped) continue;
     anyPlanned = true;
-    const finish = renderSessionToday({ plan, session, week, today, lib, logs, loggedByPe, doneIds, records, repeat, occ });
-    if (finish) finishBars.push(finish);
+    renderSessionToday({ plan, session, week, today, lib, logs, loggedByPe, doneIds, records, repeat, occ, holdFinish: !!overdue });
   }
   if (!anyPlanned) S.root.appendChild(nextSessionCard(today));
-  S.root.appendChild(el('button', { class: 'btn', onclick: () => adhocLog() }, '+ Log ad-hoc activity'));
-  // Last on the page, under the ad-hoc button — in the flow, not pinned to
-  // the screen (pinned, it got tapped by thumbs scrolling) — and only once
-  // any overdue session is dealt with.
-  if (!overdue) for (const bar of finishBars) S.root.appendChild(bar);
+  // Outside any session: something done on its own — a morning run before
+  // the afternoon's session, say. Hidden while a session is open: that
+  // session has its own button, and two alike read as one too many.
+  if (!S.root.querySelector('.session-card-today.open')) {
+    S.root.appendChild(el('button', { class: 'btn today-adhoc', onclick: () => adhocLog() }, '+ Log ad-hoc activity'));
+  }
 }
 
 // Desktop side panel on Today.
@@ -270,7 +269,7 @@ export function priorSets(exerciseId, date, logs) {
   return logs.filter((l) => l.exerciseId === exerciseId && l.date < date).flatMap(setsOf);
 }
 
-export function renderSessionToday({ plan, session, week, today, lib, logs, loggedByPe, doneIds, records, repeat = false, occ = null }) {
+export function renderSessionToday({ plan, session, week, today, lib, logs, loggedByPe, doneIds, records, repeat = false, occ = null, holdFinish = false }) {
   const key = draftKey(today, session.id);
   const status = sessionStatus({ session, date: today, records, doneIds, repeat, logs });
   const draft = readDraft(key);
@@ -295,12 +294,37 @@ export function renderSessionToday({ plan, session, week, today, lib, logs, logg
     S.expandedItem = rec ? null : entries.find((e) => e.reps && !e.finished)?.item.id ?? null;
   }
 
-  S.root.appendChild(el('div', { class: 'session-head' },
+  // The session is a button: tapped, it opens to the full session; tapped
+  // again, it closes. Open/closed is remembered per day and session, since
+  // Today redraws on every change (a ticked set, a sync).
+  const openKey = `ft.sessionOpen.${today}.${session.id}${repeat ? '.r' : ''}`;
+  let open = false;
+  try { open = localStorage.getItem(openKey) === '1'; } catch { /* storage blocked */ }
+  const card = el('section', { class: `session-card-today${open ? ' open' : ''}`, dataset: { session: session.id } });
+  S.root.appendChild(card);
+  const progress = status.completed
+    ? null
+    : status.planned ? `${status.done} of ${status.planned} done` : null;
+  card.appendChild(el('button', {
+    type: 'button', class: 'session-toggle', 'aria-expanded': String(open),
+    onclick: () => {
+      try { localStorage.setItem(openKey, open ? '0' : '1'); } catch { /* storage blocked */ }
+      render();
+    },
+  },
+    el('span', { class: 'session-toggle-main' },
+      el('span', { class: 'session-title' }, session.label || plan.name),
+      el('span', { class: 'row-sub' },
+        [`${plan.name} · week ${week.index}${repeat ? ' (repeat)' : ''}${week.isDeload ? ' (deload)' : ''}`,
+          session.estimatedDurationMin ? `~${session.estimatedDurationMin} min` : '', progress].filter(Boolean).join(' · '))),
+    status.completed && el('span', { class: 'pill ok' }, status.kind === 'minimum' ? 'done · minimum' : 'done'),
+    el('span', { class: 'session-chevron', 'aria-hidden': 'true' }, open ? '▾' : '▸')));
+  if (!open) return null;
+  const box = el('div', { class: 'session-body' });
+  card.appendChild(box);
+
+  box.appendChild(el('div', { class: 'session-head' },
     el('div', { class: 'row-main' },
-      el('div', { class: 'session-title' }, session.label || plan.name),
-      el('div', { class: 'row-sub' },
-        `${plan.name} · week ${week.index}${repeat ? ' (repeat)' : ''}${week.isDeload ? ' (deload)' : ''}`
-        + `${session.estimatedDurationMin ? ` · ~${session.estimatedDurationMin} min` : ''}`),
       session.note && el('div', { class: 'row-sub' }, session.note),
       // Not today after all: before anything is logged or ticked.
       occ && !status.completed && !Object.values(draft.items).some((d) => d.rows?.some((r) => r.done))
@@ -315,38 +339,42 @@ export function renderSessionToday({ plan, session, week, today, lib, logs, logg
         } },
           delayLabel(today)),
     ),
-    status.completed && el('span', { class: 'pill ok' }, status.kind === 'minimum' ? 'done · minimum' : 'done'),
   ));
   if (!status.kind && entries.length) {
     const pick = (m) => () => { setDraftMode(key, m); S.expandedItem = null; render(); };
-    S.root.appendChild(el('div', { class: 'segmented session-mode', role: 'group', 'aria-label': 'Session version' },
+    box.appendChild(el('div', { class: 'segmented session-mode', role: 'group', 'aria-label': 'Session version' },
       el('button', { class: mode === 'full' ? 'active' : '', type: 'button', dataset: { mode: 'full' }, onclick: pick('full') }, 'Full session'),
       el('button', { class: mode === 'minimum' ? 'active' : '', type: 'button', dataset: { mode: 'minimum' }, onclick: pick('minimum') },
         `Minimum · ~${estimateMinutes(session, minimum)} min`)));
     if (mode === 'minimum') {
-      S.root.appendChild(el('p', { class: 'muted min-note' },
+      box.appendChild(el('p', { class: 'muted min-note' },
         'Counts as a completed session. It won’t trigger weight or level increases.'));
     }
   }
-  if (!entries.length) S.root.appendChild(el('p', { class: 'muted' }, 'Session has no exercises.'));
+  if (!entries.length) box.appendChild(el('p', { class: 'muted' }, 'Session has no exercises.'));
 
   let lastBlock = null;
   for (const e of entries) {
     if (e.block !== lastBlock && ((session.blocks?.length ?? 0) > 1 || e.block.name || e.block.rounds)) {
-      S.root.appendChild(el('div', { class: 'block-label' },
+      box.appendChild(el('div', { class: 'block-label' },
         (e.block.name || blockLabel(e.block.type)) + (e.block.rounds ? ` — ${e.block.rounds} rounds` : ''),
         mode === 'minimum' && el('span', { class: 'block-note' }, e.block.unchanged ? ' · unchanged' : ' · half the sets')));
-      if (e.block.note) S.root.appendChild(el('div', { class: 'row-sub', style: 'margin:-4px 2px 8px' }, e.block.note));
+      if (e.block.note) box.appendChild(el('div', { class: 'row-sub', style: 'margin:-4px 2px 8px' }, e.block.note));
     }
     lastBlock = e.block;
-    S.root.appendChild(exerciseCard({ plan, session, week, today, key, logs, entries, minimumMode: mode === 'minimum', ...e }));
+    box.appendChild(exerciseCard({ plan, session, week, today, key, logs, entries, minimumMode: mode === 'minimum', ...e }));
   }
 
-  // Returned, not appended: Today puts it at the very bottom.
-  if (!rec && entries.length) {
-    return el('div', { class: 'finish-bar' },
+  // An extra exercise as part of this session (tagged with its plan).
+  box.appendChild(el('button', { class: 'btn secondary session-adhoc', type: 'button', onclick: () => adhocLog(undefined, plan) }, '+ Log ad-hoc activity'));
+
+  // Last in the session, under its ad-hoc button — in the flow, not pinned
+  // to the screen (pinned, it got tapped by thumbs scrolling) — and only once
+  // any overdue session is dealt with.
+  if (!rec && entries.length && !holdFinish) {
+    box.appendChild(el('div', { class: 'finish-bar' },
       el('button', { class: 'btn block large', dataset: { action: 'finish' }, onclick: () => finishSession(plan, session, today, mode, repeat) },
-        mode === 'minimum' ? finishLabel(session, plan).replace('Finish', 'Finish minimum') : finishLabel(session, plan)));
+        mode === 'minimum' ? finishLabel(session, plan).replace('Finish', 'Finish minimum') : finishLabel(session, plan))));
   }
   return null;
 }
@@ -587,8 +615,11 @@ export function inferKind(actual) {
 
 // Picker state round-trips through the modal's Back button so a mis-click
 // returns to the same search + scroll position instead of starting over.
-export function adhocLog(restore) {
-  pickExercise((ex, pickerState) => logEntryModal({ ex, onBack: () => adhocLog(pickerState) }), restore);
+// plan: when started from inside a session, the log is tagged with that
+// session's plan (shown in History) — but tied to no planned exercise, so it
+// never counts as doing one.
+export function adhocLog(restore, plan = null) {
+  pickExercise((ex, pickerState) => logEntryModal({ ex, plan, onBack: () => adhocLog(pickerState, plan) }), restore);
 }
 
 // Shared entry modal for planned, ad-hoc, and edit flows.

@@ -68,3 +68,17 @@ export async function stubGithub(page, { dirs = {}, files = {} } = {}) {
     reset: () => { calls.length = 0; },
   };
 }
+
+// Today shows each session collapsed until it is tapped (js/ui/logs/today.js).
+// Suites about what is inside a session start them open instead: a closed
+// session reads as open unless it was explicitly closed. The collapsing
+// itself is tested with the real default in app-today-sessions.mjs.
+export async function sessionsStartOpen(pageOrContext) {
+  await pageOrContext.addInitScript(() => {
+    const get = Storage.prototype.getItem;
+    Storage.prototype.getItem = function (k) {
+      const v = get.call(this, k);
+      return v == null && String(k).startsWith('ft.sessionOpen.') ? '1' : v;
+    };
+  });
+}
